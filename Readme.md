@@ -49,8 +49,7 @@ est_groups = GroupLassoENetCV(groups).fit(X, y)
 # folded concave penalty, tuned with cross-validation
 # and initialized from the LassoCV solution
 # see (Fan et al. 2014) for details
-est_concave_cv = FcpLLACV(init=est_cv,
-						  pen_func='scad').fit(X, y)
+est_concave_cv = FcpLLACV(init=est_cv, pen_func='scad').fit(X, y)
 ```
 
 Se the [docs/](docs/) folder for additional examples in jupyter notebooks.
