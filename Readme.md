@@ -1,6 +1,6 @@
 # Yet another generalized linear model package
 
-`ya_glm` aims to give you a fast, easy to use and flexible package for fitting a wide variety of penalized *generalized linear models* (GLM). Existing packages (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html), [pyglmenet](https://github.com/glm-tools/pyglmnet)) accomplish the first two of these goals, but are not easy to customize and support a limited number GLM + penalty combinations.
+`ya_glm` aims to give you a fast, easy to use and flexible package for fitting a wide variety of penalized *generalized linear models* (GLM). Existing packages (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html), [pyglmnet](https://github.com/glm-tools/pyglmnet)) accomplish the first two of these goals, but are not easy to customize and support a limited number GLM + penalty combinations.
 
  
  **Beware**: this is a preliminary release of the package; the documentation and testing may leave you wanting and the code may be subject to breaking changes in the near future.
