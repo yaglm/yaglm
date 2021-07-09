@@ -229,4 +229,5 @@ def sample_X(n_samples=100, n_features=10, X_dist='indep', x_corr=0.1,
         cov = (1 - x_corr) * np.eye(n_features) + \
             x_corr * np.ones((n_features, n_features))
 
-        return rng.multivariate_normal(size=n_samples, cov=cov)
+        return rng.multivariate_normal(mean=np.zeros(n_features), cov=cov,
+                                       size=n_samples)
