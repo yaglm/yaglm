@@ -22,8 +22,9 @@ To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) yo
 ```python
 from sklearn.datasets import make_regression
 
-from ya_glm.backends.fista.LinearRegression import Lasso, LassoCV,\
-	RidgeCV, LassoENetCV, GroupLassoENetCV, FcpLLACV
+from ya_glm.backends.fista.LinearRegression import Lasso, LassoCV, RidgeCV, LassoENetCV, \
+    GroupLassoENet, GroupLassoENetCV, \
+    FcpLLA, FcpLLACV
 
 # sample some linear regression data
 X, y = make_regression(n_samples=100, n_features=20)
@@ -42,14 +43,19 @@ est_cv = LassoCV(cv_select_rule='1se').fit(X, y)
 # est_cv = LassoENetCV().fit(X, y)
 
 # we support user specified groups!
-groups = [np.arange(10), np.arange(10, 20)]
-est_groups = GroupLassoENetCV(groups).fit(X, y)
+groups = [range(10), range(10, 20)]
+est = GroupLassoENet(groups=groups)
+# and a cross-validation object that supports path solutions 
+est_cv = GroupLassoENetCV(estimator=est).fit(X, y)
 
 
-# folded concave penalty, tuned with cross-validation
+# folded concave penalty with SCAD penalty
 # and initialized from the LassoCV solution
 # see (Fan et al. 2014) for details
-est_concave_cv = FcpLLACV(init=est_cv, pen_func='scad').fit(X, y)
+est = FcpLLA(init=LassoCV(), pen_func='scad')
+
+# we can also tune this with cross-validation
+est_cv = FcpLLACV(estimator=est).fit(X, y)
 ```
 
 Se the [docs/](docs/) folder for additional examples in jupyter notebooks.
