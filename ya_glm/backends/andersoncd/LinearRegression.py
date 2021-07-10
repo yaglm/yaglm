@@ -3,13 +3,15 @@ from ya_glm.models.linear_regression import LinRegMixin
 from ya_glm.pen_glm.Vanilla import GlmVanilla
 from ya_glm.pen_glm.Lasso import GlmLasso, GlmLassoCVPath
 
-
 from ya_glm.fcp.GlmFcp import GlmFcpFitLLA
-from ya_glm.fcp.GlmFcpCV import GlmFcpFitLLACV
+from ya_glm.fcp.GlmFcpCV import GlmFcpCV
 from ya_glm.lla.lla import solve_lla
+from ya_glm.add_init_params import add_init_params
+
 
 from .glm_solver import solve_glm, solve_glm_path
 from .fcp_lla_solver import WL1SolverGlm
+
 
 ##############
 # Single fit #
@@ -17,11 +19,11 @@ from .fcp_lla_solver import WL1SolverGlm
 
 
 class Vanilla(LinRegMixin, GlmVanilla):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class Lasso(LinRegMixin, GlmLasso):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class FcpLLA(LinRegMixin, GlmFcpFitLLA):
@@ -29,8 +31,9 @@ class FcpLLA(LinRegMixin, GlmFcpFitLLA):
     base_wl1_solver = WL1SolverGlm
 
     def _get_defualt_init(self):
-        return LassoCV(fit_intercept=self.fit_intercept,
-                       opt_kws=self.opt_kws)
+        return LassoCV()
+
+
 ####################
 # Cross-validation #
 ####################
@@ -39,14 +42,11 @@ class FcpLLA(LinRegMixin, GlmFcpFitLLA):
 class LassoCV(GlmLassoCVPath):
     solve_path = staticmethod(solve_glm_path)
 
-    def _get_base_class(self):
-        return Lasso
+    @add_init_params(GlmLassoCVPath)
+    def __init__(self, estimator=Lasso()): pass
 
 
-class FcpLLACV(GlmFcpFitLLACV):
-    def _get_base_class(self):
-        return FcpLLA
+class FcpLLACV(GlmFcpCV):
 
-
-# TODO
-# class AdptLassoCV(GlmAdptLassoCV):
+    @add_init_params(GlmFcpCV)
+    def __init__(self, estimator=FcpLLA()): pass
