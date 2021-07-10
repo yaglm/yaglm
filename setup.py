@@ -9,12 +9,13 @@ from setuptools import setup, find_packages
 
 install_requires = ['numpy',
                     'pandas',
-                    'scikit-learn'
+                    'scikit-learn',
+                    'scipy'
                     ]
 
 
 setup(name='ya_glm',
-      version='0.0.0',
+      version='0.1.0',
       description='A flexible package for fitting penalized generalized linear models.',
       author='Iain Carmichael',
       author_email='idc9@cornell.edu',
