@@ -65,24 +65,25 @@ Se the [docs/](docs/) folder for additional examples in jupyter notebooks.
 
 We currently support the following loss functions
 
-- linear regression
-- logistic regression
-- linear regression with multiple responses
+- Linear regression
+- Logistic regression
+- Linear regression with multiple responses
 
 and the following penalties
 
-- Lasso (optionally with weights)
+- Lasso
 - Group Lasso with user specified groups
 - Elastic net
 - Ridge
-- Tikhonov
 - Nuclear norm
-- Row lasso (i.e. L1 to L2 norm)
+- Multi-task Lasso (i.e. L1 to L2 norm)
+- Weighted versions of all of the above
+- Tikhonov
 - Folded concave penalties (FCP) such as SCAD
 
 The FCP penalties are fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit. See (Fan et al, 2014) for details.
 
-We also provided built in cross-validation (CV) for each of these penalties. For Lasso, Ridge and ElasticNet CV methods use faster path algorithms (as in sklearn.linear_model.LassoCV). Our CV function allow custom metrics and custom selection rules such as the '1se' rule from the glmnet package.
+We also provided built in cross-validation (CV) for each of these penalties. For the concave penalties (e.g. Lasso) our CV methods use faster path algorithms (as in sklearn.linear_model.LassoCV). Our CV function allow custom metrics and custom selection rules such as the '1se' rule from the glmnet package.
 
 We aim to add additional loss functions including poisson, multinomial, gamma, huber, and cox regression.
 
@@ -98,7 +99,7 @@ We aim to add additional loss functions including poisson, multinomial, gamma, h
 	- automatically generated tuning parameter sequence from the training data for both Lasso and concave penalties. This requires computing the largest reasonable penalty value for different combinations of loss + penalty.
 	- see e.g. `ya_glm.GlmCV`, `ya_glm.fcp.GlmFcpCV`
 
-- A flexible and reasonably fast FISTA algorithm (Beck and Tebouule, 2009) for GLM loss + non-smooth penalty problems
+- A  FISTA algorithm (Beck and Tebouule, 2009) for GLM loss + non-smooth penalty problems
 	- see `ya_glm.opt`
 	- this module  is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)
 
@@ -111,7 +112,7 @@ We aim to add additional loss functions including poisson, multinomial, gamma, h
 	
 - Support for customization
 	- straightforward to swap in your favorite GLM solver
-	- see `ya_glm.backends.celer` for an example
+	- see `ya_glm.backends.andersoncd` for an example
 	- cross-validation tuning
 	- monitor various metrics for cross-validation path
 
