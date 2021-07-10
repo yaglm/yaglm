@@ -17,7 +17,11 @@ class LinRegMixin(RegressorMixin):
     copy_X:
 
     """
-    _model_type = 'lin_reg'
+    def get_loss_info(self):
+        loss_type = 'lin_reg'
+        loss_kws = {}
+
+        return loss_type, loss_kws
 
     def _process_y(self, y, copy=True):
         return process_y_lin_reg(y, standardize=self.standardize,
@@ -145,44 +149,3 @@ def score_lin_reg(est, X, y, verbosity=1):
         out['l2_norm'] = np.linalg.norm(est.coef_.reshape(-1))
 
     return out
-
-# TODO: should we include this somewhere?
-# from scipy.linalg import lstsq
-# from time import time
-# class LinRegFitScipyMixin:
-#     """
-
-#     _model_type:
-
-#     pen_val:
-
-#     weights:
-
-#     opt_kws:
-#     """
-#     def _compute_fit(self, X, y):
-#         start_time = time()
-
-#         # Intercept already delt with
-#         # if self.fit_intercept:
-#         #     X = np.hstack([np.ones(X.shape[0]).reshape(-1, 1), X])
-
-#         # solve using Scipy
-#         coef, _, rank, svals = lstsq(X, y)
-
-#         # format output
-#         opt_data = {'runtime': time() - start_time,
-#                     'X_rank': rank}
-
-#         # if self.fit_intercept:
-#         #     intercept = coef[0]
-#         #     coef = coef[1:]
-#         # else:
-#         #     intercept = None
-
-#         fit_out = {'coef': coef, 'intercept': None, 'opt_data': opt_data}
-#         return fit_out
-
-
-# class LinearRegression(LinRegFitScipyMixin, LinRegMixin, Glm):
-#     pass

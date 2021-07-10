@@ -1,0 +1,75 @@
+GlmCV
+- fit, predict, score, etc
+- sub-class sets tuning sequence
+- needs a CV mixin for _run_cv in fit
+
+
+GlmCVSinglePen(GlmCV):
+- sets tuning sequence
+- needs to get pen val max
+
+
+GlmCVENet(GlmCV)
+- sets tuning sequence
+- needs to get pen val max for lasso
+
+
+
+GlmFcpCV(GlmCVSinglePen)
+- over rides fit to handle initialization
+- sets tuning param sequence
+- needs to get pen val max for fcp which in turn needs to get it for lasso
+
+
+
+
+
+So far have only modifed GlmCV
+
+
+
+
+
+
+------------------------------------
+
+estimator(pen_val, other_est_params): fits loss + penalty for a single penalty parameter setting
+- implements solve()
+- preprocess X, y
+- determines pen_max
+
+
+CVPathSinglePen(pen_seq_params, cv_params): tune one penalty parameter with a path solver using CV
+- needs solve_path
+- determines tuning path: needs pen_max
+- runs CV with path
+- parameter selection from CV results
+- refit
+
+
+
+CVEnet(enet_pen_seq_params, cv_params): tunes ENet with CV
+- needs solve_path
+- determines the tune param settings (pen_val_seq_ and or l1_ratio_seq_)
+- runs CV
+- parameter selection from CV results
+- refit
+
+
+
+FCP(init, pen_val, pen_params, other_est_params, LLA_params): initialize then fit loss + FCP penalty for a single parameter setting
+- initialize
+- needs solve_lla
+- preprocess X, y
+- determines pen_max
+
+
+FCPCV(init, pen_seq_params, cv_params): initialize, tune with CV, refit
+- initialize
+- determines tuning path: needs pen_max
+- run CV
+- parameter selection from CV results
+- refit
+
+
+

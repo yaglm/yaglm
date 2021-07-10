@@ -1,162 +1,69 @@
-import numpy as np
+from ya_glm.pen_glm.Lasso import GlmLasso, GlmLassoCVPath, GlmLassoENet, \
+    GlmLassoENetCVPath
 
-from ya_glm.autoassign import autoassign
-from ya_glm.utils import get_lasso_and_L2_from_enet
+from ya_glm.add_init_params import add_init_params
 from ya_glm.glm_pen_max_lasso import group_lasso_max
-
-from ya_glm.Glm import Glm
-from ya_glm.GlmCV import GlmCVSinglePen, GlmCVENet
-from ya_glm.ENetCVPath import ENetCVPathMixin
-from ya_glm.cv.CVPath import CVPathMixin
+from ya_glm.processing import check_estimator_type
 
 
-class GlmGroupLasso(Glm):
+class GlmGroupLasso(GlmLasso):
 
-    @autoassign
-    def __init__(self, groups, pen_val=1, weights='size', **kws):
-        super().__init__(**kws)
+    @add_init_params(GlmLasso)
+    def __init__(self, groups, weights='size'): pass
 
-    def _get_solve_glm_kws(self):
-
-        weights = process_weights_group_lasso(groups=self.groups,
-                                              weights=self.weights)
-
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
-
-                'groups': self.groups,
-                'lasso_pen': self.pen_val,
-                'lasso_weights': weights,
-                }
+    def _get_solve_kws(self):
+        """
+        solve_glm is called as solve_glm(X=X, y=y, **kws)
+        """
+        kws = super()._get_solve_kws()
+        kws['groups'] = self.groups
+        return kws
 
     def _get_pen_val_max_from_pro(self, X, y):
-        weights = process_weights_group_lasso(groups=self.groups,
-                                              weights=self.weights)
+
+        loss_func, loss_kws = self.get_loss_info()
 
         return group_lasso_max(X=X, y=y,
-                               fit_intercept=self.fit_intercept,
-                               weights=weights,
                                groups=self.groups,
-                               model_type=self._model_type)
+                               fit_intercept=self.fit_intercept,
+                               loss_func=loss_func,
+                               loss_kws=loss_kws,
+                               weights=self.weights)
 
 
-class GlmGroupLassoCVPath(CVPathMixin, GlmCVSinglePen):
-    @autoassign
-    def __init__(self, groups, weights='size', **kws):
-        GlmCVSinglePen.__init__(self, **kws)
+class GlmGroupLassoCVPath(GlmLassoCVPath):
 
-    def _get_base_est_params(self):
-        return {'fit_intercept': self.fit_intercept,
-                'opt_kws': self.opt_kws,
-                'standardize': self.standardize,
-
-                'groups': self.groups,
-                'weights': self.weights,
-                }
-
-    def _get_solve_path_kws(self):
-
-        weights = process_weights_group_lasso(groups=self.groups,
-                                              weights=self.weights)
-
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
-
-                'groups': self.groups,
-                'lasso_weights': weights,
-
-                'lasso_pen_seq': self.pen_val_seq_
-                }
+    def _check_base_estimator(self, estimator):
+        check_estimator_type(estimator, GlmGroupLasso)
 
 
-class GlmGroupLassoENet(Glm):
+class GlmGroupLassoENet(GlmLassoENet):
 
-    @autoassign
-    def __init__(self, groups, pen_val=1, l1_ratio=0.5, weights='size',
-                 tikhonov=None, **kws):
-        super().__init__(**kws)
+    @add_init_params(GlmLassoENet)
+    def __init__(self, groups, lasso_weights='size'): pass
 
-    def _get_solve_glm_kws(self):
-        lasso_pen, L2_pen = get_lasso_and_L2_from_enet(pen_val=self.pen_val,
-                                                       l1_ratio=self.l1_ratio)
-
-        weights = process_weights_group_lasso(groups=self.groups,
-                                              weights=self.weights)
-
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
-
-                'groups': self.groups,
-                'lasso_pen': lasso_pen,
-                'lasso_weights': weights,
-
-                'L2_pen': L2_pen,
-                'tikhonov': self.tikhonov
-                }
+    def _get_solve_kws(self):
+        """
+        solve_glm is called as solve_glm(X=X, y=y, **kws)
+        """
+        kws = super()._get_solve_kws()
+        kws['groups'] = self.groups
+        return kws
 
     def _get_pen_val_max_from_pro(self, X, y):
-
-        weights = process_weights_group_lasso(groups=self.groups,
-                                              weights=self.weights)
+        loss_func, loss_kws = self.get_loss_info()
 
         l1_max = group_lasso_max(X=X, y=y,
-                                 fit_intercept=self.fit_intercept,
-                                 weights=weights,
                                  groups=self.groups,
-                                 model_type=self._model_type)
+                                 fit_intercept=self.fit_intercept,
+                                 loss_func=loss_func,
+                                 loss_kws=loss_kws,
+                                 weights=self.lasso_weights)
+
         return l1_max / self.l1_ratio
 
 
-class GlmGroupLassoENetCVPath(ENetCVPathMixin, GlmCVENet):
+class GlmGroupLassoENetCVPath(GlmLassoENetCVPath):
 
-    @autoassign
-    def __init__(self, groups, weights='size',
-                 tikhonov=None, **kws):
-        GlmCVENet.__init__(self, **kws)
-
-    def _get_extra_base_params(self):
-
-        return {'fit_intercept': self.fit_intercept,
-                'opt_kws': self.opt_kws,
-                'standardize': self.standardize,
-
-                'groups': self.groups,
-                'weights': self.weights,
-                'tikhonov': self.tikhonov
-                }
-
-    def _get_solve_path_base_kws(self):
-
-        weights = process_weights_group_lasso(groups=self.groups,
-                                              weights=self.weights)
-
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
-
-                'groups': self.groups,
-                'lasso_weights': weights,
-                'tikhonov': self.tikhonov
-                }
-
-
-def process_weights_group_lasso(groups, weights=None):
-    """
-
-    Parameters
-    ----------
-    groups: list of array-like
-
-    weights: str or array-like
-    """
-    if weights is None:
-        return None
-
-    if weights == 'size':
-        group_sizes = np.array([len(grp) for grp in groups])
-        weights = 1 / np.sqrt(group_sizes)
-    else:
-        weights = weights
+    def _check_base_estimator(self, estimator):
+        check_estimator_type(estimator, GlmGroupLassoENet)

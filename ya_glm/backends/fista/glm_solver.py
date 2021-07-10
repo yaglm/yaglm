@@ -3,6 +3,7 @@ from copy import deepcopy
 from textwrap import dedent
 
 from ya_glm.utils import is_multi_response
+from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.linear_regression import LinRegLoss, LinRegMultiRespLoss
 from ya_glm.opt.logistic_regression import LogRegLoss
 from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
@@ -12,7 +13,6 @@ from ya_glm.opt.mat_penalty import RowLasso, NuclearNorm, \
     MatricizeEntrywisePen, \
     MatWithIntercept
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
-
 from ya_glm.opt.fista import solve_fista
 from ya_glm.opt.base import Func, Sum
 
@@ -25,6 +25,9 @@ y: array-like, shape (n_samples, )
 
 loss_func: str
     Which GLM loss function to use.
+
+loss_kws: dict
+    Keyword arguments for loss function.
 
 fit_intercept: bool
     Whether or not to fit an intercept.
@@ -44,10 +47,10 @@ L1to2: bool
 nuc: bool
     For matrix coefficients, whether or not to use nuclear norm.
 
-L2_pen: None, float
+ridge_pen: None, float
     (Optional) The L2 penalty parameter value.
 
-L2_weights: None, array-like, shape (n_features, )
+ridge_weights: None, array-like, shape (n_features, )
     (Optional) The L2 penalty feature weights.
 
 tikhonov: None, array-like shape (n_features, n_features)
@@ -98,6 +101,7 @@ opt_data: dict
 
 def solve_glm(X, y,
               loss_func='lin_reg',
+              loss_kws={},
               fit_intercept=True,
 
               lasso_pen=None,
@@ -105,8 +109,8 @@ def solve_glm(X, y,
               groups=None,
               L1to2=False,
               nuc=False,
-              L2_pen=None,
-              L2_weights=None,
+              ridge_pen=None,
+              ridge_weights=None,
               tikhonov=None,
 
               coef_init=None,
@@ -122,7 +126,7 @@ def solve_glm(X, y,
     # setup loss function #
     #######################
 
-    loss_func = get_glm_loss(loss_func=loss_func,
+    loss_func = get_glm_loss(loss_func=loss_func, loss_kws=loss_kws,
                              X=X, y=y, fit_intercept=fit_intercept,
                              precomp_lip=precomp_lip)
 
@@ -137,8 +141,9 @@ def solve_glm(X, y,
     if lasso_pen is None and lasso_weights is not None:
         lasso_pen = 1
 
-    if L2_pen is None and (L2_weights is not None or tikhonov is not None):
-        L2_pen = 1
+    if ridge_pen is None and \
+            (ridge_weights is not None or tikhonov is not None):
+        ridge_pen = 1
 
     is_mr = is_multi_response(y)
     is_already_mat_pen = False
@@ -150,7 +155,8 @@ def solve_glm(X, y,
         assert tikhonov is None
     else:
         if nuc:
-            raise ValueError("Nuclear norm not applicable to vector coefficients")
+            raise ValueError("Nuclear norm not applicable"
+                             " to vector coefficients")
     #################
     # Lasso penalty #
     #################
@@ -158,6 +164,9 @@ def solve_glm(X, y,
         lasso = None
 
     elif groups is not None:
+        lasso_weights = process_weights_group_lasso(groups=groups,
+                                                    weights=lasso_weights)
+
         lasso = GroupLasso(groups=groups,
                            mult=lasso_pen, weights=lasso_weights)
 
@@ -176,15 +185,15 @@ def solve_glm(X, y,
     # L2 penalty #
     ##############
 
-    if L2_pen is None:
+    if ridge_pen is None:
         ridge = None
 
     elif tikhonov is not None:
-        assert L2_weights is None  # cant have both L2_weights and tikhonov
-        ridge = TikhonovPenalty(mult=L2_pen, mat=tikhonov)
+        assert ridge_weights is None  # cant have both ridge_weights and tikhonov
+        ridge = TikhonovPenalty(mult=ridge_pen, mat=tikhonov)
 
     else:
-        ridge = RidgePenalty(mult=L2_pen, weights=L2_weights)
+        ridge = RidgePenalty(mult=ridge_pen, weights=ridge_weights)
 
     # possibly format penalties for matrix coefficients
     if is_mr:
@@ -262,11 +271,11 @@ Output
 
 
 def solve_glm_path(X, y,
-                   lasso_pen_seq=None, L2_pen_seq=None,
-                   loss_func='lin_reg',
+                   lasso_pen_seq=None, ridge_pen_seq=None,
+                   loss_func='lin_reg', loss_kws={},
                    fit_intercept=True,
                    precomp_lip=None,
-                   generator=True,
+                   # generator=True,
                    check_decr=True,
                    **kws):
     """
@@ -280,14 +289,11 @@ def solve_glm_path(X, y,
     L1_pen_seq: None, array-like
         The L1 penalty parameter tuning sequence.
 
-    L2_pen_seq: None, array-like
-        The L2 penalty parameter tuning sequence. If both L1_pen_seq and L2_pen_seq are provided they should be the same length.
-
-    generator: bool
-        Whether or not this function should a generator (saves memory) or return a list.
+    ridge_pen_seq: None, array-like
+        The L2 penalty parameter tuning sequence. If both L1_pen_seq and ridge_pen_seq are provided they should be the same length.
 
     check_decr: bool
-        Whether or not to check the L1_pen_seq/L2_pen_seq are monotonically decreasing.
+        Whether or not to check the L1_pen_seq/ridge_pen_seq are monotonically decreasing.
 
     Output
     ------
@@ -302,13 +308,13 @@ def solve_glm_path(X, y,
     # TODO: possibly re-write this so we can do tikhinov precomputation stuff once
 
     param_path = process_param_path(lasso_pen_seq=lasso_pen_seq,
-                                    L2_pen_seq=L2_pen_seq,
+                                    ridge_pen_seq=ridge_pen_seq,
                                     check_decr=check_decr)
 
-    out = []  # in case we want to return
+    # out = []  # in case we want to return
 
     # this will precompute the lipschitz constant
-    loss_func = get_glm_loss(loss_func=loss_func,
+    loss_func = get_glm_loss(loss_func=loss_func, loss_kws=loss_kws,
                              X=X, y=y, fit_intercept=fit_intercept,
                              precomp_lip=precomp_lip)
 
@@ -341,16 +347,18 @@ def solve_glm_path(X, y,
                    'intercept': intercept,
                    'opt_data': opt_data}
 
-        if generator:
-            yield fit_out, params
+        # if generator:
+        yield fit_out, params
 
-        else:
-            out.append((fit_out, params))
+    #     else:
+    #         out.append((fit_out, params))
 
-    return out
+    # return out
 
 
-def get_glm_loss(loss_func, X, y, fit_intercept=True, precomp_lip=None):
+def get_glm_loss(X, y,
+                 loss_func='lin_reg', loss_kws={},
+                 fit_intercept=True, precomp_lip=None):
     """
     Returns an GLM loss function object.
 
@@ -395,7 +403,8 @@ def get_glm_loss(loss_func, X, y, fit_intercept=True, precomp_lip=None):
     elif loss_func == 'log_reg':
         obj_class = LogRegLoss
 
-    return obj_class(X=X, y=y, fit_intercept=fit_intercept, lip=precomp_lip)
+    return obj_class(X=X, y=y, fit_intercept=fit_intercept, lip=precomp_lip,
+                     **loss_kws)
 
 
 def process_init(X, y, fit_intercept=True, coef_init=None, intercept_init=None):
@@ -411,6 +420,7 @@ def process_init(X, y, fit_intercept=True, coef_init=None, intercept_init=None):
         The initial value. Shape is (n_features, ), (n_features + 1, )
         (n_features, n_responses) or (n_features, n_responses + 1)
     """
+
     is_mr = is_multi_response(y)
 
     # initialize coefficient
@@ -440,30 +450,31 @@ def process_init(X, y, fit_intercept=True, coef_init=None, intercept_init=None):
     return init_val
 
 
-def process_param_path(lasso_pen_seq=None, L2_pen_seq=None, check_decr=True):
+def process_param_path(lasso_pen_seq=None, ridge_pen_seq=None, check_decr=True):
 
     if check_decr:
         if lasso_pen_seq is not None:
             assert all(np.diff(lasso_pen_seq) <= 0)
 
-        if L2_pen_seq is not None:
-            assert all(np.diff(L2_pen_seq) <= 0)
+        if ridge_pen_seq is not None:
+            assert all(np.diff(ridge_pen_seq) <= 0)
 
-    if lasso_pen_seq is not None and L2_pen_seq is not None:
-        assert len(lasso_pen_seq) == len(L2_pen_seq)
+    if lasso_pen_seq is not None and ridge_pen_seq is not None:
+        assert len(lasso_pen_seq) == len(ridge_pen_seq)
 
-        param_path = ({'lasso_pen': lasso_pen_seq[i], 'L2_pen': L2_pen_seq[i]}
-                      for i in range(len(lasso_pen_seq)))
+        param_path = [{'lasso_pen': lasso_pen_seq[i],
+                       'ridge_pen': ridge_pen_seq[i]}
+                      for i in range(len(lasso_pen_seq))]
 
     elif lasso_pen_seq is not None:
-        param_path = ({'lasso_pen': lasso_pen_seq[i]}
-                      for i in range(len(lasso_pen_seq)))
+        param_path = [{'lasso_pen': lasso_pen_seq[i]}
+                      for i in range(len(lasso_pen_seq))]
 
-    elif L2_pen_seq is not None:
-        param_path = ({'L2_pen': L2_pen_seq[i]}
-                      for i in range(len(L2_pen_seq)))
+    elif ridge_pen_seq is not None:
+        param_path = [{'ridge_pen': ridge_pen_seq[i]}
+                      for i in range(len(ridge_pen_seq))]
 
     else:
-        raise ValueError("One of lasso_pen_seq, L2_pen_seq should be provided ")
+        raise ValueError("One of lasso_pen_seq, ridge_pen_seq should be provided ")
 
     return param_path

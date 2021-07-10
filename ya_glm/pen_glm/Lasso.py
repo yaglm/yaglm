@@ -1,108 +1,149 @@
-from ya_glm.autoassign import autoassign
-from ya_glm.utils import get_lasso_and_L2_from_enet
-from ya_glm.glm_pen_max_lasso import lasso_max
-
 from ya_glm.Glm import Glm
 from ya_glm.GlmCV import GlmCVSinglePen, GlmCVENet
-from ya_glm.ENetCVPath import ENetCVPathMixin
+from ya_glm.cv.ENetCVPath import ENetCVPathMixin
 from ya_glm.cv.CVPath import CVPathMixin
+
+from ya_glm.add_init_params import add_init_params
+from ya_glm.glm_pen_max_lasso import lasso_max
+from ya_glm.utils import lasso_and_ridge_from_enet
+from ya_glm.processing import check_estimator_type
 
 
 class GlmLasso(Glm):
 
-    @autoassign
-    def __init__(self, pen_val=1, weights=None, **kws):
-        super().__init__(**kws)
+    @add_init_params(Glm)
+    def __init__(self, pen_val=1, weights=None,
+                 ridge_pen_val=None, ridge_weights=None,
+                 tikhonov=None): pass
 
-    def _get_solve_glm_kws(self):
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
+    def _get_solve_kws(self):
+        """
+        solve_glm is called as solve_glm(X=X, y=y, **kws)
+        """
 
-                'lasso_pen': self.pen_val,
-                'lasso_weights': self.weights
-                }
+        if self.ridge_weights is not None and self.tikhonov is not None:
+            raise ValueError("Both ridge weigths and tikhonov"
+                             "cannot both be provided")
+
+        loss_func, loss_kws = self.get_loss_info()
+
+        kws = {'loss_func': loss_func,
+               'loss_kws': loss_kws,
+
+               'fit_intercept': self.fit_intercept,
+               **self.opt_kws,
+
+               'lasso_pen': self.pen_val,
+
+               'lasso_weights': self.weights,
+               'ridge_pen': self.ridge_pen_val,
+               'ridge_weights': self.ridge_weights,
+               'tikhonov': self.tikhonov
+               }
+
+        # TODO: perhaps do it this way
+        # # let's only add these if they are not None
+        # # this way we can use solve that doesn't have these kws
+        # extra_kws = {'lasso_weights': self.weights,
+        #              'ridge_pen_val': self.ridge_pen_val,
+        #              'ridge_weights': self.ridge_weights,
+        #              'tikhonov': self.tikhonov}
+
+        # for k, v in extra_kws.items():
+        #     if v is not None:
+        #         kws[k] = v
+
+        return kws
 
     def _get_pen_val_max_from_pro(self, X, y):
+        loss_func, loss_kws = self.get_loss_info()
+
         return lasso_max(X=X, y=y,
                          fit_intercept=self.fit_intercept,
-                         weights=self.weights,
-                         model_type=self._model_type)
+                         loss_func=loss_func,
+                         loss_kws=loss_kws,
+                         weights=self.weights)
 
 
 class GlmLassoCVPath(CVPathMixin, GlmCVSinglePen):
-    @autoassign
-    def __init__(self, weights=None, **kws):
-        GlmCVSinglePen.__init__(self, **kws)
-
-    def _get_base_est_params(self):
-        return {'fit_intercept': self.fit_intercept,
-                'opt_kws': self.opt_kws,
-                'standardize': self.standardize,
-
-                'weights': self.weights,
-                }
 
     def _get_solve_path_kws(self):
+        if not hasattr(self, 'pen_val_seq_'):
+            raise RuntimeError("pen_val_seq_ has not yet been set")
 
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
+        kws = self.estimator._get_solve_kws()
+        del kws['lasso_pen']
+        kws['lasso_pen_seq'] = self.pen_val_seq_
+        return kws
 
-                'lasso_weights': self.weights,
-
-                'lasso_pen_seq': self.pen_val_seq_
-                }
+    def _check_base_estimator(self, estimator):
+        check_estimator_type(estimator, GlmLasso)
 
 
 class GlmLassoENet(Glm):
 
-    @autoassign
-    def __init__(self, pen_val=1, l1_ratio=0.5, tikhonov=None, **kws):
-        super().__init__(**kws)
+    @add_init_params(Glm)
+    def __init__(self, pen_val=1, l1_ratio=0.5,
+                 lasso_weights=None,
+                 ridge_weights=None,
+                 tikhonov=None): pass
 
-    def _get_solve_glm_kws(self):
-        lasso_pen, L2_pen = get_lasso_and_L2_from_enet(pen_val=self.pen_val,
-                                                       l1_ratio=self.l1_ratio)
+    def _get_solve_kws(self):
+        """
+        solve_glm is called as solve_glm(X=X, y=y, **kws)
+        """
+        loss_func, loss_kws = self.get_loss_info()
 
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
+        lasso_pen, ridge_pen = \
+            lasso_and_ridge_from_enet(pen_val=self.pen_val,
+                                      l1_ratio=self.l1_ratio)
 
-                'lasso_pen': lasso_pen,
+        kws = {'loss_func': loss_func,
+               'loss_kws': loss_kws,
 
-                'L2_pen': L2_pen,
-                'tikhonov': self.tikhonov
-                }
+               'fit_intercept': self.fit_intercept,
+               **self.opt_kws,
+
+               'lasso_pen': lasso_pen,
+               'ridge_pen': ridge_pen,
+
+               'lasso_weights': self.lasso_weights,
+               'ridge_weights': self.ridge_weights,
+               'tikhonov': self.tikhonov
+               }
+
+        # TODO: perhaps do it this way
+        # # let's only add these if they are not None
+        # # this way we can use solve that doesn't have these kws
+        # extra_kws = {'lasso_weights': self.weights,
+        #              'ridge_weights': self.ridge_weights,
+        #              'tikhonov': self.tikhonov}
+
+        # for k, v in extra_kws.items():
+        #     if v is not None:
+        #         kws[k] = v
+
+        return kws
 
     def _get_pen_val_max_from_pro(self, X, y):
+        loss_func, loss_kws = self.get_loss_info()
 
-        l1_max = lasso_max(X=X, y=y, fit_intercept=self.fit_intercept,
-                           model_type=self._model_type)
+        l1_max = lasso_max(X=X, y=y,
+                           fit_intercept=self.fit_intercept,
+                           loss_func=loss_func,
+                           loss_kws=loss_kws,
+                           weights=self.lasso_weights)
 
         return l1_max / self.l1_ratio
 
 
 class GlmLassoENetCVPath(ENetCVPathMixin, GlmCVENet):
 
-    @autoassign
-    def __init__(self, tikhonov=None, **kws):
-        GlmCVENet.__init__(self, **kws)
+    def _get_solve_path_enet_base_kws(self):
+        kws = self.estimator._get_solve_kws()
+        del kws['lasso_pen']
+        del kws['ridge_pen']
+        return kws
 
-    def _get_extra_base_params(self):
-
-        return {'fit_intercept': self.fit_intercept,
-                'opt_kws': self.opt_kws,
-                'standardize': self.standardize,
-
-                'tikhonov': self.tikhonov
-                }
-
-    def _get_solve_path_base_kws(self):
-
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
-
-                'tikhonov': self.tikhonov
-                }
+    def _check_base_estimator(self, estimator):
+        check_estimator_type(estimator, GlmLassoENet)

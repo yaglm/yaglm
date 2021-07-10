@@ -1,7 +1,8 @@
 from ya_glm.glm_pen_max_lasso import lasso_max
 
 
-def get_fcp_pen_val_max(X, y, init_data, model_type, pen_func, pen_func_kws={},
+def get_fcp_pen_val_max(X, y, init_data, loss_func, loss_kws,
+                        pen_func, pen_func_kws,
                         fit_intercept=True):
     """
     Returns the largest reasonable tuning parameter value for fitting a
@@ -14,20 +15,23 @@ def get_fcp_pen_val_max(X, y, init_data, model_type, pen_func, pen_func_kws={},
 
     y:
 
-    model_type:
+    loss_func: str
 
-    init_data:
+    loss_kws: dict
 
-    pen_func:
+    init_data: dict
 
-    pen_kws:
+    pen_func: str
 
-    fit_intercept
+    pen_kws: dict
+
+    fit_intercept: bool
     """
 
     lasso_max_val = lasso_max(X=X, y=y,
                               fit_intercept=fit_intercept,
-                              model_type=model_type)
+                              loss_func=loss_func,
+                              loss_kws=loss_kws)
 
     if pen_func == 'scad':
         # TODO: allow this to depend on the penalty function

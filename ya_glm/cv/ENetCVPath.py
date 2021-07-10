@@ -9,31 +9,21 @@ from ya_glm.cv.CVPath import CVPathMixin, run_cv_path, \
 
 class ENetCVPathMixin(CVPathMixin):
 
-    def _get_solve_path_base_kws(self):
+    def _get_solve_path_enet_base_kws(self):
         """
         Returns the key word argus for solve_path excluding the lasso_pen_seq and L2_pen_seq values.
         """
         raise NotImplementedError
-        # return {'fit_intercept': self.fit_intercept,
-        #         'loss_func': self._model_type,
-        #         **self._get_solve_path_extra_kws(),
-        #         **self.opt_kws
-        #         }
 
     def _run_cv(self, X, y=None, cv=None):
 
         # setup CV
-        est = self._get_base_estimator()
-        cv = check_cv(cv, y, classifier=is_classifier(est))
+        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
 
         # setup path fitting function
         fit_and_score_path = self._fit_and_score_path_getter()
 
-        kws = self._get_solve_path_base_kws()
-        # kws = {'fit_intercept': self.fit_intercept,
-        #        'loss_func': self._model_type,
-        #        'tikhonov': self.tikhonov,
-        #        **self.opt_kws}
+        kws = self._get_solve_path_enet_base_kws()
 
         if self._tune_l1_ratio() and self._tune_pen_val():
             # Tune over both l1_ratio and pen_val
@@ -45,7 +35,7 @@ class ENetCVPathMixin(CVPathMixin):
                 # set pen vals for this sequence
                 pen_val_seq = self.pen_val_seq_[l1_idx, :]
                 kws['lasso_pen_seq'] = pen_val_seq * l1_ratio
-                kws['L2_pen_seq'] = pen_val_seq * (1 - l1_ratio)
+                kws['ridge_pen_seq'] = pen_val_seq * (1 - l1_ratio)
 
                 # fit path
                 cv_res, _ = \
@@ -76,15 +66,15 @@ class ENetCVPathMixin(CVPathMixin):
             if self._tune_pen_val():
                 # tune over pen_val
                 pen_val_seq = self.pen_val_seq_
-                l1_ratio_seq = est.l1_ratio * np.ones_like(pen_val_seq)
+                l1_ratio_seq = self.l1_ratio * np.ones_like(pen_val_seq)
 
             elif self._tune_l1_ratio():
                 # tune over l1_ratio
                 l1_ratio_seq = self.l1_ratio_seq_
-                pen_val_seq = est.pen_val * np.ones_like(pen_val_seq)
+                pen_val_seq = self.pen_val * np.ones_like(pen_val_seq)
 
             kws['lasso_pen_seq'] = pen_val_seq * l1_ratio_seq
-            kws['L2_pen_seq'] = pen_val_seq * (1 - l1_ratio_seq)
+            kws['ridge_pen_seq'] = pen_val_seq * (1 - l1_ratio_seq)
 
             # fit path
             cv_results, _ = \

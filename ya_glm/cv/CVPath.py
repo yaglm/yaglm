@@ -3,7 +3,7 @@ import numpy as np
 from joblib import Parallel, delayed
 from itertools import product
 from sklearn.model_selection._split import check_cv
-from sklearn.base import is_classifier
+from sklearn.base import is_classifier, clone
 
 
 class CVPathMixin:
@@ -14,29 +14,28 @@ class CVPathMixin:
     def _fit_and_score_path_getter(self):
 
         # get the correct fit and score method
-        est = self._get_base_estimator()
+        est = clone(self.estimator)
         def est_from_fit(fit_out, pre_pro_out):
             est._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
             return est
 
-        if hasattr(est, '_pre_process'):
-            _pre_process = est._pre_process
+        if hasattr(est, 'preprocess'):
+            preprocess = est.preprocess
         else:
-            _pre_process = None
+            preprocess = None
 
         fit_and_score_path = partial(score_from_fit_path,
                                      solve_path=self.solve_path,
                                      est_from_fit=est_from_fit,
                                      scorer=self.cv_scorer,
-                                     pre_process=_pre_process)
+                                     preprocess=preprocess)
 
         return fit_and_score_path
 
     def _run_cv(self, X, y=None, cv=None):
 
         # setup CV
-        est = self._get_base_estimator()
-        cv = check_cv(cv, y, classifier=is_classifier(est))
+        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
 
         # setup path fitting function
         fit_and_score_path = self._fit_and_score_path_getter()
@@ -46,7 +45,7 @@ class CVPathMixin:
                         fold_iter=cv.split(X, y),
                         fit_and_score_path=fit_and_score_path,
                         kws=self._get_solve_path_kws(),
-                        include_spilt_vals=False,  # maybe make this True?
+                        include_spilt_vals=True,  # TODO: maybe give option for this?
                         add_params=False,
                         n_jobs=self.cv_n_jobs,
                         verbose=self.cv_verbose,
@@ -140,7 +139,7 @@ def run_cv_path(X, y, fold_iter, fit_and_score_path, kws={},
 def score_from_fit_path(X, y, train, test,
                         solve_path, est_from_fit, scorer=None,
                         kws={},
-                        pre_process=None):
+                        preprocess=None):
     """
 
     Parameters
@@ -172,7 +171,7 @@ def score_from_fit_path(X, y, train, test,
     kws: dict
         Key word arguments for fit_path
 
-    pre_process: None, callable(X, y, copy) -> X, y, pre_pro_data
+    preprocess: None, callable(X, y, copy) -> X, y, pre_pro_data
         An (optional) function that pre-processes the training data before calling the fit_path function. It should copy the data -- not modify it in place!
 
 
@@ -204,14 +203,14 @@ def score_from_fit_path(X, y, train, test,
         y_test = None
 
     # possibly apply processing
-    if pre_process is not None:
+    if preprocess is not None:
         # TODO: might want to handle case when y is None differently
         X_train_pro, y_train_pro, pre_pro_out = \
-             pre_process(X=X_train, y=y_train, copy=True)
+             preprocess(X=X_train, y=y_train, copy=True)
     else:
         X_train_pro = X_train
         y_train_pro = y_train
-        pre_pro_out = None
+        pre_pro_out = {}
 
     # TODO: maybe add score time
     path_results = {'train': [],

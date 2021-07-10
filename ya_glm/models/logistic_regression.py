@@ -14,35 +14,16 @@ from ya_glm.cv.scoring import get_n_nonzero, score_binary_clf, Scorer
 
 class LogRegMixin(LinearClassifierMixin):
 
-    _model_type = 'log_reg'
+    def get_loss_info(self):
+        loss_type = 'log_reg'
+        loss_kws = {}
+
+        return loss_type, loss_kws
 
     def _process_y(self, y, copy=True):
         return process_y_log_reg(y, standardize=self.standardize,
                                  copy=copy,
                                  check_input=True)
-
-    def _set_fit(self, fit_out, pre_pro_out=None):
-        """
-        Sets the fit
-
-        Parameters
-        ----------
-        fit_out: dict
-
-        pre_pro_out: None, dict
-        """
-
-        self.classes_ = pre_pro_out['classes']
-
-        self.coef_ = np.array(fit_out['coef']).reshape(-1)
-
-        if self.fit_intercept:
-            self.intercept_ = fit_out['intercept']
-        else:
-            self.intercept_ = 0
-
-        if 'opt_data' in fit_out:
-            self.opt_data_ = fit_out['opt_data']
 
     def decision_function(self, X):
         """

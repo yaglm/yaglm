@@ -1,4 +1,4 @@
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, clone
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import ParameterGrid
 import numpy as np
@@ -7,41 +7,45 @@ from numbers import Number
 from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
+from ya_glm.add_init_params import add_init_params
 from ya_glm.utils import get_sequence_decr_max, get_enet_ratio_seq
 
 
 from ya_glm.cv.cv_select import CVSlectMixin  # select_best_cv_tune_param
 
 
-# _cv_params = dedent(
-# """
-# cv: int, cross-validation generator or an iterable, default=None
-#     Determines the cross-validation splitting strategy.
+_cv_params = dedent(
+"""
+estimator: estimator object
+    The base estimator to be cross-validated.
 
-# cv_select_metric: None, str
-#     Which metric to use for select the best tuning parameter if multiple metrics are computed.
+cv: int, cross-validation generator or an iterable, default=None
+    Determines the cross-validation splitting strategy.
 
-# cv_scorer: None, callable(est, X, y) -> dict or float
-#     A function for evaluating the cross-validation fit estimators.
-#     If this returns a dict of multiple scores then cv_select_metric determines which metric is used to select the tuning parameter.
+cv_select_metric: None, str
+    Which metric to use for select the best tuning parameter if multiple metrics are computed.
 
-# cv_n_jobs: None, int
-#     Number of jobs to run in parallel.
+cv_scorer: None, callable(est, X, y) -> dict or float
+    A function for evaluating the cross-validation fit estimators.
+    If this returns a dict of multiple scores then cv_select_metric determines which metric is used to select the tuning parameter.
 
-# cv_verbose: int
-#     Amount of printout during cross-validation.
+cv_n_jobs: None, int
+    Number of jobs to run in parallel.
 
-# cv_pre_dispatch: int, or str, default=n_jobs
-#     Controls the number of jobs that get dispatched during parallel execution
-# """
-# )
+cv_verbose: int
+    Amount of printout during cross-validation.
+
+cv_pre_dispatch: int, or str, default=n_jobs
+    Controls the number of jobs that get dispatched during parallel execution
+"""
+)
 
 
 class GlmCV(CVSlectMixin, BaseEstimator):
 
     @autoassign
     def __init__(self,
-                 fit_intercept=True, standardize=False, opt_kws={},
+                 estimator,
 
                  cv=None,
                  cv_select_rule='best',
@@ -65,7 +69,8 @@ class GlmCV(CVSlectMixin, BaseEstimator):
         """
 
         # check the input data
-        est = self._get_base_estimator()
+        self._check_base_estimator(self.estimator)
+        est = clone(self.estimator)
         X, y = est._validate_data(X, y)
 
         # set up the tuning parameter values using the processed data
@@ -79,54 +84,16 @@ class GlmCV(CVSlectMixin, BaseEstimator):
         # select best tuning parameter values
         self.best_tune_idx_, self.best_tune_params_ = \
             self._select_tune_param(self.cv_results_)
+
+        # set best tuning params
         est.set_params(**self.best_tune_params_)
 
         # refit on the raw data
         start_time = time()
-        est.fit(X, y)
+        self.best_estimator_ = est.fit(X, y)
         self.cv_data_['refit_runtime'] = time() - start_time
-        self.best_estimator_ = est
 
         return self
-
-    def _set_tuning_values(self, X, y):
-        """
-        Sets the tuning parameter sequence from the transformed data.
-
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The processed training covariate data.
-
-        y: array-like, shape (n_samples, )
-            The processed training response data.
-        """
-        # subclass should overwrite
-        raise NotImplementedError
-
-    def get_tuning_sequence(self):
-        """
-        Returns a list of tuning parameter values.
-        Make sure the method that computes the cross-validation results
-        orders the parameters in the same order as get_tuning_sequence()
-
-        Output
-        ------
-        values: iterable
-        """
-        param_grid = self.get_tuning_param_grid()
-        return list(ParameterGrid(param_grid))
-
-    def get_tuning_param_grid(self):
-        """
-        Returns parameter grid.
-
-        Output
-        ------
-        dol:
-        """
-        # subclass should overwrite
-        raise NotImplementedError
 
     def predict(self, X):
         check_is_fitted(self)
@@ -154,164 +121,160 @@ class GlmCV(CVSlectMixin, BaseEstimator):
         else:
             return self.best_estimator_.predict_log_proba(X)
 
-    def _get_base_estimator(self):
+    def check_base_estimator(self, estimator):
         """
-        Output
-        ------
-        est:
-            The base estimator with all parameters set except those
-            that should be selected with cross-validation.
+        Check the base estimator aggrees with the CV class
         """
-        c = self._get_base_class()
-        p = self._get_base_est_params()
-        return c(**p)
-
-    def _get_base_class(self):
         raise NotImplementedError
 
-    def _get_base_est_params(self):
+    def _set_tuning_values(self, X, y):
+        """
+        Sets the tuning parameter sequence from the transformed data.
+
+        Parameters
+        ----------
+        X: array-like, shape (n_samples, n_features)
+            The processed training covariate data.
+
+        y: array-like, shape (n_samples, )
+            The processed training response data.
+        """
+        # subclass should overwrite
         raise NotImplementedError
 
-    # properties inhereted from base_estimator
-    @property
-    def _model_type(self):
-        return self._get_base_estimator()._model_type
 
-# GlmCV.__doc__ = dedent(
-#     """
-#     Base class for generalized linear models tuned with cross-validation.
+GlmCV.__doc__ = dedent(
+    """
+    Base class for generalized linear models tuned with cross-validation.
 
-#     Parameters
-#     ----------
-#     {}
-#     """.format(_cv_params)
-# )
+    Parameters
+    ----------
+    {}
+    """.format(_cv_params)
+)
 
 
-# _cv_pen_params = dedent("""
+_pen_seq_params = dedent("""
 
-# n_pen_vals: int
-#     Number of penalty values to try for automatically generated tuning parameter sequence.
+n_pen_vals: int
+    Number of penalty values to try for automatically generated tuning parameter sequence.
 
-# pen_vals: None, array-like
-#     (Optional) User provided penalty value sequence. The penalty sequence should be monotonicly decreasing so the homotopy path algorithm works propertly.
+pen_vals: None, array-like
+    (Optional) User provided penalty value sequence. The penalty sequence should be monotonicly decreasing so the homotopy path algorithm works propertly.
 
-# pen_min_mult: float
-#     Determines the smallest penalty value to try. The automatically generated penalty value squence lives in the interval [pen_min_mult * pen_max_val, pen_max_val] where pen_max_val is automatically determined.
+pen_min_mult: float
+    Determines the smallest penalty value to try. The automatically generated penalty value squence lives in the interval [pen_min_mult * pen_max_val, pen_max_val] where pen_max_val is automatically determined.
 
-# pen_spacing: str
-#     How the penalty values are spaced. Must be one of ['log', 'lin']
-#     for logarithmic and linear spacing respectively.
-# """)
+pen_spacing: str
+    How the penalty values are spaced. Must be one of ['log', 'lin']
+    for logarithmic and linear spacing respectively.
+""")
 
 
 class GlmCVSinglePen(GlmCV):
 
-    @autoassign
+    @add_init_params(GlmCV, add_first=False)
     def __init__(self,
                  n_pen_vals=100,
                  pen_vals=None,
                  pen_min_mult=1e-3,
-                 pen_spacing='log',
-                 **cv_kws):
-        super().__init__(**cv_kws)
+                 pen_spacing='log'
+                 ):
         pass
 
     def _set_tuning_values(self, X, y):
 
         if self.pen_vals is None:
-
-            # get largest penalty value
-            est = self._get_base_estimator()
-            pen_val_max = est.get_pen_val_max(X, y)
-
-            pen_val_seq = get_sequence_decr_max(max_val=pen_val_max,
-                                                min_val_mult=self.pen_min_mult,
-                                                num=self.n_pen_vals,
-                                                spacing=self.pen_spacing)
+            pen_val_max = self.estimator.get_pen_val_max(X, y)
         else:
-            pen_val_seq = np.array(self.pen_vals)
+            pen_val_max = None
 
-        self.pen_val_seq_ = np.sort(pen_val_seq)[::-1]  # ensure decreasing
+        self.pen_val_seq_ = \
+            get_pen_val_seq(pen_val_max,
+                            n_pen_vals=self.n_pen_vals,
+                            pen_vals=self.pen_vals,
+                            pen_min_mult=self.pen_min_mult,
+                            pen_spacing=self.pen_spacing)
+
+    def get_tuning_sequence(self):
+        """
+        Returns a list of tuning parameter values.
+        Make sure the method that computes the cross-validation results
+        orders the parameters in the same order as get_tuning_sequence()
+        Output
+        ------
+        values: iterable
+        """
+        return list(ParameterGrid(self.get_tuning_param_grid()))
 
     def get_tuning_param_grid(self):
+        """
+        Returns tuning parameter grid.
+
+        Output
+        ------
+        param_grid: dict of lists
+        """
         return {'pen_val': self.pen_val_seq_}
 
+# TODO: perhaps move this somewhere else
+def get_pen_val_seq(pen_val_max,
+                    n_pen_vals=100,
+                    pen_vals=None,
+                    pen_min_mult=1e-3,
+                    pen_spacing='log'):
+    """
+    Gets the penalty value seqence and makes sure it is in decreasing order.
+    """
+    if pen_vals is None:
+        pen_val_seq = get_sequence_decr_max(max_val=pen_val_max,
+                                            min_val_mult=pen_min_mult,
+                                            num=n_pen_vals,
+                                            spacing=pen_spacing)
+    else:
+        pen_val_seq = np.array(pen_vals)
 
-# GlmCVSinglePen.__doc__ = dedent(
-#     """
-#     Base class for penalized generalized linear model tuned with cross-validation.
+    pen_val_seq = np.sort(pen_val_seq)[::-1]  # ensure decreasing
 
-#     Parameters
-#     ----------
-#     {}
-
-#     fit_intercept: bool
-#         Whether or not to fit an intercept.
-
-#     weights: None, array-like shape (n_features, )
-#         (Optinal) Feature weights for penalty.
-
-#     opt_kws: dict
-#         Key word arguments to the optimization algorithm.
-
-#     {}
-#     """.format(_cv_pen_params, _cv_params)
-# )
-
-
-# _enet_cv_params = dedent("""
-
-# l1_ratio: float, str, list
-#     The l1_ratio value to use. If a float is provided then this parameter is fixed and not tuned over. If l1_ratio='tune' then the l1_ratio is tuned over using an automatically generated tuning parameter sequence. Alternatively, the user may provide a list of l1_ratio values to tune over.
-
-# n_l1_ratio_vals: int
-#     Number of l1_ratio values to tune over. The l1_ratio tuning sequence is a logarithmically spaced grid of values between 0 and 1 that has more values close to 1.
-
-# l1_ratio_min:
-#     The smallest l1_ratio value to tune over.
-# """)
+    return pen_val_seq
 
 
-class GlmCVENet(GlmCV):
+GlmCVSinglePen.__doc__ = dedent(
+    """
+    Base class for penalized generalized linear model tuned with cross-validation.
 
-    @autoassign
+    Parameters
+    ----------
+    {}
+
+    {}
+    """.format(_cv_params, _pen_seq_params)
+)
+
+
+_enet_cv_params = dedent("""
+
+l1_ratio: float, str, list
+    The l1_ratio value to use. If a float is provided then this parameter is fixed and not tuned over. If l1_ratio='tune' then the l1_ratio is tuned over using an automatically generated tuning parameter sequence. Alternatively, the user may provide a list of l1_ratio values to tune over.
+
+n_l1_ratio_vals: int
+    Number of l1_ratio values to tune over. The l1_ratio tuning sequence is a logarithmically spaced grid of values between 0 and 1 that has more values close to 1.
+
+l1_ratio_min:
+    The smallest l1_ratio value to tune over.
+""")
+
+
+class GlmCVENet(GlmCVSinglePen):
+
+    @add_init_params(GlmCVSinglePen, add_first=False)
     def __init__(self,
-                 n_pen_vals=100,
-                 pen_vals=None,
-                 pen_min_mult=1e-4,  # make this more extreme for enet
-                 pen_spacing='log',
-
+                 # pen_min_mult=1e-4,  # make this more extreme for enet
                  l1_ratio=0.5,
                  n_l1_ratio_vals=10,
                  l1_ratio_min=0.1,
-
-                 **cv_kws
                  ):
-        super().__init__(**cv_kws)
         pass
-
-    def _get_base_est_params(self):
-
-        # params = {'fit_intercept': self.fit_intercept,
-        #           'opt_kws': self.opt_kws,
-        #           **self._get_extra_base_params()}
-
-        params = self._get_extra_base_params()
-
-        if not self._tune_l1_ratio():
-            params['l1_ratio'] = self.l1_ratio
-
-        if not self._tune_pen_val():
-            params['pen_val'] = self.pen_vals
-
-        return params
-
-    def _get_extra_base_params(self):
-        """
-
-        """
-        raise NotImplementedError
 
     def _tune_l1_ratio(self):
         """
@@ -321,10 +284,7 @@ class GlmCVENet(GlmCV):
             Whether or not we tune the l1_ratio parameter.
         """
         # Do we tune the l1_ratio
-        if self.l1_ratio is None or \
-                self.l1_ratio == 'tune' or\
-                not isinstance(self.l1_ratio, Number):
-
+        if self.l1_ratio == 'tune' or hasattr(self.l1_ratio, '__len__'):
             return True
         else:
             return False
@@ -349,6 +309,7 @@ class GlmCVENet(GlmCV):
         # setup l1_ratio tuning sequence #
         ##################################
         if self._tune_l1_ratio():
+            l1_ratio_val = None
 
             if self.l1_ratio is not None and not self.l1_ratio == 'tune':
                 # user specified values
@@ -360,83 +321,31 @@ class GlmCVENet(GlmCV):
                     get_enet_ratio_seq(min_val=self.l1_ratio_min,
                                        num=self.n_l1_ratio_vals)
 
+            self.l1_ratio_seq_ = l1_ratio_seq
+
         else:
             l1_ratio_val = self.l1_ratio
+            l1_ratio_seq = None
 
         #################################
         # setup pen_val tuning sequence #
         #################################
         if self._tune_pen_val():
 
-            if self.pen_vals is not None:  # user provided pen vals
-                pen_vals = np.array(self.pen_vals)
+            if self.pen_vals is None:
+                lasso_pen_val_max = self.estimator.get_pen_val_max(X, y)
+                lasso_pen_val_max *= self.estimator.l1_ratio
+            else:
+                lasso_pen_val_max = None
 
-            else:  # automatically derive tuning sequence
-
-                # if the l1_ratio is ever zero our default
-                # pen_val_seq will fail
-                if self._tune_l1_ratio():
-                    l1_ratio_min = min(l1_ratio_seq)
-                else:
-                    l1_ratio_min = l1_ratio_val
-                if l1_ratio_min <= np.finfo(float).eps:
-                    raise ValueError("Unable to set pen_val_seq using default"
-                                     "when the l1_ratio is zero."
-                                     " Either change thel1_ratio, or "
-                                     "input a sequence of pen_vals yourself!")
-
-                # get largest Lasso penalty value for this loss function
-                # make sure we get set tuning parameters using the processed data
-                # the optimization algorithm will actually see
-                est = self._get_base_estimator()
-                est.set_params(l1_ratio=1)
-                lasso_pen_val_max = est.get_pen_val_max(X, y)
-
-                if self._tune_l1_ratio():
-                    # setup grid of pen vals for each l1 ratio
-
-                    n_l1_ratio_vals = len(l1_ratio_seq)
-                    pen_vals = np.zeros((n_l1_ratio_vals, self.n_pen_vals))
-                    for l1_idx in range(n_l1_ratio_vals):
-
-                        # largest pen val for ElasticNet given this l1_ratio
-                        max_val = lasso_pen_val_max / l1_ratio_seq[l1_idx]
-
-                        pen_vals[l1_idx, :] = \
-                            get_sequence_decr_max(max_val=max_val,
-                                                  min_val_mult=self.pen_min_mult,
-                                                  num=self.n_pen_vals,
-                                                  spacing=self.pen_spacing)
-
-                else:
-                    # setup pen val sequence
-
-                    max_val = lasso_pen_val_max / l1_ratio_val
-                    pen_vals = \
-                        get_sequence_decr_max(max_val=max_val,
-                                              min_val_mult=self.pen_min_mult,
-                                              num=self.n_pen_vals,
-                                              spacing=self.pen_spacing)
-
-        # store data
-        if self._tune_l1_ratio() and self._tune_pen_val():
-            assert pen_vals.ndim == 2
-            assert pen_vals.shape[0] == len(l1_ratio_seq)
-
-            # make sure pen vals are always in decreasing order
-            for l1_idx in range(pen_vals.shape[0]):
-                pen_vals[l1_idx, :] = np.sort(pen_vals[l1_idx, :])[::-1]
-
-            self.pen_val_seq_ = pen_vals
-            self.l1_ratio_seq_ = l1_ratio_seq
-
-        elif self._tune_pen_val():
-            # make sure pen vals are always in decreasing order
-            pen_vals = np.sort(np.array(pen_vals))[::-1]
-            self.pen_val_seq_ = pen_vals.reshape(-1)
-
-        elif self._tune_l1_ratio():
-            self.l1_ratio_seq_ = l1_ratio_seq
+            self.pen_val_seq_ = \
+                get_enet_pen_val_seq(lasso_pen_val_max=lasso_pen_val_max,
+                                     pen_vals=self.pen_vals,
+                                     n_pen_vals=self.n_pen_vals,
+                                     pen_min_mult=self.pen_min_mult,
+                                     pen_spacing=self.pen_spacing,
+                                     l1_ratio_seq=l1_ratio_seq,
+                                     l1_ratio_val=l1_ratio_val)
 
     def get_tuning_param_grid(self):
         if self._tune_l1_ratio() and self._tune_pen_val():
@@ -481,25 +390,88 @@ class GlmCVENet(GlmCV):
             return list(ParameterGrid(param_grid))
 
 
-# GlmCVENet.__doc__ = dedent(
-#     """
-#     Elastic Net penalized generalized linear model tuned with cross-validation.
+GlmCVENet.__doc__ = dedent(
+    """
+    Elastic Net penalized generalized linear model tuned with cross-validation.
 
-#     Parameters
-#     ----------
-#     {}
+    Parameters
+    ----------
+    {}
 
-#     {}
+    {}
 
-#     fit_intercept: bool
-#         Whether or not to fit an intercept.
+    {}
+    """.format(_cv_params, _pen_seq_params, _enet_cv_params)
+)
 
-#     tikhonov: None, array-like shape (n_features, n_features)
-#         (Optinal) Tikhonov matrix.
 
-#     opt_kws: dict
-#         Key word arguments to the optimization algorithm.
+def get_enet_pen_val_seq(lasso_pen_val_max,
+                         pen_vals=None, n_pen_vals=100,
+                         pen_min_mult=1e-3, pen_spacing='log',
+                         l1_ratio_seq=None, l1_ratio_val=None):
+    """
+    Sets up the pen_val tuning sequence for eleastic net.
+    """
+    # only one of these should be not None
+    assert sum((l1_ratio_val is None, l1_ratio_seq is None)) <= 2
 
-#     {}
-#     """.format(_cv_pen_params, _enet_cv_params, _cv_params)
-# )
+    # formatting
+    if l1_ratio_val is not None:
+        tune_l1_ratio = False
+        l1_ratio_min = l1_ratio_val
+    else:
+        tune_l1_ratio = True
+        l1_ratio_min = min(l1_ratio_seq)
+
+    if pen_vals is not None:  # user provided pen vals
+        pen_vals = np.array(pen_vals)
+
+    else:  # automatically derive tuning sequence
+
+        if l1_ratio_min <= np.finfo(float).eps:
+            raise ValueError("Unable to set pen_val_seq using default"
+                             "when the l1_ratio is zero."
+                             " Either change thel1_ratio, or "
+                             "input a sequence of pen_vals yourself!")
+
+        if tune_l1_ratio:
+            # setup grid of pen vals for each l1 ratio
+
+            n_l1_ratio_vals = len(l1_ratio_seq)
+            pen_vals = np.zeros((n_l1_ratio_vals, n_pen_vals))
+            for l1_idx in range(n_l1_ratio_vals):
+
+                # largest pen val for ElasticNet given this l1_ratio
+                max_val = lasso_pen_val_max / l1_ratio_seq[l1_idx]
+
+                pen_vals[l1_idx, :] = \
+                    get_sequence_decr_max(max_val=max_val,
+                                          min_val_mult=pen_min_mult,
+                                          num=n_pen_vals,
+                                          spacing=pen_spacing)
+
+        else:
+            # setup pen val sequence
+
+            max_val = lasso_pen_val_max / l1_ratio_val
+            pen_vals = \
+                get_sequence_decr_max(max_val=max_val,
+                                      min_val_mult=pen_min_mult,
+                                      num=n_pen_vals,
+                                      spacing=pen_spacing)
+
+    # ensure correct ordering
+    if tune_l1_ratio:
+        assert pen_vals.ndim == 2
+        assert pen_vals.shape[0] == len(l1_ratio_seq)
+
+        # make sure pen vals are always in decreasing order
+        for l1_idx in range(pen_vals.shape[0]):
+            pen_vals[l1_idx, :] = np.sort(pen_vals[l1_idx, :])[::-1]
+
+    else:
+        # make sure pen vals are always in decreasing order
+        pen_vals = np.sort(np.array(pen_vals))[::-1]
+        pen_vals = pen_vals.reshape(-1)
+
+    return pen_vals

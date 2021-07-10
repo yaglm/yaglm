@@ -82,6 +82,7 @@ def get_enet_ratio_seq(num=10, min_val=0.1):
 def is_multi_response(y):
     """
     Checks whether or not y is a multiple output response.
+
     Parameters
     ----------
     y: array-like
@@ -99,7 +100,7 @@ def is_multi_response(y):
         return False
 
 
-def get_lasso_and_L2_from_enet(pen_val, l1_ratio):
+def lasso_and_ridge_from_enet(pen_val, l1_ratio):
     """
     Returns the lasso and L2 penalties from the elastic net parameterization
 
@@ -111,26 +112,22 @@ def get_lasso_and_L2_from_enet(pen_val, l1_ratio):
 
     Output
     ------
-    lasso_pen, L2_pen
-
-    lasso_pen: float
-
-    L2_pen: float
+    lasso_pen, ridge_pen
     """
 
     if l1_ratio is None or l1_ratio == 0:
         lasso_pen = None
-        L2_pen = pen_val
+        ridge_pen = pen_val
 
     elif l1_ratio == 1:
         lasso_pen = pen_val
-        L2_pen = None
+        ridge_pen = None
 
     else:
         lasso_pen = pen_val * l1_ratio
-        L2_pen = pen_val * (1 - l1_ratio)
+        ridge_pen = pen_val * (1 - l1_ratio)
 
-    return lasso_pen, L2_pen
+    return lasso_pen, ridge_pen
 
 
 def get_coef_and_intercept(est, copy=False, error=False):

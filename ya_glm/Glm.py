@@ -3,21 +3,14 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.utils.validation import check_array, FLOAT_DTYPES
 
-from scipy.sparse import diags
 import numpy as np
 from textwrap import dedent
 
-from ya_glm.utils import is_multi_response
 from ya_glm.autoassign import autoassign
-from ya_glm.processing import process_X
+from ya_glm.processing import process_X, deprocess_fit
 
 
-class Glm(BaseEstimator):
-    """
-    Base class for Lasso generalized linear model.
-
-    Parameters
-    ----------
+_glm_base_params = dedent("""
     fit_intercept: bool
         Whether or not to fit an intercept.
 
@@ -25,14 +18,11 @@ class Glm(BaseEstimator):
         Whether or not to perform internal standardization before fitting the data. Here standardization means mean centering and scaling each column by its standard deviation. Putting each column on the same scale makes sense for fitting penalized models. Note the fitted coefficient/intercept is transformed to be on the original scale of the input data.
 
     opt_kws: dict
-        Key word arguments to the optimization algorithm.
-    """
+        Keyword arguments to the glm solver optimization algorithm.
+    """)
 
-    # subclasses should specify these
-    # TODO: is this how we want to store this data?
 
-    # specify the model type so we know what loss func to use
-    _model_type = None
+class Glm(BaseEstimator):
 
     # subclass should implement
     solve_glm = None
@@ -56,17 +46,20 @@ class Glm(BaseEstimator):
 
         X, y = self._validate_data(X, y)
 
-        # TODO: give user option to not copy, but need to think more
-        # about this
-        X, y, pre_pro_out = self._pre_process(X, y, copy=True)
-        fit_data = self._compute_fit(X, y)
-        self._set_fit(fit_data, pre_pro_out)
+        # TODO: do we want to give the user the option to not copy?
+        X, y, pre_pro_out = self.preprocess(X, y, copy=True)
+
+        coef, intercept, out_data = self.solve(X=X, y=y,
+                                               **self._get_solve_kws())
+
+        self._set_fit(fit_out={'coef': coef, 'intercept': intercept,
+                               'out_data': out_data},
+                      pre_pro_out=pre_pro_out)
         return self
 
     def _validate_data(self, X, y, accept_sparse=False):
         """
         Validates the X/y data. This should not change the raw input data, but may reformat the data (e.g. convert pandas to numpy).
-
 
         Parameters
         ----------
@@ -90,7 +83,7 @@ class Glm(BaseEstimator):
 
         return X, y
 
-    def _pre_process(self, X, y, copy=True):
+    def preprocess(self, X, y, copy=True):
         """
         Preprocesses the data for fitting. This method may transform the data e.g. centering and scaling X.
 
@@ -116,7 +109,7 @@ class Glm(BaseEstimator):
             The possibly transformed response data.
 
         pro_pro_out: dict
-            The data used to preprocess the X/y data.
+            Data from preprocessing e.g. X_center, X_scale.
         """
 
         X, out = process_X(X,
@@ -131,109 +124,34 @@ class Glm(BaseEstimator):
 
         return X, y, out
 
-    def _process_y(self, y, copy=True):
-        """
-        Parameters
-        ---------
-        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
-            The response data.
-
-        Output
-        ------
-        y: array-like
-            The possibly transformed response data.
-        """
-        raise NotImplementedError
-
-    def _compute_fit(self, X, y):
-        """
-        Solve the GLM optimizaiton problem.
-
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The training covariate data.
-
-        y: array-like, shape (n_samples, )
-            The training response data.
-
-        Output
-        ------
-        fit_out: dict
-            The output from fitting the model.
-
-            fit_out['coef']: array-like, shape (n_features, )
-                The fitted GLM coefficient.
-
-            fit_out['intercept']: None or Float
-                The fitted intercept.
-
-            fit_out['opt_data']: dict
-                Any output from the optimization algorithm e.g. number of iterations.
-        """
-
-        coef, intercept, opt_data = \
-            self.solve_glm(X=X, y=y,
-                           # loss_func=self._model_type,
-                           # fit_intercept=self.fit_intercept,
-                           # **self.opt_kws
-                           **self._get_solve_glm_kws()
-                           )
-
-        fit_out = {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
-        return fit_out
-
-    def _get_solve_glm_kws(self):
-        """
-        solve_glm is called as solve_glm(X=X, y=y, **kws)
-        """
-        raise NotImplementedError
-
-    def _set_fit(self, fit_out, pre_pro_out=None):
+    def _set_fit(self, fit_out, pre_pro_out):
         """
         Sets the fit.
 
         Parameters
         ----------
         fit_out: dict
-            Output of _compute_fit
+            Contains the output of solve e.g.
+            fit_out['coef'], fit_out['intercept'], fit_out['opt_data']
 
         pre_pro_out: None, dict
-            Output of _pre_process
+            Output of preprocess
         """
+        coef = fit_out['coef']
+        intercept = fit_out.pop('intercept', None)
 
-        # set coefficient
-        coef = np.array(fit_out['coef'])
-        is_mr = is_multi_response(coef)
-        if not is_mr:
-            coef = coef.ravel()
-
-        # rescale coefficient
-        if pre_pro_out is not None and 'X_scale' in pre_pro_out:
-            # coef = coef / pre_pro_out['X_scale']
-            coef = diags(1 / pre_pro_out['X_scale']) @ coef
-        self.coef_ = coef
-
-        # maybe set intercept
-        if self.fit_intercept:
-            intercept = fit_out['intercept']
-
-            if pre_pro_out is not None and 'X_offset' in pre_pro_out:
-                intercept -= coef.T @ pre_pro_out['X_offset']
-
-            if pre_pro_out is not None and 'y_offset' in pre_pro_out:
-                intercept += pre_pro_out['y_offset']
-
-            self.intercept_ = intercept
-
-        else:
-            if is_mr:
-                self.intercept_ = np.zeros(coef.shape[1])
-            else:
-                self.intercept_ = 0
+        self.coef_, self.intercept_ = \
+            deprocess_fit(coef=coef,
+                          intercept=intercept,
+                          pre_pro_out=pre_pro_out,
+                          fit_intercept=self.fit_intercept)
 
         if 'opt_data' in fit_out:
             self.opt_data_ = fit_out['opt_data']
+
+        # for classification models
+        if 'classes' in pre_pro_out:
+            self.classes_ = pre_pro_out['classes']
 
     def _decision_function(self, X):
         """
@@ -281,7 +199,7 @@ class Glm(BaseEstimator):
 
     def get_pen_val_max(self, X, y):
         """
-        Returns the largest reasonable penalty parameter from the processed training data. I.e. this is an lower bound such that any larger tuning parameter value will force the coefficient to be zero.
+        Returns the largest reasonable penalty parameter for the processed data.
 
         Parameters
         ----------
@@ -296,10 +214,56 @@ class Glm(BaseEstimator):
         pen_val_max: float
             Largest reasonable tuning parameter value.
         """
-        # make sure we get set tuning parameters using the processed data
-        # the optimization algorithm will actually see
-        X_pro, y_pro, pre_pro_data = self._pre_process(X, y, copy=True)
+        X_pro, y_pro, _ = self.preprocess(X, y, copy=True)
         return self._get_pen_val_max_from_pro(X_pro, y_pro)
 
-    def _get_pen_val_max_from_pro(self, X, y):
+    def _process_y(self, y, copy=True):
+        """
+        Parameters
+        ---------
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The response data.
+
+        Output
+        ------
+        y: array-like
+            The possibly transformed response data.
+        """
         raise NotImplementedError
+
+    def _get_solve_kws(self):
+        """
+        solve_glm is called as solve_glm(X=X, y=y, **kws)
+        """
+        raise NotImplementedError
+
+    def _get_pen_val_max_from_pro(self, X, y):
+        """
+        Computes the largest reasonable tuning parameter value.
+        """
+        raise NotImplementedError
+
+    def get_loss_info(self):
+        """
+        Gets information about the loss function.
+
+        Parameters
+        ----------
+        loss_func: str
+            Which type of loss function.
+
+        loss_kws: dict
+            Keyword arguments for the loss function.
+        """
+        raise NotImplementedError
+
+
+Glm.__doc__ = dedent(
+    """
+    Base class for Lasso generalized linear model.
+
+    Parameters
+    ----------
+    {}
+    """.format(_glm_base_params)
+)

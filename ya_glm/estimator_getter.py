@@ -1,6 +1,6 @@
+# loss funcs
 from ya_glm.models.linear_regression import LinRegMixin
 from ya_glm.models.logistic_regression import LogRegMixin
-
 from ya_glm.models.linear_regression_multi_resp import \
     LinRegMultiResponseMixin
 
@@ -12,27 +12,32 @@ from ya_glm.pen_glm.Lasso import GlmLasso, GlmLassoCVPath, \
 from ya_glm.pen_glm.GroupLasso import GlmGroupLasso, GlmGroupLassoCVPath, \
     GlmGroupLassoENet, GlmGroupLassoENetCVPath
 from ya_glm.pen_glm.Ridge import GlmRidge, GlmRidgeCVPath
-from ya_glm.pen_glm.RowLasso import GlmRowLasso, GlmRowLassoCVPath, \
-    GlmRowLassoENet, GlmRowLassoENetCVPath
+from ya_glm.pen_glm.MultiTaskLasso import GlmMultiTaskLasso, GlmMultiTaskLassoCVPath, \
+    GlmMultiTaskLassoENet, GlmMultiTaskLassoENetCVPath
 from ya_glm.pen_glm.NuclearNorm import GlmNuclearNorm, GlmNuclearNormCVPath
 
 # concave
 from ya_glm.fcp.GlmFcp import GlmFcpFitLLA
-from ya_glm.fcp.GlmFcpCV import GlmFcpFitLLACV
+from ya_glm.fcp.GlmFcpCV import GlmFcpCV
 from ya_glm.lla.lla import solve_lla
 
-# solvers
+# fista solvers
 from ya_glm.backends.fista.glm_solver import solve_glm as solve_glm_fista
 from ya_glm.backends.fista.glm_solver import solve_glm_path \
     as solve_glm_path_fista
 from ya_glm.backends.fista.fcp_lla_solver import WL1SolverGlm \
     as WL1SolverGlm_fista
 
-from ya_glm.backends.celer.glm_solver import solve_glm as solve_glm_celer
-from ya_glm.backends.celer.glm_solver import solve_glm_path \
-    as solve_glm_path_celer
-from ya_glm.backends.celer.fcp_lla_solver import WL1SolverGlm \
-    as WL1SolverGlm_celer
+# andersoncd solvers
+from ya_glm.backends.andersoncd.glm_solver import solve_glm as \
+    solve_glm_andersoncd
+from ya_glm.backends.andersoncd.glm_solver import solve_glm_path \
+    as solve_glm_path_andersoncd
+from ya_glm.backends.andersoncd.fcp_lla_solver import WL1SolverGlm \
+    as WL1SolverGlm_andersoncd
+
+# other
+from ya_glm.add_init_params import add_init_params
 
 
 def get_model_mixin(loss_func='lin_reg'):
@@ -71,16 +76,19 @@ def get_penalty(penalty='lasso'):
     elif penalty == 'ridge':
         return GlmRidge, GlmRidgeCVPath
 
-    elif penalty == 'row_lasso':
-        return GlmRowLasso, GlmRowLassoCVPath
+    elif penalty == 'multi_task_lasso':
+        return GlmMultiTaskLasso, GlmMultiTaskLassoCVPath
 
-    elif penalty == 'row_lasso_enet':
-        return GlmRowLassoENet, GlmRowLassoENetCVPath
+    elif penalty == 'multi_task_lasso_enet':
+        return GlmMultiTaskLassoENet, GlmMultiTaskLassoENetCVPath
 
     elif penalty == 'nuclear_norm':
         return GlmNuclearNorm, GlmNuclearNormCVPath
 
+    else:
+        raise ValueError("Bad input for penalty: {}".format(penalty))
 
+# TODO: handle loss kws
 def get_pen_glm(loss_func='linear_regression',
                 penalty='lasso',
                 backend='fista'):
@@ -93,25 +101,41 @@ def get_pen_glm(loss_func='linear_regression',
         solve_glm_impl = solve_glm_fista
         solve_glm_path_impl = solve_glm_path_fista
 
-    elif type(backend) == str and backend == 'celer':
-        solve_glm_impl = solve_glm_celer
-        solve_glm_path_impl = solve_glm_path_celer
+    elif type(backend) == str and backend == 'andersoncd':
+        solve_glm_impl = solve_glm_andersoncd
+        solve_glm_path_impl = solve_glm_path_andersoncd
 
     else:
         solve_glm_impl = backend.get('solve_glm', None)
         solve_glm_path_impl = backend.get('solve_glm_path', None)
 
-    # setup estimator
-    class Estimator(MODEL_MIXIN, GLM):
-        solve_glm = staticmethod(solve_glm_impl)
+    ###################
+    # setup estimator #
+    ###################
 
-    # setup cross-validation
+    class Estimator(MODEL_MIXIN, GLM):
+        solve = staticmethod(solve_glm_impl)
+
+    # TODO: add MODEL_MIXIN params to init when required
+    # need to manually add groups in this case
+
+    ####################################
+    # setup cross-validation estimator #
+    ####################################
     if GLM_CV is not None:
+
+        if 'group' in penalty:
+            # TODO-HACK: this avoids issue of required positional argument
+            # is this how we want to handle this issue?
+            estimator = Estimator(groups=[])
+        else:
+            estimator = Estimator()
+
         class EstimatorCV(GLM_CV):
             solve_path = staticmethod(solve_glm_path_impl)
 
-            def _get_base_class(self):
-                return Estimator
+            @add_init_params(GlmLassoENetCVPath)
+            def __init__(self, estimator=estimator): pass
 
     else:
         EstimatorCV = None
@@ -119,6 +143,7 @@ def get_pen_glm(loss_func='linear_regression',
     return Estimator, EstimatorCV
 
 
+# TODO: add in other penalty types eg group, multi task, nuc
 def get_fcp_model(loss_func='linear_regression', backend='fista'):
 
     # get base model class
@@ -128,29 +153,38 @@ def get_fcp_model(loss_func='linear_regression', backend='fista'):
     if type(backend) == str and backend == 'fista':
         WL1_impl = WL1SolverGlm_fista
 
-    elif type(backend) == str and backend == 'celer':
-        WL1_impl = WL1SolverGlm_celer
+    elif type(backend) == str and backend == 'andersoncd':
+        WL1_impl = WL1SolverGlm_andersoncd
 
     else:
         WL1_impl = backend.get('wl1', None)
 
     # get default initializer
-    DefaultCV = get_pen_glm(loss_func=loss_func,
-                            penalty='lasso',
-                            backend=backend)[1]
+    Default, DefaultCV = get_pen_glm(loss_func=loss_func,
+                                     penalty='lasso',
+                                     backend=backend)
 
-    # setup model
+    ###################
+    # setup estimator #
+    ###################
     class Estimator(MODEL_MIXIN, GlmFcpFitLLA):
         solve_lla = staticmethod(solve_lla)
         base_wl1_solver = WL1_impl
 
         def _get_defualt_init(self):
-            return DefaultCV(fit_intercept=self.fit_intercept,
-                             opt_kws=self.opt_kws)
+            # return DefaultCV()
+            est = Default(fit_intercept=self.fit_intercept,
+                          opt_kws=self.opt_kws,
+                          standardize=self.standardize)
+            return DefaultCV(estimator=est)
 
-    # setup CV estimator
-    class EstimatorCV(GlmFcpFitLLACV):
-        def _get_base_class(self):
-            return Estimator
+    ####################################
+    # setup cross-validation estimator #
+    ####################################
+
+    class EstimatorCV(GlmFcpCV):
+
+        @add_init_params(GlmFcpCV)
+        def __init__(self, estimator=Estimator()): pass
 
     return Estimator, EstimatorCV

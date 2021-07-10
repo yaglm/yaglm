@@ -19,12 +19,14 @@ Probable solution: make the CV objects have a base argument that containts the b
 - speed comparison of opt module
 - compare fits to sklearn baseline
 
+- 1se rule for ENet
 
 
 Eventualy
 ---------
 - sample weights
 - cox
+- cv over other parameters with path algorithms
 - quantile regression (this will require a different default solver -- perhaps cvxpy?)
 - constraints: positive, simplex
 - bulid coordinate descent framework (e.g. based on https://arxiv.org/abs/1410.1386)

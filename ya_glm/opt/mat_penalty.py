@@ -47,6 +47,10 @@ class MatricizeEntrywisePen(Func):
         p = self.func.prox(x.reshape(-1), step=step)
         return p.reshape(x.shape)
 
+    @property
+    def grad_lip(self):
+        return self.func.grad_lip
+
 
 class RowLasso(Func):
     def __init__(self, mult=1, weights=None):

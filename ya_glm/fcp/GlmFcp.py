@@ -1,14 +1,14 @@
 from copy import deepcopy
-import numpy as np
-from scipy.sparse import diags
 from textwrap import dedent
 
-from ya_glm.Glm import Glm
-from ya_glm.autoassign import autoassign
+from ya_glm.Glm import Glm, _glm_base_params
+from ya_glm.add_init_params import add_init_params
+
 from ya_glm.fcp.utils import fit_if_unfitted
 from ya_glm.fcp.fcp_pen_max import get_fcp_pen_val_max
-from ya_glm.utils import is_multi_response, get_coef_and_intercept
+from ya_glm.utils import get_coef_and_intercept
 from ya_glm.opt.concave_penalty import get_penalty_func
+from ya_glm.processing import process_init_data
 
 
 class InitMixin:
@@ -65,39 +65,33 @@ class InitMixin:
         raise NotImplementedError
 
 
-# _glm_fcp_base_params = dedent("""
-#     pen_val: float
-#         The penalty parameter value.
+_glm_fcp_base_params = dedent("""
+    pen_val: float
+        The penalty parameter value.
 
-#     pen_func: str
-#         Which concave penalty function to use. See TODO for list of supported penalty functions.
+    pen_func: str
+        Which concave penalty function to use. See TODO for list of supported penalty functions.
 
-#     pen_func_kws: dict
-#         Key word arguments for the penalty function parameters. E.g. to set the 'a' parameter for the SCAD penalty this would be pen_func_kws = {'a': 3.7}
+    pen_func_kws: dict
+        Key word arguments for the penalty function parameters. E.g. to set the 'a' parameter for the SCAD penalty this would be pen_func_kws = {'a': 3.7}
 
-#     init: str, dict, Estimator
-#         Where to initialize the optimization algorithm. If 'defualt' then a defualt initialization strategy will be used (e.g. LassoCV). If a dict with keys 'coef' and 'intercept' is provided to specify a particular initial point. If an estimator is provided then the initial values will be extracted from the estimator. If the estimator is not yet fitted it will be first fitted to the training data.
+    init: str, dict, Estimator
+        Where to initialize the optimization algorithm. If 'defualt' then a defualt initialization strategy will be used (e.g. LassoCV). If a dict with keys 'coef' and 'intercept' is provided to specify a particular initial point. If an estimator is provided then the initial values will be extracted from the estimator. If the estimator is not yet fitted it will be first fitted to the training data.
 
-#     fit_intercept: bool
-#         Whether or not to fit an intercept.
-
-#     opt_kws: dict
-#         Key word arguments to the optimization algorithm.
-#     """)
+    opt_kws: dict
+        Key word arguments to the optimization algorithm.
+    """)
 
 
 class GlmFcp(Glm, InitMixin):
 
-    @autoassign
+    @add_init_params(Glm, add_first=False)
     def __init__(self,
-                 fit_intercept=True,
-                 standardize=False,
-                 opt_kws={},
-
                  pen_val=1,
                  pen_func='scad',
                  pen_func_kws={},
-                 init='default',
+
+                 init='default'
                  ):
         pass
 
@@ -110,17 +104,20 @@ class GlmFcp(Glm, InitMixin):
         init_data = self.get_init_data(X, y)
         if 'est' in init_data:
             self.init_est_ = init_data['est']
+            del init_data['est']
 
         # pre-process data
-        X, y, pre_pro_out = self._pre_process(X, y, copy=True)
+        X_pro, y_pro, pre_pro_out = self.preprocess(X, y, copy=True)
 
         # possibly process the init data e.g. shift/scale
-        init_data_pro = self._process_init_data(init_data, pre_pro_out)
+        init_data_pro = process_init_data(init_data=init_data,
+                                          pre_pro_out=pre_pro_out)
 
         # Fit!
-        fit_data = self._compute_fit(X, y, init_data=init_data_pro)
+        fit_out = self.compute_fit(X=X_pro, y=y_pro,
+                                   init_data=init_data_pro)
 
-        self._set_fit(fit_data, pre_pro_out)
+        self._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
         return self
 
     def _get_init_data_from_fit_est(self, est):
@@ -137,88 +134,47 @@ class GlmFcp(Glm, InitMixin):
 
         return out
 
-    def _compute_fit(self, X, y, init_data):
-        raise NotImplementedError
-
-    def _process_init_data(self, init_data, pre_pro_out):
-        """
-        Process the initialization data. E.g. if we center/scale our X data before fitting we should transform the coef/intercept initializers to match the center/scaled data.
-
-        This should not modify init_data
-
-        Parameters
-        ----------
-        init_data: dict
-
-        pre_pro_out: dict
-
-        Output
-        ------
-        init_data_pro: dict
-        """
-        # TODO: double check this
-
-        init_data_pro = {}
-
-        # coefficient
-        coef = np.array(init_data['coef'])
-        is_mr = is_multi_response(coef)
-        if not is_mr:
-            coef = coef.ravel()
-
-        # rescale coefficient
-        if pre_pro_out is not None and 'X_scale' in pre_pro_out:
-            coef = diags(pre_pro_out['X_scale']) @ coef
-
-        init_data_pro['coef'] = coef
-
-        # intercept
-        if 'intercept' in init_data:
-            intercept = deepcopy(init_data['intercept'])
-
-            if intercept is not None:
-                if pre_pro_out is not None and 'X_offset' in pre_pro_out:
-                    intercept += coef.T @ pre_pro_out['X_offset']
-
-                if pre_pro_out is not None and 'y_offset' in pre_pro_out:
-                    intercept -= pre_pro_out['y_offset']
-
-            init_data_pro['intercept'] = intercept
-
-        return init_data_pro
-
     def get_pen_val_max(self, X, y, init_data):
-        X_pro, y_pro, pre_pro_out = self._pre_process(X, y, copy=True)
-        init_data_pro = self._process_init_data(init_data, pre_pro_out)
+        X_pro, y_pro, pre_pro_out = self.preprocess(X, y, copy=True)
+        init_data_pro = process_init_data(init_data=init_data,
+                                          pre_pro_out=pre_pro_out)
         return self._get_pen_val_max_from_pro(X=X_pro, y=y_pro,
                                               init_data=init_data_pro)
 
     def _get_pen_val_max_from_pro(self, X, y, init_data):
 
+        loss_func, loss_kws = self.get_loss_info()
+
         return get_fcp_pen_val_max(X=X, y=y, init_data=init_data,
-                                   model_type=self._model_type,
+                                   loss_func=loss_func,
+                                   loss_kws=loss_kws,
                                    pen_func=self.pen_func,
                                    pen_func_kws=self.pen_func_kws,
                                    fit_intercept=self.fit_intercept)
 
-
-# GlmFcp.__doc__ = dedent("""
-#     Generalized linear model penalized by a folded concave penalty.
-
-#     Parameters
-#     ----------
-#     {}
-#     """.format(_glm_fcp_base_params)
-# )
+    def compute_fit(self, X, y, init_data):
+        raise NotImplementedError
 
 
-# _lla_params = dedent("""
-# lla_n_steps: int
-#     Maximum number of LLA steps to take.
+GlmFcp.__doc__ = dedent("""
+    Generalized linear model penalized by a folded concave penalty.
 
-# lla_kws: dict
-#     Key word arguments to LLA algorithm. See TODO.
-# """)
+    Parameters
+    ----------
+    {}
+
+    {}
+    """.format(_glm_base_params, _glm_fcp_base_params)
+)
+
+
+_lla_params = dedent("""
+lla_n_steps: int
+    Maximum number of LLA steps to take.
+
+lla_kws: dict
+    Key word arguments to LLA algorithm. See TODO.
+""")
 
 
 class GlmFcpFitLLA(GlmFcp):
@@ -226,20 +182,11 @@ class GlmFcpFitLLA(GlmFcp):
     base_wl1_solver = None
     solve_lla = None
 
-    # HACK to get around inheretance signature issue
-    # TODO: remove init and pen_val after figuring out signature issue
-    # @autoassign
-    def __init__(self, pen_val=1,
-                 lla_n_steps=1, lla_kws={},
-                 init='default',
-                 **kws):
-        super().__init__(**kws)
-        self.pen_val = pen_val
-        self.lla_n_steps = lla_n_steps
-        self.lla_kws = lla_kws
-        self.init = init
+    # TODO: check this works properly sice we call add_init_params twice
+    @add_init_params(GlmFcp)
+    def __init__(self, lla_n_steps=1, lla_kws={}): pass
 
-    def _compute_fit(self, X, y, init_data):
+    def compute_fit(self, X, y, init_data):
 
         coef_init = init_data['coef']
         if self.fit_intercept:
@@ -253,8 +200,13 @@ class GlmFcpFitLLA(GlmFcp):
                                         pen_func_kws=self.pen_func_kws)
 
         # setup solver for weighted Lasso solver
-        wl1_solver = self.base_wl1_solver(X=X, y=y,
-                                          **self._get_wl1_solver_kws())
+        loss_func, loss_kws = self.get_loss_info()
+        kws = {'loss_func': loss_func,
+               'loss_kws': loss_kws,
+               'fit_intercept': self.fit_intercept,
+               'opt_kws': self.opt_kws}
+
+        wl1_solver = self.base_wl1_solver(X=X, y=y, **kws)
 
         # solve!
         coef, intercept, opt_data = \
@@ -267,20 +219,17 @@ class GlmFcpFitLLA(GlmFcp):
 
         return {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
 
-    def _get_wl1_solver_kws(self):
-        # raise NotImplementedError
-        return {'loss_func': self._model_type,
-                'fit_intercept': self.fit_intercept,
-                'opt_kws': self.opt_kws}
 
+GlmFcpFitLLA.__doc__ = dedent("""
+    Generalized linear model penalized by a folded concave penalty and fit with the local linear approximation (LLA) algorithm.
 
-# GlmFcpFitLLA.__doc__ = dedent("""
-#     Generalized linear model penalized by a folded concave penalty and fit with the local linear approximation (LLA) algorithm.
+    Parameters
+    ----------
+    {}
 
-#     Parameters
-#     ----------
-#     {}
+    {}
 
-#     {}
-#     """.format(_glm_fcp_base_params, _lla_params)
-# )
+    {}
+    """.format(_glm_base_params, _glm_fcp_base_params, _lla_params)
+)
+# TODO: better solution than manually adding all of these

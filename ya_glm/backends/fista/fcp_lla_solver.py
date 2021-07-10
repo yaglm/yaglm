@@ -5,9 +5,12 @@ from .glm_solver import get_glm_loss, solve_glm
 
 
 class WL1SolverGlm(WeightedLassoSolver):
-    def __init__(self, loss_func, X, y, fit_intercept=True, opt_kws={}):
+    def __init__(self, X, y, loss_func, loss_kws={},
+                 fit_intercept=True, opt_kws={}):
 
-        self.glm_loss = get_glm_loss(loss_func, X=X, y=y,
+        self.glm_loss = get_glm_loss(X=X, y=y,
+                                     loss_func=loss_func,
+                                     loss_kws=loss_kws,
                                      fit_intercept=fit_intercept,
                                      precomp_lip=None)
 

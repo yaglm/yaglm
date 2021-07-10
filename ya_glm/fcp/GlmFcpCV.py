@@ -1,31 +1,31 @@
 from time import time
-import numpy as np
 from copy import deepcopy
+from sklearn.base import clone
 
-from ya_glm.utils import get_sequence_decr_max
-from ya_glm.autoassign import autoassign
+from ya_glm.processing import check_estimator_type
 
-from ya_glm.GlmCV import GlmCVSinglePen
+from ya_glm.GlmCV import GlmCVSinglePen, get_pen_val_seq
 from ya_glm.cv.CVGridSearch import CVGridSearchMixin
+from ya_glm.fcp.GlmFcp import GlmFcp
 
 
 class GlmFcpCV(CVGridSearchMixin, GlmCVSinglePen):
 
-    @autoassign
-    def __init__(self, pen_func='scad', pen_func_kws={}, init='default',
-                 **kws):
-        super().__init__(**kws)
-
     def fit(self, X, y):
-        # validate the data!
-        est = self._get_base_estimator()
+
+        # check the input data
+        self._check_base_estimator(self.estimator)
+        est = clone(self.estimator)
         X, y = est._validate_data(X, y)
 
         # get initialization from raw data
         init_data = est.get_init_data(X, y)
         if 'est' in init_data:
             self.init_est_ = init_data['est']
+            del init_data['est']
 
+        # make sure all estimators we tune over have the same initialization
+        # TODO: do we really need to copy here?
         est.set_params(init=deepcopy(init_data))
 
         # set up the tuning parameter values
@@ -40,6 +40,8 @@ class GlmFcpCV(CVGridSearchMixin, GlmCVSinglePen):
         # select best tuning parameter values
         self.best_tune_idx_, self.best_tune_params_ = \
             self._select_tune_param(self.cv_results_)
+
+        # set best tuning params
         est.set_params(**self.best_tune_params_)
 
         # refit on the raw data
@@ -53,36 +55,16 @@ class GlmFcpCV(CVGridSearchMixin, GlmCVSinglePen):
     def _set_tuning_values(self, X, y, init_data):
 
         if self.pen_vals is None:
-
-            est = self._get_base_estimator()
-            pen_val_max = est.get_pen_val_max(X, y, init_data)
-
-            pen_vals = get_sequence_decr_max(max_val=pen_val_max,
-                                             min_val_mult=self.pen_min_mult,
-                                             num=self.n_pen_vals,
-                                             spacing=self.pen_spacing)
+            pen_val_max = self.estimator.get_pen_val_max(X, y, init_data)
         else:
-            pen_vals = np.array(self.pen_vals)
+            pen_val_max = None
 
-        self.pen_val_seq_ = np.sort(pen_vals)[::-1]  # ensure decreasing
+        self.pen_val_seq_ = \
+            get_pen_val_seq(pen_val_max,
+                            n_pen_vals=self.n_pen_vals,
+                            pen_vals=self.pen_vals,
+                            pen_min_mult=self.pen_min_mult,
+                            pen_spacing=self.pen_spacing)
 
-
-class GlmFcpFitLLACV(GlmFcpCV):
-
-    @autoassign
-    def __init__(self, lla_n_steps=1, lla_kws={},
-                 **kws):
-        GlmFcpCV.__init__(self, **kws)
-
-    def _get_base_est_params(self):
-        return {'fit_intercept': self.fit_intercept,
-                'opt_kws': self.opt_kws,
-                'standardize': self.standardize,
-
-                'pen_func': self.pen_func,
-                'pen_func_kws': self.pen_func_kws,
-                'init': self.init,
-
-                'lla_n_steps': self.lla_n_steps,
-                'lla_kws': self.lla_kws
-                }
+    def _check_base_estimator(self, estimator):
+        check_estimator_type(estimator, GlmFcp)

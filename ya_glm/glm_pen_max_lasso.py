@@ -2,10 +2,10 @@ import numpy as np
 
 from ya_glm.utils import is_multi_response
 from ya_glm.linalg_utils import leading_sval
+from ya_glm.processing import process_weights_group_lasso
 
 
-def lasso_max(X, y, fit_intercept=True, weights=None,
-              model_type='lin_reg'):
+def lasso_max(X, y, fit_intercept, loss_func, loss_kws={}, weights=None):
 
     if is_multi_response(y):
 
@@ -18,13 +18,15 @@ def lasso_max(X, y, fit_intercept=True, weights=None,
 
             m = lasso_max(X=X, y=y[:, c],
                           fit_intercept=fit_intercept,
-                          model_type=model_type,
+                          loss_func=loss_func,
+                          loss_kws=loss_kws,
                           weights=w)
 
             resp_maxes.append(m)
         return max(resp_maxes)
 
-    grad = grad_at_zero(X, y, fit_intercept, model_type)
+    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
+                        loss_func=loss_func, loss_kws=loss_kws)
 
     if weights is not None:
         penalized_mask = get_is_pen_mask(weights)
@@ -35,10 +37,10 @@ def lasso_max(X, y, fit_intercept=True, weights=None,
     return abs(grad).max()
 
 
-def get_L1toL2_max(X, y, fit_intercept=True, weights=None,
-                   model_type='lin_reg'):
+def get_L1toL2_max(X, y, fit_intercept, loss_func, loss_kws={}, weights=None):
 
-    grad = grad_at_zero(X, y, fit_intercept, model_type)
+    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
+                        loss_func=loss_func, loss_kws=loss_kws)
 
     row_norms = np.linalg.norm(grad, axis=1)
 
@@ -50,13 +52,16 @@ def get_L1toL2_max(X, y, fit_intercept=True, weights=None,
     return max(row_norms)
 
 
-def group_lasso_max(X, y, groups, fit_intercept=True, weights=None,
-                    model_type='lin_reg'):
+def group_lasso_max(X, y, groups, fit_intercept, loss_func,
+                    loss_kws={}, weights=None):
 
-    grad = grad_at_zero(X, y, fit_intercept, model_type)
+    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
+                        loss_func=loss_func, loss_kws=loss_kws)
 
     group_norms = np.array([np.linalg.norm(grad[grp_idxs])
                             for grp_idxs in groups])
+
+    weights = process_weights_group_lasso(groups=groups, weights=weights)
 
     if weights is not None:
         penalized_mask = get_is_pen_mask(weights)
@@ -67,11 +72,14 @@ def group_lasso_max(X, y, groups, fit_intercept=True, weights=None,
     return group_norms.max()
 
 
-def nuclear_norm_max(X, y, fit_intercept=True, weights=None,
-                     model_type='lin_reg'):
+def nuclear_norm_max(X, y, fit_intercept, loss_func,
+                     loss_kws={}, weights=None):
+
+    assert loss_func in ['lin_reg_mr'] # TODO: add losses here
 
     # TODO: double check this is right
-    grad = grad_at_zero(X, y, fit_intercept, model_type)
+    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
+                        loss_func=loss_func, loss_kws=loss_kws)
 
     sval_max = leading_sval(grad)
 
@@ -86,19 +94,19 @@ def nuclear_norm_max(X, y, fit_intercept=True, weights=None,
         return sval_max / smallest_weight
 
 
-def grad_at_zero(X, y, fit_intercept=True, model_type='lin_reg'):
+def grad_at_zero(X, y, fit_intercept, loss_func, loss_kws={}):
 
-    if model_type == 'lin_reg':
-        return g0_lin_reg(X, y, fit_intercept)
+    if loss_func == 'lin_reg':
+        return g0_lin_reg(X=X, y=y, fit_intercept=fit_intercept)
 
-    elif model_type == 'lin_reg_mr':
-        return g0_lin_reg_mr(X, y, fit_intercept)
+    elif loss_func == 'lin_reg_mr':
+        return g0_lin_reg_mr(X=X, y=y, fit_intercept=fit_intercept)
 
-    elif model_type == 'log_reg':
-        return g0_log_reg(X, y, fit_intercept)
+    elif loss_func == 'log_reg':
+        return g0_log_reg(X=X, y=y, fit_intercept=fit_intercept)
 
     else:
-        raise NotImplementedError("{} not supported".format(model_type))
+        raise NotImplementedError("{} not supported".format(loss_func))
 
 
 def g0_lin_reg(X, y, fit_intercept=True):

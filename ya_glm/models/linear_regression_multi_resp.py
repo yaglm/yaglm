@@ -4,7 +4,12 @@ from ya_glm.models.linear_regression import LinRegMixin
 
 
 class LinRegMultiResponseMixin(LinRegMixin):
-    _model_type = 'lin_reg_mr'
+
+    def get_loss_info(self):
+        loss_type = 'lin_reg_mr'
+        loss_kws = {}
+
+        return loss_type, loss_kws
 
     def _process_y(self, y, copy=True):
         return process_y_lin_reg_mr(y, standardize=self.standardize,

@@ -4,7 +4,7 @@ from ya_glm.linalg_utils import smallest_sval
 
 def ridge_max(X, y, fit_intercept=True,
               weights=None,
-              model_type='lin_reg',
+              loss_func='lin_reg', loss_kws={},
               targ_ubd=1, norm_by_dim=True):
     """
     Returns a heuristic for the largest reasonable value for the ridge tuning parameter. See linear_regression_max_val documentation for a description.
@@ -24,8 +24,11 @@ def ridge_max(X, y, fit_intercept=True,
     weights: None, array-like
         Optional L2 weights or Tikhinov regularization matrix.
 
-    model_type: str
-        Which GLM loss function we are fitting. Must be one of ['linear_regression', 'logistic_regression']
+    loss_func: str
+        Which GLM loss function we are fitting.
+
+    loss_kws: dict
+        Keyword arguments for loss function.
 
     targ_ubd: float
         The targeted upper bound.
@@ -34,20 +37,20 @@ def ridge_max(X, y, fit_intercept=True,
         Whether the targeted upper bound metric should be normalized by the dimension.
     """
 
-    if model_type == 'lin_reg':
+    if loss_func == 'lin_reg':
         return lin_reg_ridge_max(X, y, fit_intercept,
                                  targ_ubd=targ_ubd,
                                  weights=weights,
                                  norm_by_dim=norm_by_dim)
 
-    elif model_type == 'log_reg':
+    elif loss_func == 'log_reg':
         return log_reg_ridge_max(X, y, fit_intercept,
                                  targ_ubd=targ_ubd,
                                  weights=weights,
                                  norm_by_dim=norm_by_dim)
 
     else:
-        raise NotImplementedError('{} not supported'.format(model_type))
+        raise NotImplementedError('{} not supported'.format(loss_func))
 
 
 def lin_reg_ridge_max(X, y, fit_intercept=True, weights=None,

@@ -8,8 +8,10 @@ from ya_glm.pen_glm.GroupLasso import GlmGroupLasso, GlmGroupLassoCVPath, \
 from ya_glm.pen_glm.Ridge import GlmRidge, GlmRidgeCVPath
 
 from ya_glm.fcp.GlmFcp import GlmFcpFitLLA
-from ya_glm.fcp.GlmFcpCV import GlmFcpFitLLACV
+from ya_glm.fcp.GlmFcpCV import GlmFcpCV
 from ya_glm.lla.lla import solve_lla
+from ya_glm.add_init_params import add_init_params
+
 
 from .glm_solver import solve_glm, solve_glm_path
 from .fcp_lla_solver import WL1SolverGlm
@@ -21,27 +23,27 @@ from .fcp_lla_solver import WL1SolverGlm
 
 
 class Vanilla(LinRegMixin, GlmVanilla):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class Lasso(LinRegMixin, GlmLasso):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class LassoENet(LinRegMixin, GlmLassoENet):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class GroupLasso(LinRegMixin, GlmGroupLasso):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class GroupLassoENet(LinRegMixin, GlmGroupLassoENet):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class Ridge(LinRegMixin, GlmRidge):
-    solve_glm = staticmethod(solve_glm)
+    solve = staticmethod(solve_glm)
 
 
 class FcpLLA(LinRegMixin, GlmFcpFitLLA):
@@ -49,8 +51,12 @@ class FcpLLA(LinRegMixin, GlmFcpFitLLA):
     base_wl1_solver = WL1SolverGlm
 
     def _get_defualt_init(self):
-        return LassoCV(fit_intercept=self.fit_intercept,
-                       opt_kws=self.opt_kws)
+        # return LassoCV()
+        est = Lasso(fit_intercept=self.fit_intercept,
+                    opt_kws=self.opt_kws,
+                    standardize=self.standardize)
+
+        return LassoCV(estimator=est)
 
 
 ####################
@@ -61,39 +67,41 @@ class FcpLLA(LinRegMixin, GlmFcpFitLLA):
 class LassoCV(GlmLassoCVPath):
     solve_path = staticmethod(solve_glm_path)
 
-    def _get_base_class(self):
-        return Lasso
+    @add_init_params(GlmLassoCVPath)
+    def __init__(self, estimator=Lasso()): pass
 
 
 class LassoENetCV(GlmLassoENetCVPath):
     solve_path = staticmethod(solve_glm_path)
 
-    def _get_base_class(self):
-        return LassoENet
+    @add_init_params(GlmLassoENetCVPath)
+    def __init__(self, estimator=LassoENet()): pass
 
 
 class GroupLassoCV(GlmGroupLassoCVPath):
     solve_path = staticmethod(solve_glm_path)
 
-    def _get_base_class(self):
-        return GroupLasso
+    @add_init_params(GlmLassoCVPath)
+    # gruops=[] is hack to get around required positional arugment
+    # TODO: is this how want to handle this issue?
+    def __init__(self, estimator=GroupLasso(groups=[])): pass
 
 
 class GroupLassoENetCV(GlmGroupLassoENetCVPath):
     solve_path = staticmethod(solve_glm_path)
 
-    def _get_base_class(self):
-        return GroupLassoENet
+    @add_init_params(GlmLassoENetCVPath)
+    def __init__(self, estimator=GroupLassoENet(groups=[])): pass
 
 
 class RidgeCV(GlmRidgeCVPath):
     solve_path = staticmethod(solve_glm_path)
 
-    def _get_base_class(self):
-        return Ridge
+    @add_init_params(GlmRidgeCVPath)
+    def __init__(self, estimator=Ridge()): pass
 
 
-class FcpLLACV(GlmFcpFitLLACV):
+class FcpLLACV(GlmFcpCV):
 
-    def _get_base_class(self):
-        return FcpLLA
+    @add_init_params(GlmFcpCV)
+    def __init__(self, estimator=FcpLLA()): pass
