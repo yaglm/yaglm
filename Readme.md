@@ -19,15 +19,16 @@ To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) yo
 
 # Example
 
-```python
-from sklearn.datasets import make_regression
 
+```python
 from ya_glm.backends.fista.LinearRegression import Lasso, LassoCV, RidgeCV, LassoENetCV, \
     GroupLassoENet, GroupLassoENetCV, \
     FcpLLA, FcpLLACV
 
+from ya_glm.toy_data import sample_sparse_lin_reg
+
 # sample some linear regression data
-X, y = make_regression(n_samples=100, n_features=20)
+X, y = sample_sparse_lin_reg(n_samples=100, n_features=20)[0:2]
 
 # fit the Lasso penalized linear regression model we all known and love
 est = Lasso(pen_val=1).fit(X, y)
@@ -58,6 +59,29 @@ est = FcpLLA(init=LassoCV(), pen_func='scad')
 est_cv = FcpLLACV(estimator=est).fit(X, y)
 ```
 
+We support a variety of other loss functions such as **logistic regression**. We can generate these estimator objects programmatically to avoid writing a ton of code by hand.
+
+
+```python
+from ya_glm.estimator_getter import get_pen_glm, get_fcp_glm
+from ya_glm.toy_data import sample_sparse_log_reg
+
+# sample some logistic regression data
+X, y = sample_sparse_log_reg(n_samples=100, n_features=20)[0:2]
+
+# Get a penalized logistic regression estimator and corresponding cross-validation object
+Est, EstCV = get_pen_glm(loss_func='log_reg', penalty='lasso')
+# Est, EstCV = get_pen_glm(loss_func='log_reg', penalty='lasso_enet') # Elastic Net
+# Est, EstCV = get_pen_glm(loss_func='log_reg', penalty='group_lasso')  # Group lasso
+
+# Or a concave penalized logistic regression estimator
+# Est, EstCV = get_fcp_glm(loss_func='log_reg', penalty='lasso')
+
+est = Est().fit(X, y) # single fit
+est_cv = EstCV().fit(X, y) # cross-validation
+```
+
+
 Se the [docs/](docs/) folder for additional examples in jupyter notebooks.
 
 
@@ -75,15 +99,15 @@ and the following penalties
 - Group Lasso with user specified groups
 - Elastic net
 - Ridge
+- Tikhonov
 - Nuclear norm
 - Multi-task Lasso (i.e. L1 to L2 norm)
 - Weighted versions of all of the above
-- Tikhonov
 - Folded concave penalties (FCP) such as SCAD
 
-The FCP penalties are fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit. See (Fan et al, 2014) for details.
+The FCP penalties are fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit. See (Fan et al, 2014) for details. We provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
 
-We also provided built in cross-validation (CV) for each of these penalties. For the concave penalties (e.g. Lasso) our CV methods use faster path algorithms (as in sklearn.linear_model.LassoCV). Our CV function allow custom metrics and custom selection rules such as the '1se' rule from the glmnet package.
+We also supply built in cross-validation (CV) for each of these penalties. For the concave penalties (e.g. Lasso) our CV methods use faster path algorithms (as in sklearn.linear_model.LassoCV). Our CV function allow custom metrics and custom selection rules such as the '1se' rule from the glmnet package.
 
 We aim to add additional loss functions including poisson, multinomial, gamma, huber, and cox regression.
 

@@ -17,7 +17,8 @@ from ya_glm.pen_glm.MultiTaskLasso import GlmMultiTaskLasso, GlmMultiTaskLassoCV
 from ya_glm.pen_glm.NuclearNorm import GlmNuclearNorm, GlmNuclearNormCVPath
 
 # concave
-from ya_glm.fcp.GlmFcp import GlmFcpFitLLA
+from ya_glm.fcp.GlmFcp import GlmFcpFitLLA, GlmMultiTaskFcpFitLLA, \
+    GlmNuclearNormFcpFitLLA, GlmGroupFcpFitLLA
 from ya_glm.fcp.GlmFcpCV import GlmFcpCV
 from ya_glm.lla.lla import solve_lla
 
@@ -88,6 +89,29 @@ def get_penalty(penalty='lasso'):
     else:
         raise ValueError("Bad input for penalty: {}".format(penalty))
 
+
+def get_fcp_penalty(penalty='lasso'):
+    # Valid FCP models
+    assert penalty in ['lasso', 'group_lasso', 'multi_task_lasso',
+                       'nuclear_norm']
+
+    # penalty
+    if penalty == 'lasso':
+        return GlmFcpFitLLA, GlmFcpCV
+
+    elif penalty == 'group_lasso':
+        return GlmGroupFcpFitLLA, GlmFcpCV,
+
+    elif penalty == 'multi_task_lasso':
+        return GlmMultiTaskFcpFitLLA, GlmFcpCV
+
+    elif penalty == 'nuclear_norm':
+        return GlmNuclearNormFcpFitLLA, GlmFcpCV
+
+    else:
+        raise ValueError("Bad input for penalty: {}".format(penalty))
+
+
 # TODO: handle loss kws
 def get_pen_glm(loss_func='linear_regression',
                 penalty='lasso',
@@ -144,10 +168,12 @@ def get_pen_glm(loss_func='linear_regression',
 
 
 # TODO: add in other penalty types eg group, multi task, nuc
-def get_fcp_model(loss_func='linear_regression', backend='fista'):
+def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
+                backend='fista'):
 
     # get base model class
     MODEL_MIXIN = get_model_mixin(loss_func=loss_func)
+    GLM_FCP, GLM_FCP_CV = get_fcp_penalty(penalty=penalty)
 
     # get wl1 solver
     if type(backend) == str and backend == 'fista':
@@ -161,30 +187,50 @@ def get_fcp_model(loss_func='linear_regression', backend='fista'):
 
     # get default initializer
     Default, DefaultCV = get_pen_glm(loss_func=loss_func,
-                                     penalty='lasso',
+                                     penalty=penalty,
                                      backend=backend)
 
     ###################
     # setup estimator #
     ###################
-    class Estimator(MODEL_MIXIN, GlmFcpFitLLA):
-        solve_lla = staticmethod(solve_lla)
-        base_wl1_solver = WL1_impl
 
-        def _get_defualt_init(self):
-            # return DefaultCV()
-            est = Default(fit_intercept=self.fit_intercept,
-                          opt_kws=self.opt_kws,
-                          standardize=self.standardize)
-            return DefaultCV(estimator=est)
+    if 'group' in penalty:
+        class Estimator(MODEL_MIXIN, GLM_FCP):
+            solve_lla = staticmethod(solve_lla)
+            base_wl1_solver = WL1_impl
+
+            def _get_defualt_init(self):
+                # return DefaultCV()
+                est = Default(groups=self.groups,
+                              fit_intercept=self.fit_intercept,
+                              opt_kws=self.opt_kws,
+                              standardize=self.standardize)
+
+                return DefaultCV(estimator=est)
+
+        estimator = Estimator(groups=[])
+
+    else:
+        class Estimator(MODEL_MIXIN, GLM_FCP):
+            solve_lla = staticmethod(solve_lla)
+            base_wl1_solver = WL1_impl
+
+            def _get_defualt_init(self):
+                # return DefaultCV()
+                est = Default(fit_intercept=self.fit_intercept,
+                              opt_kws=self.opt_kws,
+                              standardize=self.standardize)
+                return DefaultCV(estimator=est)
+
+        estimator = Estimator()
+
+    class EstimatorCV(GLM_FCP_CV):
+
+        @add_init_params(GlmFcpCV)
+        def __init__(self, estimator=estimator): pass
 
     ####################################
     # setup cross-validation estimator #
     ####################################
-
-    class EstimatorCV(GlmFcpCV):
-
-        @add_init_params(GlmFcpCV)
-        def __init__(self, estimator=Estimator()): pass
 
     return Estimator, EstimatorCV

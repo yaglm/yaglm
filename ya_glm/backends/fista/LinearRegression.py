@@ -7,12 +7,11 @@ from ya_glm.pen_glm.GroupLasso import GlmGroupLasso, GlmGroupLassoCVPath, \
     GlmGroupLassoENet, GlmGroupLassoENetCVPath
 from ya_glm.pen_glm.Ridge import GlmRidge, GlmRidgeCVPath
 
-from ya_glm.fcp.GlmFcp import GlmFcpFitLLA
+from ya_glm.fcp.GlmFcp import GlmFcpFitLLA, GlmGroupFcpFitLLA
 from ya_glm.fcp.GlmFcpCV import GlmFcpCV
-from ya_glm.lla.lla import solve_lla
 from ya_glm.add_init_params import add_init_params
 
-
+from ya_glm.lla.lla import solve_lla
 from .glm_solver import solve_glm, solve_glm_path
 from .fcp_lla_solver import WL1SolverGlm
 
@@ -58,6 +57,18 @@ class FcpLLA(LinRegMixin, GlmFcpFitLLA):
 
         return LassoCV(estimator=est)
 
+
+class GroupFcpLLA(LinRegMixin, GlmGroupFcpFitLLA):
+    solve_lla = staticmethod(solve_lla)
+    base_wl1_solver = WL1SolverGlm
+
+    def _get_defualt_init(self):
+        est = GroupLasso(groups=self.groups,
+                         fit_intercept=self.fit_intercept,
+                         opt_kws=self.opt_kws,
+                         standardize=self.standardize)
+
+        return GroupLassoCV(estimator=est)
 
 ####################
 # Cross-validation #
@@ -105,3 +116,9 @@ class FcpLLACV(GlmFcpCV):
 
     @add_init_params(GlmFcpCV)
     def __init__(self, estimator=FcpLLA()): pass
+
+
+class GroupFcpLLACV(GlmFcpCV):
+
+    @add_init_params(GlmFcpCV)
+    def __init__(self, estimator=GroupFcpLLA(groups=[])): pass

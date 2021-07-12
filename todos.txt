@@ -1,11 +1,6 @@
 Need to do
 ----------
 
-- figure out how to deal with __init__ signature for subclasses
-- figure out how to deal with __init__ documentation for subclasses
-- figure out how to allow GLM classes to have arguments in init
-Probable solution: make the CV objects have a base argument that containts the base estimator.
-
 - multinomial
 - huber
 - Poisson

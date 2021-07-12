@@ -9,7 +9,7 @@ from ya_glm.opt.logistic_regression import LogRegLoss
 from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
     WithIntercept, TikhonovPenalty
 from ya_glm.opt.GroupLasso import GroupLasso
-from ya_glm.opt.mat_penalty import RowLasso, NuclearNorm, \
+from ya_glm.opt.mat_penalty import MultiTaskLasso, NuclearNorm, \
     MatricizeEntrywisePen, \
     MatWithIntercept
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
@@ -171,7 +171,7 @@ def solve_glm(X, y,
                            mult=lasso_pen, weights=lasso_weights)
 
     elif is_mr and L1to2:
-        lasso = RowLasso(mult=lasso_pen, weights=lasso_weights)
+        lasso = MultiTaskLasso(mult=lasso_pen, weights=lasso_weights)
         is_already_mat_pen = True
 
     elif is_mr and nuc:
