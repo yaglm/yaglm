@@ -6,34 +6,34 @@ from ya_glm.opt.utils import safe_vectorize
 from ya_glm.opt.linear_regression import get_lin_reg_lip
 
 
-def huber_eval_1d(x, kink=1):
+def huber_eval_1d(x, knot=1):
     x_abs = abs(x)
-    if x_abs <= kink:
+    if x_abs <= knot:
         return 0.5 * x ** 2
     else:
-        return kink * (x_abs - 0.5 * kink)
+        return knot * (x_abs - 0.5 * knot)
 
 
 _vec_huber_eval = safe_vectorize(huber_eval_1d)
 
 
-def huber_eval(x, kink=1):
-    return _vec_huber_eval(x, kink).sum()
+def huber_eval(x, knot=1):
+    return _vec_huber_eval(x, knot).sum()
 
 
-def huber_grad_1d(x, kink=1):
+def huber_grad_1d(x, knot=1):
 
-    if abs(x) <= kink:
+    if abs(x) <= knot:
         return x
     else:
-        return kink * np.sign(x)
+        return knot * np.sign(x)
 
 
 _vec_huber_grad = safe_vectorize(huber_grad_1d)
 
 
-def huber_grad(x, kink=1):
-    return _vec_huber_grad(x, kink).sum()
+def huber_grad(x, knot=1):
+    return _vec_huber_grad(x, knot).sum()
 
 
 class HuberRegLoss(Func):
@@ -52,8 +52,8 @@ class HuberRegLoss(Func):
     y: array-like, shape (n_samples, )
         The outcomes.
 
-    kink: float
-        The kink point for the huber function.
+    knot: float
+        The knot point for the huber function.
 
     fit_intercept: bool
         Whether or not to include the intercept term.
@@ -62,12 +62,12 @@ class HuberRegLoss(Func):
         The (optional) precomputed Lipshitz constant of the gradient.
 
     """
-    def __init__(self, X, y, kink=1, fit_intercept=True, lip=None):
+    def __init__(self, X, y, knot=1.35, fit_intercept=True, lip=None):
 
         self.fit_intercept = fit_intercept
         self.X = X
         self.y = y
-        self.kip = kink
+        self.knot = knot
 
         if lip is None:
             # TODO: this is correct right?
@@ -80,7 +80,7 @@ class HuberRegLoss(Func):
         pred = safe_data_mat_coef_dot(X=self.X, coef=x,
                                       fit_intercept=self.fit_intercept)
 
-        return (1/self.X.shape[0]) * huber_eval(pred - self.y, kink=self.kink)
+        return (1/self.X.shape[0]) * huber_eval(pred - self.y, knot=self.knot)
 
     def _grad(self, x):
         pred = safe_data_mat_coef_dot(X=self.X, coef=x,
@@ -89,7 +89,7 @@ class HuberRegLoss(Func):
         # TODO: double check!
         resid = pred - self.y
         coef_grad = (1/self.X.shape[0]) * self.X.T @ huber_grad(resid,
-                                                                kink=self.kink)
+                                                                knot=self.knot)
 
         if self.fit_intercept:
             intercept_grad = np.mean(resid)
