@@ -82,7 +82,7 @@ est_cv = EstCV().fit(X, y) # cross-validation
 ```
 
 
-Se the [docs/](docs/) folder for additional examples in jupyter notebooks.
+See the [docs/](docs/) folder for additional examples in jupyter notebooks (if they don't load on github try [nbviewer.jupyter.org/](https://nbviewer.jupyter.org/)).
 
 
 # Currently supported features
