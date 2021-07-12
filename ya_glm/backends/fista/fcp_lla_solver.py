@@ -6,7 +6,8 @@ from .glm_solver import get_glm_loss, solve_glm
 
 class WL1SolverGlm(WeightedLassoSolver):
     def __init__(self, X, y, loss_func, loss_kws={},
-                 fit_intercept=True, opt_kws={}):
+                 fit_intercept=True, groups=None, L1to2=False, nuc=False,
+                 opt_kws={}):
 
         self.glm_loss = get_glm_loss(X=X, y=y,
                                      loss_func=loss_func,
@@ -14,6 +15,9 @@ class WL1SolverGlm(WeightedLassoSolver):
                                      fit_intercept=fit_intercept,
                                      precomp_lip=None)
 
+        self.groups = groups
+        self.L1to2 = L1to2
+        self.nuc = nuc
         self.opt_kws = opt_kws
 
     def solve(self, L1_weights, opt_init=None, opt_init_upv=None):
@@ -42,6 +46,9 @@ class WL1SolverGlm(WeightedLassoSolver):
                       lasso_weights=L1_weights,
                       coef_init=opt_init,
                       intercept_init=opt_init_upv,
+                      groups=self.groups,
+                      L1to2=self.L1to2,
+                      nuc=self.nuc,
                       **self.opt_kws)
 
         return coef, intercept, opt_data

@@ -5,10 +5,15 @@ from ya_glm.pen_glm.NuclearNorm import GlmNuclearNorm, GlmNuclearNormCVPath
 from ya_glm.pen_glm.MultiTaskLasso import GlmMultiTaskLasso, \
     GlmMultiTaskLassoCVPath,\
     GlmMultiTaskLassoENet, GlmMultiTaskLassoENetCVPath
+from ya_glm.fcp.GlmFcp import GlmMultiTaskFcpFitLLA, \
+    GlmNuclearNormFcpFitLLA
+from ya_glm.fcp.GlmFcpCV import GlmFcpCV
 
 from ya_glm.add_init_params import add_init_params
 
+from ya_glm.lla.lla import solve_lla
 from .glm_solver import solve_glm, solve_glm_path
+from .fcp_lla_solver import WL1SolverGlm
 
 
 ##############
@@ -30,6 +35,30 @@ class MultiTaskLassoENet(LinRegMultiResponseMixin, GlmMultiTaskLassoENet):
 
 class NuclearNorm(LinRegMultiResponseMixin, GlmNuclearNorm):
     solve = staticmethod(solve_glm)
+
+
+class MultiTaskFcpLLA(LinRegMultiResponseMixin, GlmMultiTaskFcpFitLLA):
+    solve_lla = staticmethod(solve_lla)
+    base_wl1_solver = WL1SolverGlm
+
+    def _get_defualt_init(self):
+        est = MultiTaskLasso(fit_intercept=self.fit_intercept,
+                             opt_kws=self.opt_kws,
+                             standardize=self.standardize)
+
+        return MultiTaskLassoCV(estimator=est)
+
+
+class NuclearNormFcpLLA(LinRegMultiResponseMixin, GlmNuclearNormFcpFitLLA):
+    solve_lla = staticmethod(solve_lla)
+    base_wl1_solver = WL1SolverGlm
+
+    def _get_defualt_init(self):
+        est = NuclearNorm(fit_intercept=self.fit_intercept,
+                          opt_kws=self.opt_kws,
+                          standardize=self.standardize)
+
+        return NuclearNormCV(estimator=est)
 
 
 ####################
@@ -56,3 +85,15 @@ class NuclearNormCV(GlmNuclearNormCVPath):
 
     @add_init_params(GlmNuclearNormCVPath)
     def __init__(self, estimator=NuclearNorm()): pass
+
+
+class MultiTaskFcpLLACV(GlmFcpCV):
+
+    @add_init_params(GlmFcpCV)
+    def __init__(self, estimator=MultiTaskFcpLLA()): pass
+
+
+class NuclearNormFcpLLACV(GlmFcpCV):
+
+    @add_init_params(GlmFcpCV)
+    def __init__(self, estimator=NuclearNormFcpLLA()): pass

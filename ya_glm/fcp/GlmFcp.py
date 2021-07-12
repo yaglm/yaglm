@@ -1,5 +1,7 @@
 from copy import deepcopy
 from textwrap import dedent
+import numpy as np
+from scipy.linalg import svd
 
 from ya_glm.Glm import Glm, _glm_base_params
 from ya_glm.add_init_params import add_init_params
@@ -7,8 +9,10 @@ from ya_glm.add_init_params import add_init_params
 from ya_glm.fcp.utils import fit_if_unfitted
 from ya_glm.fcp.fcp_pen_max import get_fcp_pen_val_max
 from ya_glm.utils import get_coef_and_intercept
-from ya_glm.opt.concave_penalty import get_penalty_func
 from ya_glm.processing import process_init_data
+from ya_glm.opt.concave_penalty import get_penalty_func
+from ya_glm.processing import process_weights_group_lasso
+from ya_glm.opt.GroupLasso import euclid_norm
 
 
 class InitMixin:
@@ -182,7 +186,6 @@ class GlmFcpFitLLA(GlmFcp):
     base_wl1_solver = None
     solve_lla = None
 
-    # TODO: check this works properly sice we call add_init_params twice
     @add_init_params(GlmFcp)
     def __init__(self, lla_n_steps=1, lla_kws={}): pass
 
@@ -204,7 +207,9 @@ class GlmFcpFitLLA(GlmFcp):
         kws = {'loss_func': loss_func,
                'loss_kws': loss_kws,
                'fit_intercept': self.fit_intercept,
-               'opt_kws': self.opt_kws}
+               'opt_kws': self.opt_kws,
+               **self._extra_wl1_kws()
+               }
 
         wl1_solver = self.base_wl1_solver(X=X, y=y, **kws)
 
@@ -214,10 +219,17 @@ class GlmFcpFitLLA(GlmFcp):
                            penalty_fcn=penalty_func,
                            init=coef_init,
                            init_upv=intercept_init,
+                           transform=self._get_transform(),
                            n_steps=self.lla_n_steps,
                            **self.lla_kws)
 
         return {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
+
+    def _extra_wl1_kws(self):
+        return {}
+
+    def _get_transform(self):
+        return abs
 
 
 GlmFcpFitLLA.__doc__ = dedent("""
@@ -233,3 +245,49 @@ GlmFcpFitLLA.__doc__ = dedent("""
     """.format(_glm_base_params, _glm_fcp_base_params, _lla_params)
 )
 # TODO: better solution than manually adding all of these
+
+
+class GlmMultiTaskFcpFitLLA(GlmFcpFitLLA):
+    def _extra_wl1_kws(self):
+        return {'L1to2': True}
+
+    def _get_transform(self):
+
+        def transform(x):
+            return np.array([euclid_norm(x[r, :]) for r in range(x.shape[0])])
+
+        return transform
+
+
+class GlmNuclearNormFcpFitLLA(GlmFcpFitLLA):
+    def _extra_wl1_kws(self):
+        return {'nuc': True}
+
+    def _get_transform(self):
+
+        def transform(x):
+            return svd(x)[1]
+
+        return transform
+
+
+class GlmGroupFcpFitLLA(GlmFcpFitLLA):
+    @add_init_params(GlmFcpFitLLA)
+    def __init__(self, groups, weights='size'): pass
+
+    def _extra_wl1_kws(self):
+        return {'groups': self.groups}
+
+    def _get_transform(self):
+        group_weights = process_weights_group_lasso(groups=self.groups,
+                                                    weights=self.weights)
+
+        if group_weights is None:
+            group_weights = np.ones(len(self.groups))
+
+        def transform(x):
+            # TODO: i think this is how we want to handle group sizes
+            return np.array([euclid_norm(x[grp_idxs]) * group_weights[g]
+                             for g, grp_idxs in enumerate(self.groups)])
+
+        return transform

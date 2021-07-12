@@ -223,11 +223,11 @@ def process_weights_group_lasso(groups, weights=None):
     if weights is None:
         return None
 
-    if weights == 'size':
+    if type(weights) == str and weights == 'size':
         group_sizes = np.array([len(grp) for grp in groups])
-        weights = 1 / np.sqrt(group_sizes)
-    else:
-        weights = weights
+        return 1 / np.sqrt(group_sizes)
+
+    return weights
 
 
 def check_estimator_type(estimator, valid_class):

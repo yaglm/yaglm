@@ -52,7 +52,7 @@ class MatricizeEntrywisePen(Func):
         return self.func.grad_lip
 
 
-class RowLasso(Func):
+class MultiTaskLasso(Func):
     def __init__(self, mult=1, weights=None):
         self.mult = mult
         self.weights = weights

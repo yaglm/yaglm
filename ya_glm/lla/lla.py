@@ -46,7 +46,10 @@ _lla_docs = dict(
     init_upv: None, array-like
         The value at which to initialize the (optional) unpenalized variable.
 
-        """),
+    transform: callable
+        Transforms the penalized variable into the object whom we apply the concave penalty to.
+
+    """),
 
     out=dedent("""
     solution: array-like
@@ -67,14 +70,17 @@ _lla_docs = dict(
 
 
 def solve_lla(wl1_solver, penalty_fcn, init,
-              init_upv=None,
+              init_upv=None, transform=abs,
               n_steps=1, xtol=1e-4, atol=None, rtol=None,
               tracking_level=1, verbosity=0):
 
-    def evaluate_obj(x, upv):
+    def evaluate_obj(x, upv, T):
         # compute current objective function
         base_loss = wl1_solver.loss(value=x, upv=upv)
-        pen_loss = penalty_fcn.eval(abs(x))
+
+        T = transform(x)
+        pen_loss = penalty_fcn.eval(T)
+
         obj = base_loss + pen_loss
         return obj, base_loss, pen_loss
 
@@ -84,9 +90,9 @@ def solve_lla(wl1_solver, penalty_fcn, init,
 
     current = deepcopy(init)
     current_upv = deepcopy(init_upv)
+    T = transform(current)
 
     if xtol is not None:
-
         if current_upv is not None:
             prev = deepcopy(safe_concat(current, current_upv))
         else:
@@ -102,7 +108,7 @@ def solve_lla(wl1_solver, penalty_fcn, init,
 
     if tracking_level >= 1:
         # opt_data['init'] = deepcopy(init)
-        obj, base_loss, pen_loss = evaluate_obj(current, current_upv)
+        obj, base_loss, pen_loss = evaluate_obj(current, current_upv, T=T)
 
         opt_data['base_loss'] = [base_loss]  # the base loss fucntion
         opt_data['pen_loss'] = [pen_loss]  # penaltyloss
@@ -131,8 +137,9 @@ def solve_lla(wl1_solver, penalty_fcn, init,
         # Make update #
         ###############
 
-        # majorize eigenvalue penalty
-        L1_weights = penalty_fcn.grad(x=abs(current))
+        # majorize concave penalty
+        # T has already been computed as T = transform(current)
+        L1_weights = penalty_fcn.grad(T)
 
         # solve weighted Lasso problem
         current, current_upv, other_data = \
@@ -144,9 +151,13 @@ def solve_lla(wl1_solver, penalty_fcn, init,
         # check stopping conditions and track data #
         ############################################
 
+        T = None  # tells us to compute T below
+
         # track objective function data
         if tracking_level >= 1:
-            obj, base_loss, pen_loss = evaluate_obj(current, current_upv)
+            T = transform(current)
+
+            obj, base_loss, pen_loss = evaluate_obj(current, current_upv, T)
 
             opt_data['obj'].append(obj)
             opt_data['base_loss'].append(base_loss)
@@ -179,10 +190,17 @@ def solve_lla(wl1_solver, penalty_fcn, init,
         if x_stop or obj_stop:
             break
         elif xtol is not None:
+
+            # set prev for next interation
             if current_upv is not None:
                 prev = deepcopy(safe_concat(current, current_upv))
             else:
                 prev = deepcopy(current)
+
+            # compute transform for next iteration if it has not already
+            # been computed
+            if T is None:
+                T = transform(current)
 
     opt_data['runtime'] = time() - start_time
     opt_data['final_step'] = step
@@ -190,73 +208,3 @@ def solve_lla(wl1_solver, penalty_fcn, init,
     opt_data['x_stop'] = x_stop
 
     return current, current_upv, opt_data
-
-
-# solve_lla.__doc__ = dedent("""
-# Runs the LLA algorithm for folded concave penalties.
-
-# Parameters
-# ----------
-# {opt_prob}
-# {opt_options}
-
-# Output
-# ------
-# {out}
-
-# References
-# ----------
-# {refs}
-#     """.format(**_lla_docs))
-
-
-# class LLAMixin(object):
-#     """
-#     Parameters
-#     ----------
-#     pen_val:
-
-#     pen_func:
-
-#     pen_func_kws:
-
-#     lla_n_steps:
-
-#     lla_kws:
-#     """
-
-#     def solve_lla(self, wl1_solver, init, init_upv=None):
-#         """
-#         Runs the LLA algorithm.
-
-#         Parameters
-#         ----------
-#         weighted_L1_prob:
-
-#         init: array-like
-#             The value to initalize the LLA algorithm from.
-
-#         init_upv: None, array-like
-#             The value to initalize the unpenalized variable.
-
-#         Output
-#         ------
-#         solution: array-like
-#             The solution of the penalized variable.
-
-#         solution_upv: None, array-like
-#             The solution of the unpenalized variable.
-
-#         opt_data: dict
-#             Data tracked during the optimization procedure e.g. the loss function.
-#         """
-#         penalty_func = get_penalty_func(pen_func=self.pen_func,
-#                                         pen_val=self.pen_val,
-#                                         pen_func_kws=self.pen_func_kws)
-
-#         return solve_lla(wl1_solver=wl1_solver,
-#                          penalty_fcn=penalty_func,
-#                          init=init,
-#                          init_upv=init_upv,
-#                          n_steps=self.lla_n_steps,
-#                          **self.lla_kws)
