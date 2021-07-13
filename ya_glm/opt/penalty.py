@@ -52,7 +52,7 @@ class LassoPenalty(Func):
             norm_val = abs(x).sum()
 
         else:
-            norm_val = self.weights.ravel.T @ abs(x)
+            norm_val = self.weights.ravel().T @ abs(x)
 
         return norm_val * self.mult
 

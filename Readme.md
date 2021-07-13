@@ -89,10 +89,12 @@ See the [docs/](docs/) folder for additional examples in jupyter notebooks (if t
 
 We currently support the following loss functions
 
-- Linear regression (single and multiple responses)
+- Linear regression
 - Logistic regression
 - Multinomial regression
-- Huber regression (single and multiple responses)
+- Poisson regression
+- Huber regression
+- Multiple response versions of the linear, huber and poisson losses
 
 and the following penalties
 
@@ -110,7 +112,7 @@ The FCP penalties are fit by applying the *local linear approximation* (LLA) alg
 
 We also supply built in cross-validation (CV) for each of these penalties. For the concave penalties (e.g. Lasso) our CV methods use faster path algorithms (as in sklearn.linear_model.LassoCV). Our CV function allow custom metrics and custom selection rules such as the '1se' rule from the glmnet package.
 
-We aim to add additional loss functions including quantile regression, poisson, gamma, cox regression, etc.
+We aim to add additional loss functions including quantile regression, gamma, cox regression, etc.
 
 
 # What we provide on the backend

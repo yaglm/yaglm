@@ -8,6 +8,10 @@ from ya_glm.models.linear_regression_multi_resp import \
 from ya_glm.models.huber_regression import HuberRegMixin, \
     HuberRegMultiResponseMixin
 
+from ya_glm.models.poisson_regression import PoissonRegMixin,\
+    PoissonRegMultiResponseMixin
+
+
 # penalties
 from ya_glm.pen_glm.Vanilla import GlmVanilla
 from ya_glm.pen_glm.Lasso import GlmLasso, GlmLassoCVPath, \
@@ -64,6 +68,12 @@ def get_model_mixin(loss_func='lin_reg'):
 
     elif loss_func == 'multinomial':
         return MultinomialMixin
+
+    elif loss_func == 'poisson':
+        return PoissonRegMixin
+
+    elif loss_func == 'poisson_mr':
+        return PoissonRegMultiResponseMixin
 
     else:
         raise NotImplementedError("{} not supported".format(loss_func))

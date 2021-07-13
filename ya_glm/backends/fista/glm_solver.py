@@ -7,7 +7,8 @@ from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.linear_regression import LinRegLoss, LinRegMultiRespLoss
 from ya_glm.opt.huber_regression import HuberRegLoss, HuberRegMultiRespLoss
 from ya_glm.opt.multinomial import MultinomialLoss
-from ya_glm.opt.poisson_regression import PoissonRegLoss
+from ya_glm.opt.poisson_regression import PoissonRegLoss, \
+    PoissonRegMultiRespLoss
 
 from ya_glm.opt.logistic_regression import LogRegLoss
 from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
@@ -375,6 +376,8 @@ _LOSS_FUNC_STR2CLS = {'lin_reg': LinRegLoss,
                       'log_reg': LogRegLoss,
                       'multinomial': MultinomialLoss,
                       'poisson': PoissonRegLoss,
+                      'poisson_mr': PoissonRegMultiRespLoss,
+
                       }
 
 _LOSS_FUNC_CLS2STR = {v: k for (k, v) in _LOSS_FUNC_STR2CLS.items()}

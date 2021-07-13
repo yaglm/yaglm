@@ -39,6 +39,26 @@ class PoissonRegMixin(RegressorMixin):
         return poisson_Dsq(y_pred=y_pred, y=y, sample_weight=sample_weight)
 
 
+class PoissonRegMultiResponseMixin(RegressorMixin):
+
+    def get_loss_info(self):
+        loss_type = 'poisson_mr'
+        loss_kws = {}
+
+        return loss_type, loss_kws
+
+    def _process_y(self, y, copy=True):
+        return process_y_poisson_multi_resp(y, copy=copy, check_input=True)
+
+    def score(self, X, y, sample_weight=None):
+        sample_weight = _check_sample_weight(sample_weight, X)
+        y_pred = self.predict(X)
+
+        return sum(poisson_Dsq(y_pred=y_pred[:, k], y=y[:, k],
+                               sample_weight=sample_weight)
+                   for k in range(y.shape[1]))
+
+
 def process_y_poisson(y, copy=True, check_input=True):
 
     if check_input:
@@ -49,7 +69,18 @@ def process_y_poisson(y, copy=True, check_input=True):
 
     y = y.reshape(-1)
 
-    return y
+    return y, {}
+
+
+def process_y_poisson_multi_resp(y, copy=True, check_input=True):
+
+    if check_input:
+        y = check_array(y, copy=copy, ensure_2d=True)
+        assert y.min() >= 0
+    elif copy:
+        y = y.copy(order='K')
+
+    return y, {}
 
 
 def poisson_Dsq(y_pred, y, sample_weight=None):

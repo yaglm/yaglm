@@ -283,6 +283,80 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
     return X, y, p, coef, intercept
 
 
+def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
+                              n_nonzero=5,
+                              X_dist='indep',
+                              x_corr=0.1,
+                              intercept=0,
+                              random_state=None):
+    """
+    Samples linear regression data with a sparse regression coefficient.
+
+    Parameters
+    ----------
+    n_samples: int
+        Number of samples to draw.
+
+    n_features: int
+        Number of features.
+
+    n_reponse: int
+        Number of responses. If n_responses >= 2 then the coefficient matrix is row sparse.
+
+    n_nonzero: int
+        Number of non-zero features
+
+    X_dist: str
+        How to sample the X data. Must be one of ['indep', 'corr'].
+        X data is always follows a multivariate Gaussian.
+        If 'corr', then cov = (1 - corr) * I + corr * 11^T.
+
+    x_corr: float
+        How correlated the x data are.
+
+    intercept: float or array-like, shape (n_responses, )
+        The true intercept.
+
+    random_state: None, int
+        The seed.
+
+    Parameters
+    ----------
+    X: array-like, shape (n_samples, n_features)
+        The X data.
+
+    y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+        The response.
+
+    y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+        The Poisson rate parameters.
+
+    coef_true: array-like, shape (n_features, ) or (n_features, n_responses)
+        The true regression coefficient.
+
+    intercept_true: float or array-like shape (n_responses, )
+        The true intercept.
+    """
+    rng = check_random_state(random_state)
+
+    # set coefficient
+    coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
+                           n_responses=n_responses)
+
+    # sample design matrix
+    X = sample_X(n_samples=n_samples,
+                 n_features=n_features,
+                 X_dist=X_dist, x_corr=x_corr,
+                 random_state=rng)
+
+    # set y
+    z = X @ coef + intercept
+    lam = np.exp(z)
+    y = rng.poisson(lam=lam, size=z.shape)
+
+    return X, y, lam, coef, intercept
+
+
 def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1):
     """
     Sets a sparse coefficeint vector where half the entries are positive

@@ -119,6 +119,12 @@ def grad_at_zero(X, y, fit_intercept, loss_func, loss_kws={}):
     elif loss_func == 'multinomial':
         return g0_multinomial(X=X, y=y, fit_intercept=fit_intercept)
 
+    elif loss_func == 'poisson':
+        return g0_poisson(X=X, y=y, fit_intercept=fit_intercept, **loss_kws)
+
+    elif loss_func == 'g0_poisson_mr':
+        return g0_poisson(X=X, y=y, fit_intercept=fit_intercept, **loss_kws)
+
     else:
         raise NotImplementedError("{} not supported".format(loss_func))
 
@@ -180,6 +186,43 @@ def g0_multinomial(X, y, fit_intercept):
     diff = np.array(probs - y)
 
     return X.T @ diff / X.shape[0]
+
+
+def g0_poisson(X, y, fit_intercept):
+
+    if fit_intercept:
+        pred = np.mean(y)
+    else:
+        pred = np.ones(len(y))
+
+    grad = X.T @ (pred - y)
+
+    return grad / X.shape[0]
+
+
+def g0_poisson_mr(X, y, fit_intercept):
+    return get_g0_multi_response(g0_getter=g0_poisson,
+                                 X=X, y=y, fit_intercept=fit_intercept,
+                                 **loss_kws)
+
+
+def get_g0_multi_response(g0_getter, X, y, fit_intercept, **loss_kws):
+    """
+    Turns a function that gets the gradient at 0 for a single response into one that gets the gradient at 0 for multiple responses.
+
+    Parameters
+    ----------
+    g0_getter: callable(X, y, fit_intercept, **loss_kws) -> array-like
+        Gets the gradient for a single response
+
+    Output
+    ------
+    grad_at_0: array-like, shape (n_features, n_responses)
+    """
+
+    return np.vstack([g0_getter(X=X, y=y[:, j],
+                                fit_intercept=fit_intercept, **loss_kws)
+                      for j in range(y.shape[1])]).T
 
 
 def is_nonzero_weight(w):
