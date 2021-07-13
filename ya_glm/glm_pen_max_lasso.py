@@ -5,6 +5,9 @@ from ya_glm.linalg_utils import leading_sval
 from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.huber_regression import huber_grad
 
+from ya_glm.info import _MULTI_RESP_LOSSES
+
+
 def lasso_max(X, y, fit_intercept, loss_func, loss_kws={}, weights=None):
 
     if is_multi_response(y):
@@ -104,14 +107,17 @@ def grad_at_zero(X, y, fit_intercept, loss_func, loss_kws={}):
     elif loss_func == 'lin_reg_mr':
         return g0_lin_reg_mr(X=X, y=y, fit_intercept=fit_intercept)
 
+    elif loss_func == 'huber_reg':
+        return g0_huber_reg(X=X, y=y, fit_intercept=fit_intercept, **loss_kws)
+
+    elif loss_func == 'huber_reg_mr':
+        return g0_huber_reg_mr(X=X, y=y, fit_intercept=fit_intercept,
+                               **loss_kws)
     elif loss_func == 'log_reg':
         return g0_log_reg(X=X, y=y, fit_intercept=fit_intercept)
 
-    elif loss_func == 'huber_reg':
-        return g0_log_reg(X=X, y=y, fit_intercept=fit_intercept, **loss_kws)
-
-    elif loss_func == 'huber_reg_mr':
-        return g0_log_reg(X=X, y=y, fit_intercept=fit_intercept, **loss_kws)
+    elif loss_func == 'multinomial':
+        return g0_multinomial(X=X, y=y, fit_intercept=fit_intercept)
 
     else:
         raise NotImplementedError("{} not supported".format(loss_func))
@@ -153,7 +159,7 @@ def g0_huber_reg_mr(X, y, fit_intercept, knot):
     return grad / X.shape[0]
 
 
-def g0_log_reg(X, y, fit_intercept=True):
+def g0_log_reg(X, y, fit_intercept):
 
     if fit_intercept:
         grad = X.T @ (y.mean() - y)
@@ -161,6 +167,19 @@ def g0_log_reg(X, y, fit_intercept=True):
         grad = X.T @ (0.5 - y)
 
     return grad / X.shape[0]
+
+
+def g0_multinomial(X, y, fit_intercept):
+    # TODO: double check
+
+    if fit_intercept:
+        cls_prob_vec = y.mean(axis=0)
+    else:
+        cls_prob_vec = np.ones(y.shape[1]) / y.shape[1]
+    probs = np.repeat(cls_prob_vec.reshape(1, -1), repeats=X.shape[0], axis=0)
+    diff = np.array(probs - y)
+
+    return X.T @ diff / X.shape[0]
 
 
 def is_nonzero_weight(w):

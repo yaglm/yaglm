@@ -1,4 +1,5 @@
 from sklearn.utils.extmath import safe_sparse_dot
+from scipy.sparse import issparse
 import numpy as np
 
 
@@ -135,3 +136,15 @@ def safe_vectorize(pyfunc, *args, **kwargs):
     See np.vectorize for documentation
     """
     return np.vectorize(pyfunc=pyfunc, otypes=[np.float], *args, **kwargs)
+
+
+def safe_entrywise_mult(A, B):
+    """
+    Safe entrywise multiplication of two arrays where one or both may be sparse.
+    """
+    if issparse(A):
+        return A.multiply(B)
+    elif issparse(B):
+        return B.multiply(A)
+    else:
+        return A * B

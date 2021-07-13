@@ -2,10 +2,11 @@ import numpy as np
 from copy import deepcopy
 from textwrap import dedent
 
-from ya_glm.utils import is_multi_response
+from ya_glm.info import is_multi_response
 from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.linear_regression import LinRegLoss, LinRegMultiRespLoss
 from ya_glm.opt.huber_regression import HuberRegLoss, HuberRegMultiRespLoss
+from ya_glm.opt.multinomial import MultinomialLoss
 
 from ya_glm.opt.logistic_regression import LogRegLoss
 from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
@@ -128,17 +129,27 @@ def solve_glm(X, y,
     # setup loss function #
     #######################
 
+    is_mr = safe_is_multi_response(loss_func)
+
+    # get loss function object
     loss_func = get_glm_loss(loss_func=loss_func, loss_kws=loss_kws,
                              X=X, y=y, fit_intercept=fit_intercept,
                              precomp_lip=precomp_lip)
 
-    #############################
-    # pre process penalty input #
-    #############################
-
     # in case we passed a loss_func object, make sure fit_intercpet
     # agrees with loss_func
     fit_intercept = loss_func.fit_intercept
+
+    #####################
+    # set initial value #
+    #####################
+    init_val = process_init(X=X, y=y, loss_func=loss_func,
+                            fit_intercept=fit_intercept,
+                            coef_init=coef_init, intercept_init=intercept_init)
+
+    #############################
+    # pre process penalty input #
+    #############################
 
     if lasso_pen is None and lasso_weights is not None:
         lasso_pen = 1
@@ -147,7 +158,6 @@ def solve_glm(X, y,
             (ridge_weights is not None or tikhonov is not None):
         ridge_pen = 1
 
-    is_mr = is_multi_response(y)
     is_already_mat_pen = False
 
     # check
@@ -224,12 +234,6 @@ def solve_glm(X, y,
     # or should we put lasso and ride together
     if ridge is not None:
         loss_func = Sum([loss_func, ridge])
-
-    #####################
-    # set initial value #
-    #####################
-    init_val = process_init(X, y, fit_intercept=fit_intercept,
-                            coef_init=coef_init, intercept_init=intercept_init)
 
     ############################
     # solve problem with FISTA #
@@ -352,10 +356,16 @@ def solve_glm_path(X, y,
         # if generator:
         yield fit_out, params
 
-    #     else:
-    #         out.append((fit_out, params))
 
-    # return out
+_LOSS_FUNC_STR2CLS = {'lin_reg': LinRegLoss,
+                      'lin_reg_mr': LinRegMultiRespLoss,
+                      'huber_reg': HuberRegLoss,
+                      'huber_reg_mr': HuberRegMultiRespLoss,
+                      'log_reg': LogRegLoss,
+                      'multinomial': MultinomialLoss
+                      }
+
+_LOSS_FUNC_CLS2STR = {v: k for (k, v) in _LOSS_FUNC_STR2CLS.items()}
 
 
 def get_glm_loss(X, y,
@@ -392,32 +402,22 @@ def get_glm_loss(X, y,
     if isinstance(loss_func, Func):
         return loss_func
 
-    assert loss_func in ['lin_reg',
-                         'lin_reg_mr',
-                         'huber_reg',
-                         'huber_reg_mr',
-                         'log_reg']
-
-    if loss_func == 'lin_reg':
-        obj_class = LinRegLoss
-
-    elif loss_func == 'lin_reg_mr':
-        obj_class = LinRegMultiRespLoss
-
-    elif loss_func == 'huber_reg':
-        obj_class = HuberRegLoss
-
-    elif loss_func == 'huber_reg_mr':
-        obj_class = HuberRegMultiRespLoss
-
-    elif loss_func == 'log_reg':
-        obj_class = LogRegLoss
+    assert loss_func in _LOSS_FUNC_STR2CLS.keys()
+    obj_class = _LOSS_FUNC_STR2CLS[loss_func]
 
     return obj_class(X=X, y=y, fit_intercept=fit_intercept, lip=precomp_lip,
                      **loss_kws)
 
 
-def process_init(X, y, fit_intercept=True, coef_init=None, intercept_init=None):
+def safe_is_multi_response(loss_func):
+    if isinstance(loss_func, Func):
+        return is_multi_response(_LOSS_FUNC_CLS2STR[type(loss_func)])
+    else:
+        return is_multi_response(loss_func)
+
+
+def process_init(X, y, loss_func, fit_intercept=True, coef_init=None,
+                 intercept_init=None):
     """
     Processes the initializer.
 
@@ -431,26 +431,35 @@ def process_init(X, y, fit_intercept=True, coef_init=None, intercept_init=None):
         (n_features, n_responses) or (n_features, n_responses + 1)
     """
 
-    is_mr = is_multi_response(y)
+    if coef_init is None or (fit_intercept and intercept_init is None):
 
-    # initialize coefficient
-    if coef_init is None:
-        if is_mr:
+        # determine the coefficient shape
+        if safe_is_multi_response(loss_func):
             coef_shape = (X.shape[1], y.shape[1])
         else:
-            coef_shape = (X.shape[1],)
-        coef_init = np.zeros(coef_shape)
+            coef_shape = X.shape[1]
 
-    # initialize intercept
-    if intercept_init is None:
-        if is_mr:
-            intercept_init = np.zeros(y.shape[1])
-        else:
-            intercept_init = 0
+        # initialize coefficient
+        if coef_init is None:
+            coef_init = np.zeros(coef_shape)
+
+        # initialize intercept
+        if intercept_init is None:
+            if isinstance(coef_shape, tuple):
+                intercept_init = np.zeros(coef_shape[1])
+            else:
+                intercept_init = 0
+
+    # format
+    coef_init = np.array(coef_init)
+    if coef_init.ndim > 1:
+        intercept_init = np.array(intercept_init)
+    else:
+        intercept_init = float(intercept_init)
 
     # maybe concatenate
     if fit_intercept:
-        if is_mr:
+        if coef_init.ndim == 2:
             init_val = np.vstack([intercept_init, coef_init])
         else:
             init_val = np.concatenate([[intercept_init], coef_init])

@@ -1,8 +1,9 @@
 import numpy as np
 from sklearn.utils import check_random_state
 from scipy.special import expit
+from sklearn.utils.extmath import softmax
 from numbers import Number
-from itertools import product
+# from itertools import product
 
 
 def sample_sparse_lin_reg(n_samples=100, n_features=10, n_responses=1,
@@ -204,6 +205,84 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
     return X, y, p, coef, intercept
 
 
+def sample_sparse_multinomial(n_samples=100, n_features=10,
+                              n_nonzero=5, n_classes=3,
+                              X_dist='indep',
+                              x_corr=0.1,
+                              coef_scale=1,
+                              intercept=0,
+                              random_state=None):
+    """
+    Samples multinomial regression data with a sparse regression coefficient.
+
+    Parameters
+    ----------
+    n_samples: int
+        Number of samples to draw.
+
+    n_features: int
+        Number of features.
+
+    n_nonzero: int
+        Number of non-zero features
+
+    X_dist: str
+        How to sample the X data. Must be one of ['indep', 'corr'].
+        X data is always follows a multivariate Gaussian.
+        If 'corr', then cov = (1 - corr) * I + corr * 11^T.
+
+    x_corr: float
+        How correlated the x data are.
+
+    coef_scale: float
+        The scale of the non-zero entries of the coefficeint.
+
+    intercept: float
+        The true intercept.
+
+    random_state: None, int
+        The seed.
+
+    Parameters
+    ----------
+    X: array-like, shape (n_samples, n_features)
+        The X data.
+
+    y: array-like, shape (n_samples, )
+        The binary response
+
+    p: array-like, shape (n_samples, )
+        The true probabilities.
+
+    coef_true: array-like, shape (n_features, )
+        The true regression coefficient.
+
+    intercept_true: float
+        The true intercept.
+    """
+    rng = check_random_state(random_state)
+
+    # set coefficient
+    coef = get_sparse_rand_coef(n_features=n_features, n_nonzero=n_nonzero,
+                                n_responses=n_classes)
+    coef *= coef_scale
+
+    # sample design matrix
+    X = sample_X(n_samples=n_samples,
+                 n_features=n_features,
+                 X_dist=X_dist, x_corr=x_corr,
+                 random_state=rng)
+
+    z = X @ coef + intercept
+    p = softmax(z)
+
+    classes = np.arange(n_classes)
+    y = np.array([np.random.choice(a=classes,  p=p[i, :])
+                  for i in range(n_samples)])
+
+    return X, y, p, coef, intercept
+
+
 def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1):
     """
     Sets a sparse coefficeint vector where half the entries are positive
@@ -232,6 +311,32 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1):
         coef[0:n_pos, :] = 1
         coef[n_pos:n_nonzero, :] = -1
         return coef
+
+
+def get_sparse_rand_coef(n_features=10, n_nonzero=5, n_responses=1,
+                         random_state=None):
+    """
+    Random sparse coefficient where the non-zero entries are drawn from
+    Uniform(-1, 1)
+    """
+    rng = check_random_state(random_state)
+
+    assert n_nonzero <= n_features
+
+    coef_non_zero = rng.uniform(low=-1, high=1, size=(n_nonzero, n_responses))
+#     if sqrt:
+#         sgns = np.sign(coef_non_zero)
+#         coef_non_zero = np.sqrt(abs(coef_non_zero))
+#         coef_non_zero *= sgns
+    # coef_non_zero = np.sign(coef_non_zero)
+
+    coef = np.zeros((n_features, n_responses))
+    coef[0:n_nonzero, :] = coef_non_zero
+
+    if n_responses == 1:
+        coef = coef.ravel()
+
+    return coef
 
 
 def sample_X(n_samples=100, n_features=10, X_dist='indep', x_corr=0.1,

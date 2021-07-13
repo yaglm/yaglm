@@ -8,6 +8,7 @@ from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
 from ya_glm.processing import process_X, deprocess_fit
+from ya_glm.info import is_multi_response
 
 
 _glm_base_params = dedent("""
@@ -168,13 +169,16 @@ class Glm(BaseEstimator):
             The decision function values.
         """
         check_is_fitted(self)
-
         X = check_array(X, accept_sparse=['csr', 'csc', 'coo'])
-        z = safe_sparse_dot(X, self.coef_, dense_output=True) \
-            + self.intercept_
 
-        # if hasattr(self, 'intercept_'):
-        #     z += self.intercept_
+        # TODO: for multi-response our coef_ is the transpose of sklearn's
+        # convention. I think our choice of (n_features, n_responses)
+        # Do we want to be stick with this choice?
+        z = safe_sparse_dot(X, self.coef_,  # .T
+                            dense_output=True)
+
+        if hasattr(self, 'intercept_') and self.intercept_ is not None:
+            z += self.intercept_
 
         return z
 

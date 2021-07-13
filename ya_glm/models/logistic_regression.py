@@ -21,9 +21,7 @@ class LogRegMixin(LinearClassifierMixin):
         return loss_type, loss_kws
 
     def _process_y(self, y, copy=True):
-        return process_y_log_reg(y, standardize=self.standardize,
-                                 copy=copy,
-                                 check_input=True)
+        return process_y_log_reg(y, check_input=True)
 
     def decision_function(self, X):
         """
@@ -34,6 +32,7 @@ class LogRegMixin(LinearClassifierMixin):
         ----------
         X : array-like or sparse matrix, shape (n_samples, n_features)
             Samples.
+
         Returns
         -------
         array, shape=(n_samples,)
@@ -65,20 +64,14 @@ class LogRegMixin(LinearClassifierMixin):
         return np.log(self.predict_proba(X))
 
 
-def process_y_log_reg(y, standardize=False, copy=True, check_input=True):
+def process_y_log_reg(y, check_input=True):
     """
-    Processes and possibly mean center the y data i.e. y - y.mean()
+    Ensures y is binary.
 
     Parameters
     ----------
     y: array-like, shape (n_samples, )
         The response data.
-
-    standardize: bool
-        Whether or not to mean center.
-
-    copy: bool
-        Copy data matrix or standardize in place.
 
     check_input: bool
         Whether or not we should validate the input.
@@ -96,8 +89,9 @@ def process_y_log_reg(y, standardize=False, copy=True, check_input=True):
             The response mean.
     """
 
-    # below are copy pasted excerpts from sklearn.linear_model._logistic
-    check_classification_targets(y)
+    if check_input:
+        check_classification_targets(y)
+
     enc = LabelEncoder()
     y_ind = enc.fit_transform(y)
 

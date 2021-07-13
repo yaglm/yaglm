@@ -180,18 +180,3 @@ def get_coef_and_intercept(est, copy=False, error=False):
     else:
         return coef, intercept
 
-
-# TODO: will we actually need this?
-# def init_has_params(C):
-#     """
-#     Checks if C.__init__ has parameters
-
-#     Output
-#     ------
-#     has_params: bool
-#     """
-#     params = list(signature(C.__init__).parameters)
-#     to_drop = set(['self', 'args', 'kwargs'])
-#     params = [p for p in params if p not in to_drop]
-
-#     return len(params) > 0
