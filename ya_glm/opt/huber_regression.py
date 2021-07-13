@@ -90,11 +90,11 @@ class HuberRegLoss(Func):
                                       fit_intercept=self.fit_intercept)
 
         resid = pred - self.y
-        g = huber_grad(resid, knot=self.knot)
-        coef_grad = (1/self.X.shape[0]) * self.X.T @ g
+        r = huber_grad(resid, knot=self.knot)
+        coef_grad = (1/self.X.shape[0]) * self.X.T @ r
 
         if self.fit_intercept:
-            intercept_grad = np.mean(g)
+            intercept_grad = np.mean(r)
             return np.concatenate([[intercept_grad], coef_grad])
 
         else:
@@ -160,14 +160,12 @@ class HuberRegMultiRespLoss(Func):
                                           fit_intercept=self.fit_intercept)
 
         resid = pred - self.y
-        g = huber_grad(resid, knot=self.knot)
-        coef_grad = (1/self.X.shape[0]) * self.X.T @ g
+        r = huber_grad(resid, knot=self.knot)
+        coef_grad = (1/self.X.shape[0]) * self.X.T @ r
 
         if self.fit_intercept:
-            intercept_grad = g.mean(axis=0)
-            grad = np.vstack([intercept_grad, coef_grad])
+            intercept_grad = r.mean(axis=0)
+            return np.vstack([intercept_grad, coef_grad])
 
         else:
-            grad = coef_grad
-
-        return grad
+            return coef_grad
