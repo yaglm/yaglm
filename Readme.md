@@ -91,6 +91,7 @@ We currently support the following loss functions
 
 - Linear regression (single response and multiple responses)
 - Logistic regression
+- Multinomial regression
 - Huber regression (single response and multiple responses)
 
 and the following penalties
