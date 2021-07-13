@@ -7,6 +7,7 @@ from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.linear_regression import LinRegLoss, LinRegMultiRespLoss
 from ya_glm.opt.huber_regression import HuberRegLoss, HuberRegMultiRespLoss
 from ya_glm.opt.multinomial import MultinomialLoss
+from ya_glm.opt.poisson_regression import PoissonRegLoss
 
 from ya_glm.opt.logistic_regression import LogRegLoss
 from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
@@ -235,13 +236,23 @@ def solve_glm(X, y,
     if ridge is not None:
         loss_func = Sum([loss_func, ridge])
 
+    # setup step size/backtracking
+    if loss_func.grad_lip is not None:
+        # use Lipchtiz constant if it is available
+        step = 'lip'
+        backtracking = False
+    else:
+        step = 1  # TODO: perhaps smarter base step size?
+        backtracking = True
+
     ############################
     # solve problem with FISTA #
     ############################
     coef, out = solve_fista(smooth_func=loss_func,
                             init_val=init_val,
                             non_smooth_func=lasso,
-                            step='lip',
+                            step=step,
+                            backtracking=backtracking,
                             accel=True,
                             restart=True,
                             max_iter=max_iter,
@@ -362,7 +373,8 @@ _LOSS_FUNC_STR2CLS = {'lin_reg': LinRegLoss,
                       'huber_reg': HuberRegLoss,
                       'huber_reg_mr': HuberRegMultiRespLoss,
                       'log_reg': LogRegLoss,
-                      'multinomial': MultinomialLoss
+                      'multinomial': MultinomialLoss,
+                      'poisson': PoissonRegLoss,
                       }
 
 _LOSS_FUNC_CLS2STR = {v: k for (k, v) in _LOSS_FUNC_STR2CLS.items()}
@@ -405,8 +417,13 @@ def get_glm_loss(X, y,
     assert loss_func in _LOSS_FUNC_STR2CLS.keys()
     obj_class = _LOSS_FUNC_STR2CLS[loss_func]
 
-    return obj_class(X=X, y=y, fit_intercept=fit_intercept, lip=precomp_lip,
-                     **loss_kws)
+    kws = {'X': X, 'y': y, 'fit_intercept': fit_intercept,
+           **loss_kws}
+
+    if precomp_lip is not None:
+        kws['lip'] = precomp_lip
+
+    return obj_class(**kws)
 
 
 def safe_is_multi_response(loss_func):
