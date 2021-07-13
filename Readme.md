@@ -104,8 +104,6 @@ X, y = sample_sparse_log_reg(n_samples=100, n_features=20)[0:2]
 
 # Get a penalized logistic regression estimator and corresponding cross-validation object
 Est, EstCV = get_pen_glm(loss_func='log_reg', penalty='lasso')
-# Est, EstCV = get_pen_glm(loss_func='log_reg', penalty='lasso_enet') # Elastic Net
-# Est, EstCV = get_pen_glm(loss_func='log_reg', penalty='group_lasso')  # Group lasso
 
 # Or a concave penalized logistic regression estimator
 # Est, EstCV = get_fcp_glm(loss_func='log_reg', penalty='lasso')
