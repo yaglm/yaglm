@@ -53,7 +53,7 @@ class Glm(BaseEstimator):
                                                **self._get_solve_kws())
 
         self._set_fit(fit_out={'coef': coef, 'intercept': intercept,
-                               'out_data': out_data},
+                               'opt_data': out_data},
                       pre_pro_out=pre_pro_out)
         return self
 
