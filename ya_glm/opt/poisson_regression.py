@@ -37,8 +37,8 @@ class PoissonRegLoss(Func):
         z = safe_data_mat_coef_dot(X=self.X, coef=x,
                                    fit_intercept=self.fit_intercept)
 
-        if self.log_exposure is not None:
-            z += self.log_exposure
+        # if self.log_exposure is not None:
+        #     z += self.log_exposure
 
         return (1 / self.X.shape[0]) * (np.exp(-z).sum() - z.T @ self.y)
 
@@ -46,8 +46,8 @@ class PoissonRegLoss(Func):
         z = safe_data_mat_coef_dot(X=self.X, coef=x,
                                    fit_intercept=self.fit_intercept)
 
-        if self.log_exposure is not None:
-            z += self.log_exposure
+        # if self.log_exposure is not None:
+        #     z += self.log_exposure
 
         r = self.y - np.exp(- z)
         coef_grad = (1/self.X.shape[0]) * self.X.T @ r
