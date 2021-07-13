@@ -53,5 +53,5 @@ pip-log.txt
 pip-delete-this-directory.txt
 
 # added by Iain
-.DS_Store
+.DS_Store/
 .ipynb_checkpoints
