@@ -182,7 +182,7 @@ def get_pen_glm(loss_func='linear_regression',
         class EstimatorCV(GLM_CV):
             solve_path = staticmethod(solve_glm_path_impl)
 
-            @add_init_params(GlmLassoENetCVPath)
+            @add_init_params(GLM_CV)
             def __init__(self, estimator=estimator): pass
 
     else:
@@ -253,7 +253,7 @@ def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
 
     class EstimatorCV(GLM_FCP_CV):
 
-        @add_init_params(GlmFcpCV)
+        @add_init_params(GLM_FCP_CV)
         def __init__(self, estimator=estimator): pass
 
     ####################################
