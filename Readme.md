@@ -1,6 +1,6 @@
 # Yet another generalized linear model package
 
-`ya_glm` aims to give you a fast, easy to use and flexible package for fitting a wide variety of penalized *generalized linear models* (GLM). Existing packages (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd)) accomplish the first two of these goals, but are not easy to customize and support a limited number GLM + penalty combinations.
+`ya_glm` aims to give you a fast, easy to use and flexible package for fitting a wide variety of penalized *generalized linear models* (GLM). Existing packages (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd)) focus on the first two of these goals, but are not easy to customize and support a limited number GLM + penalty combinations.
 
 We currently support the following loss functions
 
@@ -32,7 +32,7 @@ The built in cross-validation functionality supports
 - custom evaluation metrics
 - custom selection rules such as the '1se' rule from the glmnet package
 
-We provide a built in FISTA algorithm [(Beck and Teboulle, 2009)](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw) that covers most glm loss + non-smooth penalty combinations (the ya_glm.opt module is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite penalized GLM optimization algorithm.**
+We provide a built in FISTA algorithm [(Beck and Teboulle, 2009)](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw) that covers most glm loss + non-smooth penalty combinations (the ya_glm.opt module is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox), [copt](https://github.com/openopt/copt), and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite penalized GLM optimization algorithm.**
 
 We aim to add additional loss functions (e.g. quantile, gamma, cox regression) and penalties (e.g. generalized Lasso, TV1)
 
