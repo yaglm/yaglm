@@ -8,7 +8,6 @@ from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
 from ya_glm.processing import process_X, deprocess_fit
-from ya_glm.info import is_multi_response
 
 
 _glm_base_params = dedent("""

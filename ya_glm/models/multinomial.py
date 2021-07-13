@@ -3,6 +3,8 @@ from sklearn.linear_model._base import LinearClassifierMixin
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import check_is_fitted
 from sklearn.preprocessing import LabelBinarizer
+from sklearn.utils.validation import check_array
+
 
 from sklearn.utils.extmath import softmax
 
@@ -59,7 +61,7 @@ class MultinomialMixin(LinearClassifierMixin):
         return np.log(self.predict_proba(X))
 
 
-def process_y_multinomial(y, check_input=True):
+def process_y_multinomial(y, copy=True, check_input=True):
     """
     Converts y to indicator vectors.
 
@@ -67,6 +69,9 @@ def process_y_multinomial(y, check_input=True):
     ----------
     y: array-like, shape (n_samples, )
         The response data.
+
+    copy: bool
+        Make sure y is copied and not modified in place.
 
     check_input: bool
         Whether or not we should validate the input.
@@ -85,7 +90,11 @@ def process_y_multinomial(y, check_input=True):
     """
 
     if check_input:
+        y = check_array(y, copy=copy, ensure_2d=True)
         check_classification_targets(y)
+
+    elif copy:
+        y = y.copy(order='K')
 
     lb = LabelBinarizer(sparse_output=True)
     y_ind = lb.fit_transform(y)

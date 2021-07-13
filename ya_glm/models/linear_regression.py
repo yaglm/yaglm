@@ -49,7 +49,7 @@ def process_y_lin_reg(y, standardize=False, copy=True, check_input=True):
         Whether or not to mean center.
 
     copy: bool
-        Copy data matrix or standardize in place.
+        Make sure y is copied and not modified in place.
 
     check_input: bool
         Whether or not we should validate the input.
@@ -67,7 +67,7 @@ def process_y_lin_reg(y, standardize=False, copy=True, check_input=True):
             The response mean.
     """
     if check_input:
-        y = check_array(y, ensure_2d=False)
+        y = check_array(y, copy=copy, ensure_2d=False)
     elif copy:
         y = y.copy(order='K')
 

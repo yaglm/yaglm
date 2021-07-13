@@ -49,7 +49,7 @@ def process_y_lin_reg_mr(y, standardize=False, copy=True, check_input=True):
     """
 
     if check_input:
-        y = check_array(y, ensure_2d=True)
+        y = check_array(y, copy=copy, ensure_2d=True)
     elif copy:
         y = y.copy(order='K')
 

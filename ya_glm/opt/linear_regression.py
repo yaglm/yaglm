@@ -1,7 +1,6 @@
 import numpy as np
 
 from ya_glm.opt.utils import safe_data_mat_coef_dot, safe_data_mat_coef_mat_dot
-
 from ya_glm.opt.base import Func
 
 

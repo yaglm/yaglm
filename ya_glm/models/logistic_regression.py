@@ -2,6 +2,7 @@ from sklearn.linear_model._base import LinearClassifierMixin
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.multiclass import check_classification_targets
+from sklearn.utils.validation import check_array
 # from sklearn.utils import check_array
 # from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.metrics import log_loss
@@ -21,7 +22,7 @@ class LogRegMixin(LinearClassifierMixin):
         return loss_type, loss_kws
 
     def _process_y(self, y, copy=True):
-        return process_y_log_reg(y, check_input=True)
+        return process_y_log_reg(y, copy=copy, check_input=True)
 
     def decision_function(self, X):
         """
@@ -64,7 +65,7 @@ class LogRegMixin(LinearClassifierMixin):
         return np.log(self.predict_proba(X))
 
 
-def process_y_log_reg(y, check_input=True):
+def process_y_log_reg(y, copy=True, check_input=True):
     """
     Ensures y is binary.
 
@@ -72,6 +73,9 @@ def process_y_log_reg(y, check_input=True):
     ----------
     y: array-like, shape (n_samples, )
         The response data.
+
+    copy: bool
+        Make sure y is copied and not modified in place.
 
     check_input: bool
         Whether or not we should validate the input.
@@ -90,7 +94,12 @@ def process_y_log_reg(y, check_input=True):
     """
 
     if check_input:
+        y = check_array(y, copy=copy, ensure_2d=False)
         check_classification_targets(y)
+
+    elif copy:
+        y = y.copy(order='K')
+    y = y.reshape(-1)
 
     enc = LabelEncoder()
     y_ind = enc.fit_transform(y)
