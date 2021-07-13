@@ -32,8 +32,7 @@ The built in cross-validation functionality supports
 - custom metrics
 - custom selection rules such as the '1se' rule from the glmnet package
 
-We provide a built in FISTA algorithm (Beck and Teboulle, 2009) that covers most glm loss + non-smooth penalty combinations (the ya_glm.opt module is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite penalized GLM optimization algorithm** and access the other functionality in ya_glm. For example, the concave penalties require a subroutine that solves a weighted Lasso penalized problem.
-
+We provide a built in FISTA algorithm (Beck and Teboulle, 2009) that covers most glm loss + non-smooth penalty combinations (the ya_glm.opt module is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite penalized GLM optimization algorithm.**
 
 We aim to add additional loss functions (e.g. quantile, gamma, cox regression) and penalties (e.g. generalized Lasso, TV1)
 
