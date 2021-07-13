@@ -14,14 +14,14 @@ We currently support the following loss functions
 and the following penalties
 
 - Lasso
-- Group Lasso with user specified groups
-- Multi-task Lasso (i.e. L1 to L2 norm)
+- [Group Lasso](https://rss.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/j.1467-9868.2005.00532.x?casa_token=wN_F5iYwNK4AAAAA:4PVnAz4icP5hR9FIRviV0zqnp_QAibv55uYkptKQKezvDoqtMzrSpFyHh15lL4IO1yFJ3Sfl4OwOuA) with user specified groups
+- [Multi-task Lasso](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.MultiTaskLasso.html#sklearn.linear_model.MultiTaskLasso) (i.e. L1 to L2 norm)
 - Nuclear norm
 - Ridge
-- Tikhonov
-- Elastic net versions of the above Lasso penalties
+- [Tikhonov regularization](https://en.wikipedia.org/wiki/Tikhonov_regularization#Tikhonov_regularization)
+- [Elastic net](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) versions of the above Lasso penalties
 - Weighted versions of all of the above
-- Concave penalties such as SCAD
+- Concave penalties such as [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf)
 
 The concave penalties are fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit. See [(Fan et al, 2014)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/) for details. We provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
 
