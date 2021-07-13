@@ -5,6 +5,8 @@ from textwrap import dedent
 from ya_glm.utils import is_multi_response
 from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.linear_regression import LinRegLoss, LinRegMultiRespLoss
+from ya_glm.opt.huber_regression import HuberRegLoss, HuberRegMultiRespLoss
+
 from ya_glm.opt.logistic_regression import LogRegLoss
 from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
     WithIntercept, TikhonovPenalty
@@ -392,6 +394,8 @@ def get_glm_loss(X, y,
 
     assert loss_func in ['lin_reg',
                          'lin_reg_mr',
+                         'huber_reg',
+                         'huber_reg_mr',
                          'log_reg']
 
     if loss_func == 'lin_reg':
@@ -399,6 +403,12 @@ def get_glm_loss(X, y,
 
     elif loss_func == 'lin_reg_mr':
         obj_class = LinRegMultiRespLoss
+
+    elif loss_func == 'huber_reg':
+        obj_class = HuberRegLoss
+
+    elif loss_func == 'huber_reg_mr':
+        obj_class = HuberRegMultiRespLoss
 
     elif loss_func == 'log_reg':
         obj_class = LogRegLoss

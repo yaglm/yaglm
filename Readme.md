@@ -89,9 +89,9 @@ See the [docs/](docs/) folder for additional examples in jupyter notebooks (if t
 
 We currently support the following loss functions
 
-- Linear regression
+- Linear regression (single response and multiple responses)
 - Logistic regression
-- Linear regression with multiple responses
+- Huber regression (single response and multiple responses)
 
 and the following penalties
 

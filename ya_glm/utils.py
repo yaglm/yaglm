@@ -1,5 +1,6 @@
 import numpy as np
 from copy import deepcopy
+from inspect import signature
 
 
 def get_sequence_decr_max(max_val=1, min_val_mult=1e-3, num=20,
@@ -178,3 +179,19 @@ def get_coef_and_intercept(est, copy=False, error=False):
 
     else:
         return coef, intercept
+
+
+# TODO: will we actually need this?
+# def init_has_params(C):
+#     """
+#     Checks if C.__init__ has parameters
+
+#     Output
+#     ------
+#     has_params: bool
+#     """
+#     params = list(signature(C.__init__).parameters)
+#     to_drop = set(['self', 'args', 'kwargs'])
+#     params = [p for p in params if p not in to_drop]
+
+#     return len(params) > 0

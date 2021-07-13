@@ -110,7 +110,6 @@ def lin_reg_ridge_max(X, y, fit_intercept=True, weights=None,
         
     eval_min = smallest_sval(X) ** 2
 
-    # TODO: I think this is how we want to handle the intercept
     if fit_intercept:
         scaled_prod = np.linalg.norm(X.T @ (y - y.mean())) / targ_ubd
     else:

@@ -105,6 +105,7 @@ class Sum(Func):
 
 def check_grad_impl(func, values, atol=1e-05, behavior='ret', verbosity=0):
     """
+    Checks the gradient implementation of a function.
 
     Parameters
     ----------
@@ -202,6 +203,25 @@ def numeric_prox(func, x, step, init=None, force_no_grad=False, **kws):
 def check_prox_impl(func, values, step=1, rtol=1e-5, atol=1e-5, behavior='ret',
                     verbosity=0, opt_kws={}):
     """
+    Checks the prox implementation of a function.
+
+    Parameters
+    ----------
+    func: wlam.opt.Func
+        A function implementing fucn.eval and func.grad
+
+    values: list
+        The values at which to check the gradient.
+
+    behavior: str
+        Must be one of ['ret', 'error', 'warn'].
+
+    atol: float
+
+    rtol: float
+
+    opt_kws: dict
+        Keyword arguments to numeric_prox
 
     """
 

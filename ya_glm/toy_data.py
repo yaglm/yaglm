@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.utils import check_random_state
 from scipy.special import expit
 from numbers import Number
+from itertools import product
 
 
 def sample_sparse_lin_reg(n_samples=100, n_features=10, n_responses=1,
@@ -83,6 +84,51 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10, n_responses=1,
     y = X @ coef + intercept + noise_std * E
     
     return X, y, coef, intercept
+
+
+def infuse_outliers(y, prop_bad=.1, random_state=None):
+    """
+    Infuses outliers sampled from a T distribution into a response vector.
+
+    Parameters
+    ----------
+    y: array-like, shape (n_samples, )
+        The original response vector.
+
+    prop_bad: float
+        Proportion of y values that should come from outlier distribution.
+
+    random_state: None, int
+        See for sampling outliers.
+
+    Output
+    ------
+    y_bad: array-like, shape (n_samples, )
+        The response vector with outliers.
+    """
+    # TODO: add multivariate
+    rng = check_random_state(random_state)
+
+    n_outliers = int(len(y) * prop_bad)
+
+    if y.ndim == 1:
+        bad_idxs = rng.choice(a=np.arange(len(y)), size=n_outliers,
+                              replace=False)
+    else:
+        raise NotImplementedError
+    # else:
+    #     # TODO: is there a more straightforward way of doing this?
+    #     bad_meta_idxs = rng.choice(a=np.arange(y.shape[0] * y.shape[1]),
+    #                                size=n_outliers, replace=False)
+    #     all_idxs = list(product(np.arange(y.shape[0]), np.arange(y.shape[1])))
+    #     idxs = all_idxs[bad_meta_idxs]
+
+    bad_y_vals = rng.standard_t(df=1, size=n_outliers)
+
+    y_bad = y.copy()
+    y_bad[bad_idxs] = bad_y_vals
+
+    return y_bad
 
 
 def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,

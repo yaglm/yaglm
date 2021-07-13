@@ -3,7 +3,8 @@ from ya_glm.models.linear_regression import LinRegMixin
 from ya_glm.models.logistic_regression import LogRegMixin
 from ya_glm.models.linear_regression_multi_resp import \
     LinRegMultiResponseMixin
-
+from ya_glm.models.huber_regression import HuberRegMixin, \
+    HuberRegMultiResponseMixin
 
 # penalties
 from ya_glm.pen_glm.Vanilla import GlmVanilla
@@ -41,6 +42,13 @@ from ya_glm.backends.andersoncd.fcp_lla_solver import WL1SolverGlm \
 from ya_glm.add_init_params import add_init_params
 
 
+_MULTI_RESP_LOSSES = ['lin_reg_mr', 'huber_reg_mr']
+_MULTI_RESP_PENS = ['multi_task_lasso', 'multi_task_lasso_enet',
+                    'nuclear_norm']
+_CONCAVEABLE_PENS = ['lasso', 'group_lasso', 'multi_task_lasso',
+                     'nuclear_norm']
+
+
 def get_model_mixin(loss_func='lin_reg'):
     # loss function
     if loss_func == 'lin_reg':
@@ -48,6 +56,12 @@ def get_model_mixin(loss_func='lin_reg'):
 
     elif loss_func == 'lin_reg_mr':
         return LinRegMultiResponseMixin
+
+    if loss_func == 'huber_reg':
+        return HuberRegMixin
+
+    elif loss_func == 'huber_reg_mr':
+        return HuberRegMultiResponseMixin
 
     elif loss_func == 'log_reg':
         return LogRegMixin
@@ -92,8 +106,7 @@ def get_penalty(penalty='lasso'):
 
 def get_fcp_penalty(penalty='lasso'):
     # Valid FCP models
-    assert penalty in ['lasso', 'group_lasso', 'multi_task_lasso',
-                       'nuclear_norm']
+    assert penalty in _CONCAVEABLE_PENS
 
     # penalty
     if penalty == 'lasso':
@@ -112,11 +125,13 @@ def get_fcp_penalty(penalty='lasso'):
         raise ValueError("Bad input for penalty: {}".format(penalty))
 
 
-# TODO: handle loss kws
 def get_pen_glm(loss_func='linear_regression',
                 penalty='lasso',
                 backend='fista'):
     
+    if penalty in _MULTI_RESP_PENS:
+        assert loss_func in _MULTI_RESP_LOSSES
+
     MODEL_MIXIN = get_model_mixin(loss_func=loss_func)
     GLM, GLM_CV = get_penalty(penalty=penalty)
 
@@ -140,8 +155,8 @@ def get_pen_glm(loss_func='linear_regression',
     class Estimator(MODEL_MIXIN, GLM):
         solve = staticmethod(solve_glm_impl)
 
-    # TODO: add MODEL_MIXIN params to init when required
-    # need to manually add groups in this case
+        @add_init_params(GLM, MODEL_MIXIN)
+        def __init__(self): pass
 
     ####################################
     # setup cross-validation estimator #
@@ -199,6 +214,9 @@ def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
             solve_lla = staticmethod(solve_lla)
             base_wl1_solver = WL1_impl
 
+            @add_init_params(MODEL_MIXIN)
+            def __init__(self): pass
+
             def _get_defualt_init(self):
                 # return DefaultCV()
                 est = Default(groups=self.groups,
@@ -214,6 +232,9 @@ def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
         class Estimator(MODEL_MIXIN, GLM_FCP):
             solve_lla = staticmethod(solve_lla)
             base_wl1_solver = WL1_impl
+
+            @add_init_params(MODEL_MIXIN)
+            def __init__(self): pass
 
             def _get_defualt_init(self):
                 # return DefaultCV()

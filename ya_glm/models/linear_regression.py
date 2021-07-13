@@ -9,14 +9,7 @@ from ya_glm.cv.scoring import get_n_nonzero, Scorer
 
 
 class LinRegMixin(RegressorMixin):
-    """
-    fit_intercept:
 
-    normalize:
-
-    copy_X:
-
-    """
     def get_loss_info(self):
         loss_type = 'lin_reg'
         loss_kws = {}
@@ -143,9 +136,9 @@ def score_lin_reg(est, X, y, verbosity=1):
     out['r2'] = r2_score(y_true=y, y_pred=y_pred)
 
     if verbosity >= 1:
-        out['n_nonzero'] = get_n_nonzero(est.coef_, zero_tol=1e-8)
         out['median_abs_err'] = median_absolute_error(y_true=y, y_pred=y_pred)
 
+        out['n_nonzero'] = get_n_nonzero(est.coef_, zero_tol=1e-8)
         out['l2_norm'] = np.linalg.norm(est.coef_.reshape(-1))
 
     return out

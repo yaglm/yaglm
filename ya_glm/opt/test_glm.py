@@ -1,9 +1,9 @@
-import numpy as np
 from sklearn.utils import check_random_state
 from itertools import product
 
 from ya_glm.opt.linear_regression import LinRegLoss
 from ya_glm.opt.logistic_regression import LogRegLoss
+from ya_glm.opt.huber_regression import HuberRegLoss
 from ya_glm.opt.base import check_grad_impl
 
 
@@ -14,7 +14,7 @@ def run_tests(func, values, step=0.5, atol=1e-2, rtol=0):
                     verbosity=0)
 
 
-def value_func_gen():
+def value_func_gen(n_values=1):
 
     rng = check_random_state(234)
 
@@ -24,24 +24,36 @@ def value_func_gen():
         y = rng.normal(size=size[0])
 
         if fit_intercept:
-            value = [rng.normal(size=size[1] + 1)]
+            value = [rng.normal(size=size[1] + 1)
+                     for _ in range(n_values)]
         else:
-            value = [rng.normal(size=size[1])]
+            value = [rng.normal(size=size[1])
+                     for _ in range(n_values)]
 
         yield {'X': X, 'y': y, 'fit_intercept': fit_intercept}, value
 
 
 def test_lin_reg():
-    for idx, (kws, values) in enumerate(value_func_gen()):
+    for idx, (kws, values) in enumerate(value_func_gen(3)):
 
         run_tests(func=LinRegLoss(**kws),
                   values=values)
 
 
 def test_log_reg():
-    for idx, (kws, values) in enumerate(value_func_gen()):
+    for idx, (kws, values) in enumerate(value_func_gen(3)):
 
         kws['y'] = (kws['y'] > 0).astype(float)
 
         run_tests(func=LogRegLoss(**kws),
                   values=values)
+
+
+def test_huber_reg():
+    for idx, (kws, values) in enumerate(value_func_gen(3)):
+        for knot in [.1, 1]:
+
+            kws['y'] = (kws['y'] > 0).astype(float)
+
+            run_tests(func=HuberRegLoss(knot=knot, **kws),
+                      values=values)
