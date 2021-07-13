@@ -1,5 +1,7 @@
 # loss funcs
 from ya_glm.models.linear_regression import LinRegMixin
+from ya_glm.models.multinomial import MultinomialMixin
+
 from ya_glm.models.logistic_regression import LogRegMixin
 from ya_glm.models.linear_regression_multi_resp import \
     LinRegMultiResponseMixin
@@ -40,13 +42,7 @@ from ya_glm.backends.andersoncd.fcp_lla_solver import WL1SolverGlm \
 
 # other
 from ya_glm.add_init_params import add_init_params
-
-
-_MULTI_RESP_LOSSES = ['lin_reg_mr', 'huber_reg_mr']
-_MULTI_RESP_PENS = ['multi_task_lasso', 'multi_task_lasso_enet',
-                    'nuclear_norm']
-_CONCAVEABLE_PENS = ['lasso', 'group_lasso', 'multi_task_lasso',
-                     'nuclear_norm']
+from ya_glm.info import _MULTI_RESP_LOSSES, _MULTI_RESP_PENS, _CONCAVEABLE_PENS
 
 
 def get_model_mixin(loss_func='lin_reg'):
@@ -65,6 +61,9 @@ def get_model_mixin(loss_func='lin_reg'):
 
     elif loss_func == 'log_reg':
         return LogRegMixin
+
+    elif loss_func == 'multinomial':
+        return MultinomialMixin
 
     else:
         raise NotImplementedError("{} not supported".format(loss_func))
@@ -209,40 +208,37 @@ def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
     # setup estimator #
     ###################
 
+    class Estimator(MODEL_MIXIN, GLM_FCP):
+        solve_lla = staticmethod(solve_lla)
+        base_wl1_solver = WL1_impl
+
+        @add_init_params(GLM_FCP, MODEL_MIXIN)
+        def __init__(self): pass
+
     if 'group' in penalty:
-        class Estimator(MODEL_MIXIN, GLM_FCP):
-            solve_lla = staticmethod(solve_lla)
-            base_wl1_solver = WL1_impl
 
-            @add_init_params(MODEL_MIXIN)
-            def __init__(self): pass
+        def _get_defualt_init(self):
+            # return DefaultCV()
+            est = Default(groups=self.groups,
+                          fit_intercept=self.fit_intercept,
+                          opt_kws=self.opt_kws,
+                          standardize=self.standardize)
 
-            def _get_defualt_init(self):
-                # return DefaultCV()
-                est = Default(groups=self.groups,
-                              fit_intercept=self.fit_intercept,
-                              opt_kws=self.opt_kws,
-                              standardize=self.standardize)
+            return DefaultCV(estimator=est)
 
-                return DefaultCV(estimator=est)
-
+        Estimator._get_defualt_init = _get_defualt_init
         estimator = Estimator(groups=[])
 
     else:
-        class Estimator(MODEL_MIXIN, GLM_FCP):
-            solve_lla = staticmethod(solve_lla)
-            base_wl1_solver = WL1_impl
 
-            @add_init_params(MODEL_MIXIN)
-            def __init__(self): pass
+        def _get_defualt_init(self):
+            # return DefaultCV()
+            est = Default(fit_intercept=self.fit_intercept,
+                          opt_kws=self.opt_kws,
+                          standardize=self.standardize)
+            return DefaultCV(estimator=est)
 
-            def _get_defualt_init(self):
-                # return DefaultCV()
-                est = Default(fit_intercept=self.fit_intercept,
-                              opt_kws=self.opt_kws,
-                              standardize=self.standardize)
-                return DefaultCV(estimator=est)
-
+        Estimator._get_defualt_init = _get_defualt_init
         estimator = Estimator()
 
     class EstimatorCV(GLM_FCP_CV):

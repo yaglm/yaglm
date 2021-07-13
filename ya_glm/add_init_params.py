@@ -30,15 +30,22 @@ def add_init_params(*classes, add_first=True):
         init_params = init_params[1:]  # ignore self
         init_param_names = set(p.name for p in init_params)
 
+        empty_init_params = set(['self', 'args', 'kwargs'])
+
         params = []
         if add_first:
             params.extend(init_params)
 
         for C in classes:
             # get params for this super class
-            cls_params = list(signature(C.__init__).parameters.values())
+            cls_params = signature(C.__init__).parameters
+
+            # ignore classes with empty inits
+            if set(cls_params) == empty_init_params:
+                continue
+
+            cls_params = list(cls_params.values())
             cls_params = cls_params[1:]  # ignore self
-            
             # ignore parameter if it was already in init
             cls_params = [p for p in cls_params
                           if p.name not in init_param_names]
@@ -59,3 +66,4 @@ def add_init_params(*classes, add_first=True):
         return __init__
     
     return init_wrapper
+
