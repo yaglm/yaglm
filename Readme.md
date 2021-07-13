@@ -29,7 +29,7 @@ The built in cross-validation functionality supports
 
 - faster path algorithms for convex loss functions (as in sklearn.linear_model.LassoCV)
 - automatically generated tuning parameter path for any loss + penalty combination
-- custom metrics
+- custom evaluation metrics
 - custom selection rules such as the '1se' rule from the glmnet package
 
 We provide a built in FISTA algorithm (Beck and Teboulle, 2009) that covers most glm loss + non-smooth penalty combinations (the ya_glm.opt module is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite penalized GLM optimization algorithm.**
