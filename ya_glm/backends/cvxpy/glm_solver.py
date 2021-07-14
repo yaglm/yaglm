@@ -6,7 +6,7 @@ from ya_glm.utils import clip_zero
 from ya_glm.cvxpy.penalty import lasso, ridge
 from ya_glm.cvxpy.loss_functions import lin_reg_loss, log_reg_loss,\
     quantile_reg_loss
-from ya_glm.cvxpy.utils import solve_with_backups
+# from ya_glm.cvxpy.utils import solve_with_backups
 from ya_glm.backends.fista.glm_solver import process_param_path
 
 
@@ -25,6 +25,7 @@ def solve_glm(X, y,
               coef_init=None,
               intercept_init=None,
               zero_tol=1e-8,
+              solver=None,
               cp_kws={}):
 
     start_time = time()
@@ -47,7 +48,8 @@ def solve_glm(X, y,
                       coef_init=coef_init,
                       intercept_init=intercept_init)
 
-    solve_with_backups(problem=problem, variable=coef, **cp_kws)
+    # problem.solve(solver=solver, **cp_kws)
+    # solve_with_backups(problem=problem, variable=coef, **cp_kws)
 
     if coef.value is None:
         raise RuntimeError("cvxpy solvers failed")
@@ -63,7 +65,7 @@ def solve_glm(X, y,
     return coef, intercept, opt_data
 
 
-def solve_glm_path(fit_intercept=True, cp_kws={}, zero_tol=1e-8,
+def solve_glm_path(fit_intercept=True, solver=None, cp_kws={}, zero_tol=1e-8,
                    lasso_pen_seq=None, ridge_pen_seq=None,
                    check_decr=True, **kws):
 
@@ -90,7 +92,8 @@ def solve_glm_path(fit_intercept=True, cp_kws={}, zero_tol=1e-8,
         if 'ridge_pen' in params:
             ridge_pen.value = params['ridge_pen']
 
-        solve_with_backups(problem=problem, variable=coef, **cp_kws)
+        problem.solve(solver=solver, **cp_kws)
+        # solve_with_backups(problem=problem, variable=coef, **cp_kws)
 
         if coef.value is None:
             raise RuntimeError("cvxpy solvers failed")
