@@ -38,6 +38,24 @@ Quantile Regression
 tilted_L1_prox = safe_vectorize(tilted_L1_prox_1d)
 
 
+def _tilted_L1_grad_1d(x, quantile=0.5):
+    if x == 0:
+        if quantile > 0.5:
+            return quantile
+        else:
+            return - (1 - quantile)
+        # return max(1 - quantile, quantile)
+
+    elif x < 0:
+        return - (1 - quantile)
+
+    else:
+        return quantile
+
+
+tilted_L1_grad = safe_vectorize(_tilted_L1_grad_1d)
+
+
 class QuantileRegLoss(Func):
     """
     The quantile regression loss function

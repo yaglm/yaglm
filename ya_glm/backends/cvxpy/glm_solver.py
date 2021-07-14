@@ -1,5 +1,6 @@
 import cvxpy as cp
 from functools import partial
+from time import time
 
 from ya_glm.utils import clip_zero
 from ya_glm.cvxpy.penalty import lasso, ridge
@@ -26,6 +27,7 @@ def solve_glm(X, y,
               zero_tol=1e-8,
               cp_kws={}):
 
+    start_time = time()
     ######################
     # objective function #
     ######################
@@ -50,10 +52,15 @@ def solve_glm(X, y,
     if coef.value is None:
         raise RuntimeError("cvxpy solvers failed")
 
-    return process_output(problem=problem, coef=coef,
-                          intercept=intercept,
-                          fit_intercept=fit_intercept,
-                          zero_tol=zero_tol)
+    coef, intercept, opt_data = \
+        process_output(problem=problem, coef=coef,
+                       intercept=intercept,
+                       fit_intercept=fit_intercept,
+                       zero_tol=zero_tol)
+
+    opt_data['runtime'] = time() - start_time
+
+    return coef, intercept, opt_data
 
 
 def solve_glm_path(fit_intercept=True, cp_kws={}, zero_tol=1e-8,
@@ -65,14 +72,18 @@ def solve_glm_path(fit_intercept=True, cp_kws={}, zero_tol=1e-8,
                                     check_decr=check_decr)
 
     # make sure we setup the right penalty
-    if 'lasso_pen' in param_path:
-        kws['lasso_pen'] = param_path['lasso_pen'][0]
-    if 'ridge_pen' in param_path:
-        kws['ridge_pen'] = param_path['ridge_pen'][0]
+    if 'lasso_pen' in param_path[0]:
+        kws['lasso_pen'] = param_path[0]['lasso_pen']
+    if 'ridge_pen' in param_path[0]:
+        kws['ridge_pen'] = param_path[0]['ridge_pen']
 
+    start_time = time()
     problem, coef, intercept, lasso_pen, ridge_pen = setup_problem(**kws)
+    pre_setup_runtime = start_time - time()
 
     for params in param_path:
+        start_time = time()
+
         if 'lasso_pen' in params:
             lasso_pen.value = params['lasso_pen']
 
@@ -90,7 +101,13 @@ def solve_glm_path(fit_intercept=True, cp_kws={}, zero_tol=1e-8,
                                  fit_intercept=fit_intercept,
                                  zero_tol=zero_tol)
 
-        # if generator:
+        fit_out = {'coef': fit_out[0],
+                   'intercept': fit_out[1],
+                   'opt_data': fit_out[2]}
+
+        fit_out['opt_data']['runtime'] = start_time - time()
+        fit_out['opt_data']['pre_setup_runtime'] = pre_setup_runtime
+
         yield fit_out, params
 
 
@@ -174,9 +191,9 @@ def setup_problem(X, y,
         def objective(coef, intercept):
             return glm_loss(X=X, y=y, coef=coef, intercept=intercept)
 
-    ###################
-    # setup variables #
-    ###################
+    ###############################
+    # setup variables and problem #
+    ###############################
 
     coef = cp.Variable(shape=X.shape[1], value=coef_init)
     if fit_intercept:
@@ -184,9 +201,6 @@ def setup_problem(X, y,
     else:
         intercept = None
 
-    ###########################
-    # setup and solve problem #
-    ###########################
     problem = cp.Problem(cp.Minimize(objective(coef, intercept)))
 
     return problem, coef, intercept, lasso_pen, ridge_pen

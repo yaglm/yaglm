@@ -28,7 +28,7 @@ def add_init_params(*classes, add_first=True):
         # start with init's current parameters
         init_params = list(signature(init).parameters.values())
         init_params = init_params[1:]  # ignore self
-        init_param_names = set(p.name for p in init_params)
+        current_param_names = set(p.name for p in init_params)
 
         empty_init_params = set(['self', 'args', 'kwargs'])
 
@@ -48,7 +48,8 @@ def add_init_params(*classes, add_first=True):
             cls_params = cls_params[1:]  # ignore self
             # ignore parameter if it was already in init
             cls_params = [p for p in cls_params
-                          if p.name not in init_param_names]
+                          if p.name not in current_param_names]
+            current_param_names.update([p.name for p in cls_params])
             
             params.extend(cls_params)
 

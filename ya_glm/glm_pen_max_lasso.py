@@ -4,6 +4,7 @@ from ya_glm.utils import is_multi_response
 from ya_glm.linalg_utils import leading_sval
 from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.huber_regression import huber_grad
+from ya_glm.opt.quantile_regression import tilted_L1_grad
 
 from ya_glm.info import _MULTI_RESP_LOSSES
 
@@ -210,8 +211,15 @@ def g0_poisson_mr(X, y, fit_intercept, **loss_kws):
 
 
 def g0_quantile(X, y, fit_intercept, quantile):
-    # TODO: add this
-    raise NotImplementedError
+
+    y = np.array(y)
+    if fit_intercept:
+        pred = np.quantile(a=y, q=quantile)
+
+    else:
+        pred = np.zeros_like(y)
+
+    return (1 / X.shape[0]) * X.T @ tilted_L1_grad(y - pred, quantile=quantile)
 
 
 def get_g0_multi_response(g0_getter, X, y, fit_intercept, **loss_kws):

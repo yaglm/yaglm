@@ -16,14 +16,25 @@ def solve_with_backups(problem, variable, verbosity=0, **kws):
         avail_solvers = cp.installed_solvers()
         avail_solvers.remove(problem.solver_stats.solver_name)
 
+        success = False
+
         for solver in avail_solvers:
+            kws['solver'] = solver
 
             # try each solver
-            kws['solver'] = solver
-            problem.solve(**kws)
+            try:
+                problem.solve(**kws)
+                success = True
+
+            except cp.SolverError as e:
+                if verbosity >= 1:
+                    print(e)
+
+            if variable.value is not None:
+                success = False
 
             # if we have succeded then we are done!
-            if variable.value is not None:
+            if success:
                 break
 
             else:

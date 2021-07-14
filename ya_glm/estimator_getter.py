@@ -154,7 +154,6 @@ def get_solver(backend='fista'):
             solve_glm = solve_glm_fista
             solve_glm_path = solve_glm_path_fista
 
-
         elif backend == 'andersoncd':
             solve_glm = solve_glm_andersoncd
             solve_glm_path = solve_glm_path_andersoncd
@@ -166,6 +165,9 @@ def get_solver(backend='fista'):
     else:
         solve_glm = backend.get('solve_glm', None)
         solve_glm_path = backend.get('solve_glm_path', None)
+
+    if solve_glm is None:
+        raise ValueError("No solver found")
 
     solve_glm = staticmethod(solve_glm)
     if solve_glm_path is not None:
