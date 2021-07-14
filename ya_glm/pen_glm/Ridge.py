@@ -5,6 +5,7 @@ from ya_glm.cv.CVPath import CVPathMixin
 from ya_glm.glm_pen_max_ridge import ridge_max
 from ya_glm.add_init_params import add_init_params
 from ya_glm.processing import check_estimator_type
+from ya_glm.utils import maybe_add
 
 
 class GlmRidge(Glm):
@@ -27,10 +28,13 @@ class GlmRidge(Glm):
                **self.opt_kws,
 
                'ridge_pen': self.pen_val,
-               'ridge_weights': self.weights,
-
-               'tikhonov': self.tikhonov
                }
+
+        extra_kws = {'ridge_weights': self.weights,
+                     'tikhonov': self.tikhonov
+                     }
+
+        kws = maybe_add(kws, **extra_kws)
 
         return kws
 

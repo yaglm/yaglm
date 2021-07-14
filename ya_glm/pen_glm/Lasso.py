@@ -5,7 +5,7 @@ from ya_glm.cv.CVPath import CVPathMixin
 
 from ya_glm.add_init_params import add_init_params
 from ya_glm.glm_pen_max_lasso import lasso_max
-from ya_glm.utils import lasso_and_ridge_from_enet
+from ya_glm.utils import lasso_and_ridge_from_enet, maybe_add
 from ya_glm.processing import check_estimator_type
 
 
@@ -35,23 +35,21 @@ class GlmLasso(Glm):
 
                'lasso_pen': self.pen_val,
 
-               'lasso_weights': self.weights,
-               'ridge_pen': self.ridge_pen_val,
-               'ridge_weights': self.ridge_weights,
-               'tikhonov': self.tikhonov
+               # 'lasso_weights': self.weights,
+               # 'ridge_pen': self.ridge_pen_val,
+               # 'ridge_weights': self.ridge_weights,
+               # 'tikhonov': self.tikhonov
                }
 
-        # TODO: perhaps do it this way
-        # # let's only add these if they are not None
-        # # this way we can use solve that doesn't have these kws
-        # extra_kws = {'lasso_weights': self.weights,
-        #              'ridge_pen_val': self.ridge_pen_val,
-        #              'ridge_weights': self.ridge_weights,
-        #              'tikhonov': self.tikhonov}
+        # let's only add these if they are not None
+        # this way we can use solve that doesn't have these kws
+        extra_kws = {'lasso_weights': self.weights,
+                     'ridge_pen': self.ridge_pen_val,
+                     'ridge_weights': self.ridge_weights,
+                     'tikhonov': self.tikhonov
+                     }
 
-        # for k, v in extra_kws.items():
-        #     if v is not None:
-        #         kws[k] = v
+        kws = maybe_add(kws, **extra_kws)
 
         return kws
 
