@@ -180,9 +180,21 @@ def get_coef_and_intercept(est, copy=False, error=False):
         return coef, intercept
 
 
-def maybe_add(d, **kws):
+def maybe_add(d, exclude_false=False, **kws):
     """
     Adds keywork argumnts to a dict if their values are not None.
+
+    Parameters
+    ----------
+    d: dict
+        The dictionary to add to.
+
+    exclude_false: bool
+        Exclue keys whose values are false.
+
+    kws: dict
+        The keys to maybe add
+
     """
     for k, v in kws.items():
         if v is not None:

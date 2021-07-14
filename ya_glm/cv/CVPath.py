@@ -8,7 +8,7 @@ from sklearn.base import is_classifier, clone
 
 class CVPathMixin:
     """
-    solve_path
+    solve_glm_path
     """
 
     def _fit_and_score_path_getter(self):
@@ -25,7 +25,7 @@ class CVPathMixin:
             preprocess = None
 
         fit_and_score_path = partial(score_from_fit_path,
-                                     solve_path=self.solve_path,
+                                     solve_path=self.solve_glm_path,
                                      est_from_fit=est_from_fit,
                                      scorer=self.cv_scorer,
                                      preprocess=preprocess)

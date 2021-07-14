@@ -13,6 +13,7 @@ from ya_glm.processing import process_init_data
 from ya_glm.opt.concave_penalty import get_penalty_func
 from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.GroupLasso import euclid_norm
+from ya_glm.lla.WeightedLassoSolver import WL1SolverGlm
 
 
 class InitMixin:
@@ -183,7 +184,7 @@ lla_kws: dict
 
 class GlmFcpFitLLA(GlmFcp):
 
-    base_wl1_solver = None
+    solve_glm = None
     solve_lla = None
 
     @add_init_params(GlmFcp)
@@ -211,7 +212,9 @@ class GlmFcpFitLLA(GlmFcp):
                **self._extra_wl1_kws()
                }
 
-        wl1_solver = self.base_wl1_solver(X=X, y=y, **kws)
+        # Setup weighted L1 solver
+        wl1_solver = WL1SolverGlm(X=X, y=y, **kws)
+        wl1_solver.solve_glm = self.solve_glm
 
         # solve!
         coef, intercept, opt_data = \

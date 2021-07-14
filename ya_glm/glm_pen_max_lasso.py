@@ -125,6 +125,9 @@ def grad_at_zero(X, y, fit_intercept, loss_func, loss_kws={}):
     elif loss_func == 'g0_poisson_mr':
         return g0_poisson(X=X, y=y, fit_intercept=fit_intercept, **loss_kws)
 
+    elif loss_func == 'quantile':
+        return g0_quantile(X=X, y=y, fit_intercept=fit_intercept, **loss_kws)
+
     else:
         raise NotImplementedError("{} not supported".format(loss_func))
 
@@ -200,10 +203,15 @@ def g0_poisson(X, y, fit_intercept):
     return grad / X.shape[0]
 
 
-def g0_poisson_mr(X, y, fit_intercept):
+def g0_poisson_mr(X, y, fit_intercept, **loss_kws):
     return get_g0_multi_response(g0_getter=g0_poisson,
                                  X=X, y=y, fit_intercept=fit_intercept,
                                  **loss_kws)
+
+
+def g0_quantile(X, y, fit_intercept, quantile):
+    # TODO: add this
+    raise NotImplementedError
 
 
 def get_g0_multi_response(g0_getter, X, y, fit_intercept, **loss_kws):

@@ -1,6 +1,9 @@
+from ya_glm.lla.utils import safe_concat
+from ya_glm.backends.fista.glm_solver import get_glm_loss
+from ya_glm.utils import maybe_add
 
 
-class WeightedLassoSolver(object):
+class BaseWeightedLassoSolver(object):
     """
     min_y loss(y) + ||y||_{w, 1}
 
@@ -47,3 +50,87 @@ class WeightedLassoSolver(object):
         loss: float
         """
         raise NotImplementedError
+
+
+class WL1SolverGlm(BaseWeightedLassoSolver):
+
+    solve_glm = None
+
+    def __init__(self, X, y, loss_func, loss_kws={},
+                 fit_intercept=True, groups=None, L1to2=False, nuc=False,
+                 opt_kws={}):
+
+        self.glm_loss = get_glm_loss(X=X, y=y,
+                                     loss_func=loss_func,
+                                     loss_kws=loss_kws,
+                                     fit_intercept=fit_intercept)
+
+        self.groups = groups
+        self.L1to2 = L1to2
+        self.nuc = nuc
+        self.opt_kws = opt_kws
+
+    def solve(self, L1_weights, opt_init=None, opt_init_upv=None):
+        """
+        Parameters
+        ----------
+        L1_weights: array-like
+            Weights for lasso penalty.
+
+        opt_init: None, array-like
+            Optional initializaiton for the coefficient.
+
+        opt_init_upv: None, array-like
+            Optional initializaiton for the intercept.
+
+        Output
+        ------
+        solution, upv_solution, other_data
+        """
+
+        # only add these if we must
+        extra_kws = maybe_add(d={}, exclude_false=True,
+                              **{'groups': self.groups,
+                                 'nuc': self.nuc,
+                                 'L1to2': self.L1to2})
+
+        coef, intercept, opt_data = \
+            self.solve_glm(X=self.glm_loss.X,
+                           y=self.glm_loss.y,
+                           loss_func=self.glm_loss,
+                           fit_intercept=self.glm_loss.fit_intercept,
+                           lasso_pen=1,
+                           lasso_weights=L1_weights,
+                           coef_init=opt_init,
+                           intercept_init=opt_init_upv,
+                           **extra_kws,
+                           # groups=self.groups,
+                           # L1to2=self.L1to2,
+                           # nuc=self.nuc,
+                           **self.opt_kws)
+
+        return coef, intercept, opt_data
+
+    def loss(self, value, upv=None):
+        """
+        Returns the loss function
+
+        loss(y) or loss(y, u)
+
+        Parameters
+        ----------
+        value: array-like
+            The value of the coefficient.
+
+        upv: None, array-like
+            The intercept.
+
+        Output
+        ------
+        loss: float
+        """
+        if self.glm_loss.fit_intercept:
+            # return self.glm_loss.eval(np.concatenate([[upv], value]))
+            return self.glm_loss.eval(safe_concat(upv, value))
+        else:
+            return self.glm_loss.eval(value)

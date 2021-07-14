@@ -49,8 +49,8 @@ class Glm(BaseEstimator):
         # TODO: do we want to give the user the option to not copy?
         X, y, pre_pro_out = self.preprocess(X, y, copy=True)
 
-        coef, intercept, out_data = self.solve(X=X, y=y,
-                                               **self._get_solve_kws())
+        coef, intercept, out_data = self.solve_glm(X=X, y=y,
+                                                   **self._get_solve_kws())
 
         self._set_fit(fit_out={'coef': coef, 'intercept': intercept,
                                'opt_data': out_data},

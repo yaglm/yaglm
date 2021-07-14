@@ -32,16 +32,19 @@ from ya_glm.lla.lla import solve_lla
 from ya_glm.backends.fista.glm_solver import solve_glm as solve_glm_fista
 from ya_glm.backends.fista.glm_solver import solve_glm_path \
     as solve_glm_path_fista
-from ya_glm.backends.fista.fcp_lla_solver import WL1SolverGlm \
-    as WL1SolverGlm_fista
+
 
 # andersoncd solvers
 from ya_glm.backends.andersoncd.glm_solver import solve_glm as \
     solve_glm_andersoncd
 from ya_glm.backends.andersoncd.glm_solver import solve_glm_path \
     as solve_glm_path_andersoncd
-from ya_glm.backends.andersoncd.fcp_lla_solver import WL1SolverGlm \
-    as WL1SolverGlm_andersoncd
+
+# cvxpy solvers
+from ya_glm.backends.cvxpy.glm_solver import solve_glm as solve_glm_cvxpy
+from ya_glm.backends.cvxpy.glm_solver import solve_glm_path \
+    as solve_glm_path_cvxpy
+
 
 # other
 from ya_glm.add_init_params import add_init_params
@@ -137,35 +140,65 @@ def get_fcp_penalty(penalty='lasso'):
         raise ValueError("Bad input for penalty: {}".format(penalty))
 
 
+def get_solver(backend='fista'):
+    """
+    Parameters
+    ----------
+    backend: str, dict
+
+    """
+
+    # get solver
+    if type(backend) == str:
+        if backend == 'fista':
+            solve_glm = solve_glm_fista
+            solve_glm_path = solve_glm_path_fista
+
+
+        elif backend == 'andersoncd':
+            solve_glm = solve_glm_andersoncd
+            solve_glm_path = solve_glm_path_andersoncd
+
+        elif backend == 'cvxpy':
+            solve_glm = solve_glm_cvxpy
+            solve_glm_path = solve_glm_path_cvxpy
+
+    else:
+        solve_glm = backend.get('solve_glm', None)
+        solve_glm_path = backend.get('solve_glm_path', None)
+
+    solve_glm = staticmethod(solve_glm)
+    if solve_glm_path is not None:
+        solve_glm_path = staticmethod(solve_glm_path)
+
+    return solve_glm, solve_glm_path
+
+# TODO: handle static method + None
+
+
 def get_pen_glm(loss_func='linear_regression',
                 penalty='lasso',
                 backend='fista'):
-    
+
     if penalty in _MULTI_RESP_PENS:
         assert loss_func in _MULTI_RESP_LOSSES
 
     MODEL_MIXIN = get_model_mixin(loss_func=loss_func)
     GLM, GLM_CV = get_penalty(penalty=penalty)
+    solve_glm, solve_glm_path = get_solver(backend=backend)
 
-    # get solver
-    if type(backend) == str and backend == 'fista':
-        solve_glm_impl = solve_glm_fista
-        solve_glm_path_impl = solve_glm_path_fista
+    # TODO-HACK: for reasons I do not understand I needed to
+    # do this to get Estimator() to work below
+    temp = {}
+    temp['solve_glm'] = solve_glm
+    temp['solve_glm_path'] = solve_glm_path
 
-    elif type(backend) == str and backend == 'andersoncd':
-        solve_glm_impl = solve_glm_andersoncd
-        solve_glm_path_impl = solve_glm_path_andersoncd
-
-    else:
-        solve_glm_impl = backend.get('solve_glm', None)
-        solve_glm_path_impl = backend.get('solve_glm_path', None)
-
-    ###################
     # setup estimator #
     ###################
 
     class Estimator(MODEL_MIXIN, GLM):
-        solve = staticmethod(solve_glm_impl)
+        # solve_glm = solve_glm
+        solve_glm = temp['solve_glm']
 
         @add_init_params(GLM, MODEL_MIXIN)
         def __init__(self): pass
@@ -183,7 +216,8 @@ def get_pen_glm(loss_func='linear_regression',
             estimator = Estimator()
 
         class EstimatorCV(GLM_CV):
-            solve_path = staticmethod(solve_glm_path_impl)
+            # solve_glm_path = solve_glm_path
+            solve_glm_path = temp['solve_glm_path']
 
             @add_init_params(GLM_CV)
             def __init__(self, estimator=estimator): pass
@@ -201,16 +235,9 @@ def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
     # get base model class
     MODEL_MIXIN = get_model_mixin(loss_func=loss_func)
     GLM_FCP, GLM_FCP_CV = get_fcp_penalty(penalty=penalty)
+    solve_glm = get_solver(backend=backend)[0]
 
-    # get wl1 solver
-    if type(backend) == str and backend == 'fista':
-        WL1_impl = WL1SolverGlm_fista
-
-    elif type(backend) == str and backend == 'andersoncd':
-        WL1_impl = WL1SolverGlm_andersoncd
-
-    else:
-        WL1_impl = backend.get('wl1', None)
+    temp = {'solve_glm': solve_glm}  # TODO-HACK: see above
 
     # get default initializer
     Default, DefaultCV = get_pen_glm(loss_func=loss_func,
@@ -223,7 +250,8 @@ def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
 
     class Estimator(MODEL_MIXIN, GLM_FCP):
         solve_lla = staticmethod(solve_lla)
-        base_wl1_solver = WL1_impl
+        # solve_glm = solve_glm
+        solve_glm = temp['solve_glm']
 
         @add_init_params(GLM_FCP, MODEL_MIXIN)
         def __init__(self): pass

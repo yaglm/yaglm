@@ -21,6 +21,7 @@ from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
 from ya_glm.opt.fista import solve_fista
 from ya_glm.opt.base import Func, Sum
 
+
 _solve_glm_params = dedent("""
 X: array-like, shape (n_samples, n_features)
     The training covariate data.
@@ -472,10 +473,11 @@ def process_init(X, y, loss_func, fit_intercept=True, coef_init=None,
 
     # format
     coef_init = np.array(coef_init)
-    if coef_init.ndim > 1:
-        intercept_init = np.array(intercept_init)
-    else:
-        intercept_init = float(intercept_init)
+    if fit_intercept:
+        if coef_init.ndim > 1:
+            intercept_init = np.array(intercept_init)
+        else:
+            intercept_init = float(intercept_init)
 
     # maybe concatenate
     if fit_intercept:
