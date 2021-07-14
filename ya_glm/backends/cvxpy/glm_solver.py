@@ -3,10 +3,9 @@ from functools import partial
 from time import time
 
 from ya_glm.utils import clip_zero
-from ya_glm.cvxpy.penalty import lasso, ridge
+from ya_glm.cvxpy.penalty import lasso_penalty, ridge_penalty, tikhonov_penalty
 from ya_glm.cvxpy.loss_functions import lin_reg_loss, log_reg_loss,\
     quantile_reg_loss
-# from ya_glm.cvxpy.utils import solve_with_backups
 from ya_glm.backends.fista.glm_solver import process_param_path
 
 
@@ -48,8 +47,7 @@ def solve_glm(X, y,
                       coef_init=coef_init,
                       intercept_init=intercept_init)
 
-    # problem.solve(solver=solver, **cp_kws)
-    # solve_with_backups(problem=problem, variable=coef, **cp_kws)
+    problem.solve(solver=solver, **cp_kws)
 
     if coef.value is None:
         raise RuntimeError("cvxpy solvers failed")
@@ -93,7 +91,6 @@ def solve_glm_path(fit_intercept=True, solver=None, cp_kws={}, zero_tol=1e-8,
             ridge_pen.value = params['ridge_pen']
 
         problem.solve(solver=solver, **cp_kws)
-        # solve_with_backups(problem=problem, variable=coef, **cp_kws)
 
         if coef.value is None:
             raise RuntimeError("cvxpy solvers failed")
@@ -152,8 +149,6 @@ def setup_problem(X, y,
     glm_loss = get_glm_loss(loss_func)
 
     # TODO: add these
-    if tikhonov is not None:
-        raise NotImplementedError
     if groups is not None:
         raise NotImplementedError
     if L1to2:
@@ -167,36 +162,17 @@ def setup_problem(X, y,
     if ridge_pen is None and ridge_weights is not None:
         ridge_pen = 1
 
+    if ridge_weights is not None:
+        assert tikhonov is None
+
+    ###################
+    # Setup variables #
+    ###################
     if lasso_pen is not None:
         lasso_pen = cp.Parameter(nonneg=True, value=lasso_pen)
 
     if ridge_pen is not None:
         ridge_pen = cp.Parameter(nonneg=True, value=ridge_pen)
-
-    if lasso_pen is not None and ridge_pen is not None:
-
-        def objective(coef, intercept):
-            return glm_loss(X=X, y=y, coef=coef, intercept=intercept) + \
-                 lasso_pen * lasso(coef, weights=lasso_weights) + \
-                 ridge_pen * ridge(coef, weights=ridge_weights)
-
-    elif lasso_pen is not None:
-        def objective(coef, intercept):
-            return glm_loss(X=X, y=y, coef=coef, intercept=intercept) + \
-                 lasso_pen * lasso(coef, weights=lasso_weights)
-
-    elif ridge_pen is not None:
-        def objective(coef, intercept):
-            return glm_loss(X=X, y=y, coef=coef, intercept=intercept) + \
-                  ridge_pen * ridge(coef, weights=ridge_weights)
-
-    else:
-        def objective(coef, intercept):
-            return glm_loss(X=X, y=y, coef=coef, intercept=intercept)
-
-    ###############################
-    # setup variables and problem #
-    ###############################
 
     coef = cp.Variable(shape=X.shape[1], value=coef_init)
     if fit_intercept:
@@ -204,8 +180,23 @@ def setup_problem(X, y,
     else:
         intercept = None
 
-    problem = cp.Problem(cp.Minimize(objective(coef, intercept)))
+    # set objective
+    objective = glm_loss(X=X, y=y, coef=coef, intercept=intercept)
 
+    # Add lasso
+    if lasso_pen is not None:
+        objective += lasso_pen * lasso_penalty(coef, weights=lasso_weights)
+
+    # Add ridge
+    if ridge_pen is not None:
+        if tikhonov:
+            objective += ridge_pen * \
+                tikhonov_penalty(coef, tikT_tik=tikhonov.T @ tikhonov)
+
+        else:
+            objective += ridge_pen * ridge_penalty(coef, weights=ridge_weights)
+
+    problem = cp.Problem(cp.Minimize(objective))
     return problem, coef, intercept, lasso_pen, ridge_pen
 
 
