@@ -11,7 +11,7 @@ class QuantileRegMixin(LinRegMixin):
 
     def get_loss_info(self):
         loss_type = 'quantile'
-        loss_kws = {'qunatile': self.quantile}
+        loss_kws = {'quantile': self.quantile}
 
         return loss_type, loss_kws
 
