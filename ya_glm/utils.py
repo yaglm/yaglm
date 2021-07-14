@@ -1,7 +1,6 @@
 import numpy as np
 from copy import deepcopy
-from inspect import signature
-
+from numbers import Number
 
 def get_sequence_decr_max(max_val=1, min_val_mult=1e-3, num=20,
                           spacing='lin', decr=True):
@@ -180,3 +179,42 @@ def get_coef_and_intercept(est, copy=False, error=False):
     else:
         return coef, intercept
 
+
+def maybe_add(d, **kws):
+    """
+    Adds keywork argumnts to a dict if their values are not None.
+    """
+    for k, v in kws.items():
+        if v is not None:
+            d[k] = v
+
+    return d
+
+
+def clip_zero(x, zero_tol=1e-8):
+    """
+    Sets x or the elements of x to zero when they are very small.
+
+    Parameters
+    ----------
+    x: Number, array-like
+        The value or values to clip.
+
+    zero_tol: float
+        The tolerance below which we declare a number to be zero.
+
+    Output
+    ------
+    x_clipped: Number or np.array
+
+    """
+    if isinstance(x, Number):
+        if abs(x) <= zero_tol:
+            return 0
+        else:
+            return x
+
+    x_ = np.zeros_like(x)
+    non_zero_mask = abs(np.array(x)) > zero_tol
+    x_[non_zero_mask] = x[non_zero_mask]
+    return x_
