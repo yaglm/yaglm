@@ -7,10 +7,9 @@ from ya_glm.models.linear_regression_multi_resp import \
     LinRegMultiResponseMixin
 from ya_glm.models.huber_regression import HuberRegMixin, \
     HuberRegMultiResponseMixin
-
 from ya_glm.models.poisson_regression import PoissonRegMixin,\
     PoissonRegMultiResponseMixin
-
+from ya_glm.models.quantile_regression import QuantileRegMixin
 
 # penalties
 from ya_glm.pen_glm.Vanilla import GlmVanilla
@@ -50,6 +49,7 @@ from ya_glm.info import _MULTI_RESP_LOSSES, _MULTI_RESP_PENS, _CONCAVEABLE_PENS
 
 
 def get_model_mixin(loss_func='lin_reg'):
+
     # loss function
     if loss_func == 'lin_reg':
         return LinRegMixin
@@ -74,6 +74,9 @@ def get_model_mixin(loss_func='lin_reg'):
 
     elif loss_func == 'poisson_mr':
         return PoissonRegMultiResponseMixin
+
+    elif loss_func == 'quantile':
+        return QuantileRegMixin
 
     else:
         raise NotImplementedError("{} not supported".format(loss_func))
