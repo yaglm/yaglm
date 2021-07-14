@@ -21,7 +21,7 @@ def tikhonov_penalty(coef, tikhonov):
 
 def multi_task_lasso_penalty(coef, weights=None):
 
-    row_norms = cp.norm(coef, p='fro', axis=1)
+    row_norms = cp.norm(coef, axis=1)
 
     if weights:
         return weights.T @ row_norms
@@ -31,7 +31,7 @@ def multi_task_lasso_penalty(coef, weights=None):
 
 def group_lasso_penalty(coef, groups, weights=None):
 
-    group_norms = [cp.norm(coef[grp_idxs], p='fro') for grp_idxs in groups]
+    group_norms = [cp.norm(coef[grp_idxs]) for grp_idxs in groups]
 
     if weights is None:
         return cp.sum(group_norms)
