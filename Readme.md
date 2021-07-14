@@ -9,6 +9,7 @@ We currently support the following loss functions
 - Multinomial regression
 - Poisson regression
 - Huber regression
+- Quantile regression
 - Multiple response versions of the linear, huber and poisson losses
 
 and the following penalties
