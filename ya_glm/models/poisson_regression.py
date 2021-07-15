@@ -7,6 +7,7 @@ import numpy as np
 
 
 class PoissonRegMixin(RegressorMixin):
+    is_multi_resp = False
 
     def get_loss_info(self):
         loss_type = 'poisson'
@@ -40,6 +41,8 @@ class PoissonRegMixin(RegressorMixin):
 
 
 class PoissonRegMultiResponseMixin(RegressorMixin):
+
+    is_multi_resp = True
 
     def get_loss_info(self):
         loss_type = 'poisson_mr'

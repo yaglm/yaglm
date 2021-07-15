@@ -11,6 +11,8 @@ from sklearn.utils.extmath import softmax
 
 class MultinomialMixin(LinearClassifierMixin):
 
+    is_multi_resp = True
+
     def get_loss_info(self):
         loss_type = 'multinomial'
         loss_kws = {}

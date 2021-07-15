@@ -6,6 +6,8 @@ from ya_glm.autoassign import autoassign
 
 class QuantileRegMixin(LinRegMixin):
 
+    is_multi_resp = False
+
     @autoassign
     def __init__(self, quantile=0.5): pass
 

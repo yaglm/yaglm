@@ -5,6 +5,8 @@ from ya_glm.models.linear_regression import LinRegMixin
 
 class LinRegMultiResponseMixin(LinRegMixin):
 
+    is_multi_resp = True
+
     def get_loss_info(self):
         loss_type = 'lin_reg_mr'
         loss_kws = {}

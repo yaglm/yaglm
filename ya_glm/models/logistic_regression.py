@@ -15,6 +15,8 @@ from ya_glm.cv.scoring import get_n_nonzero, score_binary_clf, Scorer
 
 class LogRegMixin(LinearClassifierMixin):
 
+    is_multi_resp = False
+
     def get_loss_info(self):
         loss_type = 'log_reg'
         loss_kws = {}

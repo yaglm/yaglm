@@ -4,6 +4,7 @@ from ya_glm.autoassign import autoassign
 
 
 class HuberRegMixin(LinRegMixin):
+    is_multi_resp = False
 
     @autoassign
     def __init__(self, knot=1.35): pass
@@ -16,6 +17,8 @@ class HuberRegMixin(LinRegMixin):
 
 
 class HuberRegMultiResponseMixin(LinRegMultiResponseMixin):
+    is_multi_resp = True
+
     @autoassign
     def __init__(self, knot=1.35): pass
 
