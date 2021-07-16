@@ -7,9 +7,9 @@ from numbers import Number
 from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
-from ya_glm.add_init_params import add_init_params
-from ya_glm.utils import get_sequence_decr_max, get_enet_ratio_seq
-
+from ya_glm.init_signature import add_from_classes
+from ya_glm.pen_seq import get_pen_val_seq, get_enet_pen_val_seq, \
+    get_enet_ratio_seq
 
 from ya_glm.cv.cv_select import CVSlectMixin  # select_best_cv_tune_param
 
@@ -78,7 +78,7 @@ class GlmCV(CVSlectMixin, BaseEstimator):
 
         # run cross-validation on the raw data
         start_time = time()
-        self.cv_results_ = self._run_cv(X=X, y=y, cv=self.cv)
+        self.cv_results_ = self._run_cv(estimator=est, X=X, y=y, cv=self.cv)
         self.cv_data_ = {'cv_runtime':  time() - start_time}
 
         # select best tuning parameter values
@@ -173,7 +173,7 @@ pen_spacing: str
 
 class GlmCVSinglePen(GlmCV):
 
-    @add_init_params(GlmCV, add_first=False)
+    @add_from_classes(GlmCV, add_first=False)
     def __init__(self,
                  n_pen_vals=100,
                  pen_vals=None,
@@ -183,12 +183,13 @@ class GlmCVSinglePen(GlmCV):
         pass
 
     def _set_tuning_values(self, X, y):
-
         if self.pen_vals is None:
             pen_val_max = self.estimator.get_pen_val_max(X, y)
         else:
             pen_val_max = None
+        self._set_tune_from_pen_max(pen_val_max=pen_val_max)
 
+    def _set_tune_from_pen_max(self, pen_val_max=None):
         self.pen_val_seq_ = \
             get_pen_val_seq(pen_val_max,
                             n_pen_vals=self.n_pen_vals,
@@ -216,27 +217,6 @@ class GlmCVSinglePen(GlmCV):
         param_grid: dict of lists
         """
         return {'pen_val': self.pen_val_seq_}
-
-# TODO: perhaps move this somewhere else
-def get_pen_val_seq(pen_val_max,
-                    n_pen_vals=100,
-                    pen_vals=None,
-                    pen_min_mult=1e-3,
-                    pen_spacing='log'):
-    """
-    Gets the penalty value seqence and makes sure it is in decreasing order.
-    """
-    if pen_vals is None:
-        pen_val_seq = get_sequence_decr_max(max_val=pen_val_max,
-                                            min_val_mult=pen_min_mult,
-                                            num=n_pen_vals,
-                                            spacing=pen_spacing)
-    else:
-        pen_val_seq = np.array(pen_vals)
-
-    pen_val_seq = np.sort(pen_val_seq)[::-1]  # ensure decreasing
-
-    return pen_val_seq
 
 
 GlmCVSinglePen.__doc__ = dedent(
@@ -267,7 +247,7 @@ l1_ratio_min:
 
 class GlmCVENet(GlmCVSinglePen):
 
-    @add_init_params(GlmCVSinglePen, add_first=False)
+    @add_from_classes(GlmCVSinglePen, add_first=False)
     def __init__(self,
                  # pen_min_mult=1e-4,  # make this more extreme for enet
                  l1_ratio=0.5,
@@ -304,6 +284,23 @@ class GlmCVENet(GlmCVSinglePen):
             return True
 
     def _set_tuning_values(self, X, y):
+        if self.pen_vals is None:
+            enet_pen_max = self.estimator.get_pen_val_max(X, y)
+            lasso_pen_max = enet_pen_max * self.estimator.l1_ratio
+        else:
+            lasso_pen_max = None
+
+        self._set_tune_from_lasso_max(X, y, lasso_pen_max=lasso_pen_max)
+
+    def _set_tune_from_lasso_max(self, X, y, lasso_pen_max=None):
+        """
+
+        Parameters
+        ----------
+
+        lasso_pen_max: float
+            The lasso penalty max value
+        """
 
         ##################################
         # setup l1_ratio tuning sequence #
@@ -330,16 +327,11 @@ class GlmCVENet(GlmCVSinglePen):
         #################################
         # setup pen_val tuning sequence #
         #################################
+
         if self._tune_pen_val():
 
-            if self.pen_vals is None:
-                lasso_pen_val_max = self.estimator.get_pen_val_max(X, y)
-                lasso_pen_val_max *= self.estimator.l1_ratio
-            else:
-                lasso_pen_val_max = None
-
             self.pen_val_seq_ = \
-                get_enet_pen_val_seq(lasso_pen_val_max=lasso_pen_val_max,
+                get_enet_pen_val_seq(lasso_pen_val_max=lasso_pen_max,
                                      pen_vals=self.pen_vals,
                                      n_pen_vals=self.n_pen_vals,
                                      pen_min_mult=self.pen_min_mult,
@@ -403,75 +395,3 @@ GlmCVENet.__doc__ = dedent(
     {}
     """.format(_cv_params, _pen_seq_params, _enet_cv_params)
 )
-
-
-def get_enet_pen_val_seq(lasso_pen_val_max,
-                         pen_vals=None, n_pen_vals=100,
-                         pen_min_mult=1e-3, pen_spacing='log',
-                         l1_ratio_seq=None, l1_ratio_val=None):
-    """
-    Sets up the pen_val tuning sequence for eleastic net.
-    """
-    # only one of these should be not None
-    assert sum((l1_ratio_val is None, l1_ratio_seq is None)) <= 2
-
-    # formatting
-    if l1_ratio_val is not None:
-        tune_l1_ratio = False
-        l1_ratio_min = l1_ratio_val
-    else:
-        tune_l1_ratio = True
-        l1_ratio_min = min(l1_ratio_seq)
-
-    if pen_vals is not None:  # user provided pen vals
-        pen_vals = np.array(pen_vals)
-
-    else:  # automatically derive tuning sequence
-
-        if l1_ratio_min <= np.finfo(float).eps:
-            raise ValueError("Unable to set pen_val_seq using default"
-                             "when the l1_ratio is zero."
-                             " Either change thel1_ratio, or "
-                             "input a sequence of pen_vals yourself!")
-
-        if tune_l1_ratio:
-            # setup grid of pen vals for each l1 ratio
-
-            n_l1_ratio_vals = len(l1_ratio_seq)
-            pen_vals = np.zeros((n_l1_ratio_vals, n_pen_vals))
-            for l1_idx in range(n_l1_ratio_vals):
-
-                # largest pen val for ElasticNet given this l1_ratio
-                max_val = lasso_pen_val_max / l1_ratio_seq[l1_idx]
-
-                pen_vals[l1_idx, :] = \
-                    get_sequence_decr_max(max_val=max_val,
-                                          min_val_mult=pen_min_mult,
-                                          num=n_pen_vals,
-                                          spacing=pen_spacing)
-
-        else:
-            # setup pen val sequence
-
-            max_val = lasso_pen_val_max / l1_ratio_val
-            pen_vals = \
-                get_sequence_decr_max(max_val=max_val,
-                                      min_val_mult=pen_min_mult,
-                                      num=n_pen_vals,
-                                      spacing=pen_spacing)
-
-    # ensure correct ordering
-    if tune_l1_ratio:
-        assert pen_vals.ndim == 2
-        assert pen_vals.shape[0] == len(l1_ratio_seq)
-
-        # make sure pen vals are always in decreasing order
-        for l1_idx in range(pen_vals.shape[0]):
-            pen_vals[l1_idx, :] = np.sort(pen_vals[l1_idx, :])[::-1]
-
-    else:
-        # make sure pen vals are always in decreasing order
-        pen_vals = np.sort(np.array(pen_vals))[::-1]
-        pen_vals = pen_vals.reshape(-1)
-
-    return pen_vals

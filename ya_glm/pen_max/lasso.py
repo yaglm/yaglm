@@ -2,11 +2,27 @@ import numpy as np
 
 from ya_glm.utils import is_multi_response
 from ya_glm.linalg_utils import leading_sval
-from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.huber_regression import huber_grad
 from ya_glm.opt.quantile_regression import tilted_L1_grad
 
 from ya_glm.info import _MULTI_RESP_LOSSES
+
+
+def get_pen_max(pen_kind, **kws):
+    if pen_kind == 'entrywise':
+        return lasso_max(**kws)
+
+    elif pen_kind == 'multi_task':
+        return get_L1toL2_max(**kws)
+
+    elif pen_kind == 'group':
+        return group_lasso_max(**kws)
+
+    elif pen_kind == 'nuc':
+        return nuclear_norm_max(**kws)
+
+    else:
+        raise ValueError("Bad input for pen_kind: {}".format(pen_kind))
 
 
 def lasso_max(X, y, fit_intercept, loss_func, loss_kws={}, weights=None):
@@ -66,8 +82,6 @@ def group_lasso_max(X, y, groups, fit_intercept, loss_func,
 
     group_norms = np.array([np.linalg.norm(grad[grp_idxs])
                             for grp_idxs in groups])
-
-    weights = process_weights_group_lasso(groups=groups, weights=weights)
 
     if weights is not None:
         penalized_mask = get_is_pen_mask(weights)

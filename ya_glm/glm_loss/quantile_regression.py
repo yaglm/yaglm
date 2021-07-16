@@ -1,6 +1,6 @@
 from sklearn.utils.validation import check_array
 
-from ya_glm.models.linear_regression import LinRegMixin
+from ya_glm.glm_loss.linear_regression import LinRegMixin
 from ya_glm.autoassign import autoassign
 
 

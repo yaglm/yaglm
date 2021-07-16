@@ -12,7 +12,6 @@ class LinRegMixin(RegressorMixin):
 
     is_multi_resp = False
 
-
     def get_loss_info(self):
         loss_type = 'lin_reg'
         loss_kws = {}

@@ -1,37 +1,37 @@
 # loss funcs
-from ya_glm.models.linear_regression import LinRegMixin
-from ya_glm.models.multinomial import MultinomialMixin
+from ya_glm.glm_loss.linear_regression import LinRegMixin
+from ya_glm.glm_loss.multinomial import MultinomialMixin
 
-from ya_glm.models.logistic_regression import LogRegMixin
-from ya_glm.models.linear_regression_multi_resp import \
+from ya_glm.glm_loss.logistic_regression import LogRegMixin
+from ya_glm.glm_loss.linear_regression_multi_resp import \
     LinRegMultiResponseMixin
-from ya_glm.models.huber_regression import HuberRegMixin, \
+from ya_glm.glm_loss.huber_regression import HuberRegMixin, \
     HuberRegMultiResponseMixin
-from ya_glm.models.poisson_regression import PoissonRegMixin,\
+from ya_glm.glm_loss.poisson_regression import PoissonRegMixin,\
     PoissonRegMultiResponseMixin
-from ya_glm.models.quantile_regression import QuantileRegMixin
+from ya_glm.glm_loss.quantile_regression import QuantileRegMixin
 
 # penalties
-from ya_glm.pen_glm.Vanilla import GlmVanilla
-from ya_glm.pen_glm.Lasso import GlmLasso, GlmLassoCVPath, \
-    GlmLassoENet, GlmLassoENetCVPath
-from ya_glm.pen_glm.GroupLasso import GlmGroupLasso, GlmGroupLassoCVPath, \
-    GlmGroupLassoENet, GlmGroupLassoENetCVPath
-from ya_glm.pen_glm.Ridge import GlmRidge, GlmRidgeCVPath
-from ya_glm.pen_glm.MultiTaskLasso import GlmMultiTaskLasso, GlmMultiTaskLassoCVPath, \
-    GlmMultiTaskLassoENet, GlmMultiTaskLassoENetCVPath
-from ya_glm.pen_glm.NuclearNorm import GlmNuclearNorm, GlmNuclearNormCVPath
+from ya_glm.pen_glms.GlmVanilla import GlmVanilla
+from ya_glm.pen_glms.GlmRidge import GlmRidge, \
+    GlmRidgeCVPath, GlmRidgeCVGridSearch
+from ya_glm.pen_glms.GlmLasso import GlmLasso, GlmENet, \
+    GlmLassoCVPath, GlmLassoCVGridSearch, \
+    GlmENetCVPath, GlmENetCVGridSearch
 
-# concave
-from ya_glm.fcp.GlmFcp import GlmFcpFitLLA, GlmMultiTaskFcpFitLLA, \
-    GlmNuclearNormFcpFitLLA, GlmGroupFcpFitLLA
-from ya_glm.fcp.GlmFcpCV import GlmFcpCV
-from ya_glm.lla.lla import solve_lla
+from ya_glm.pen_glms.GlmAdaptiveLasso import \
+    GlmAdaptiveLasso, GlmAdaptiveENet, \
+    GlmAdaptiveLassoCVPath, GlmAdaptiveLassoCVGridSearch, \
+    GlmAdaptiveENetCVPath, GlmAdaptiveENetCVGridSearch
+
+from ya_glm.pen_glms.GlmFcpLLA import GlmFcpLLA, GlmFcpLLACV
+
 
 # fista solvers
 from ya_glm.backends.fista.glm_solver import solve_glm as solve_glm_fista
 from ya_glm.backends.fista.glm_solver import solve_glm_path \
     as solve_glm_path_fista
+from ya_glm.backends.fista.WL1SolverGlm import WL1SolverGlm as WL1SolverGlmFista
 
 
 # andersoncd solvers
@@ -47,11 +47,12 @@ from ya_glm.backends.cvxpy.glm_solver import solve_glm_path \
 
 
 # other
-from ya_glm.add_init_params import add_init_params
-from ya_glm.info import _MULTI_RESP_LOSSES, _MULTI_RESP_PENS, _CONCAVEABLE_PENS
+from ya_glm.init_signature import add_from_classes, add_multi_resp_params
+from ya_glm.info import _MULTI_RESP_LOSSES, _MULTI_RESP_PENS
+from ya_glm.lla.WeightedLassoSolver import WL1SolverGlm
 
 
-def get_model_mixin(loss_func='lin_reg'):
+def get_loss_mixin(loss_func='lin_reg'):
 
     # loss function
     if loss_func == 'lin_reg':
@@ -85,59 +86,72 @@ def get_model_mixin(loss_func='lin_reg'):
         raise NotImplementedError("{} not supported".format(loss_func))
 
 
-def get_penalty(penalty='lasso'):
+def get_penalty(penalty='lasso', has_path_algo=True):
+    """
+    Parameters
+    ----------
+    penalty: str
+        Name of penalty
+
+    has_path_algo: bool
+        If the GLM has a path algorithm.
+
+    Output
+    ------
+    Est, EstCV
+    """
 
     # penalty
     if penalty == 'vanilla':
-        return GlmVanilla, None
-
-    elif penalty == 'lasso':
-        return GlmLasso, GlmLassoCVPath
-
-    elif penalty == 'lasso_enet':
-        return GlmLassoENet, GlmLassoENetCVPath
-
-    elif penalty == 'group_lasso':
-        return GlmGroupLasso, GlmGroupLassoCVPath,
-
-    elif penalty == 'group_lasso_enet':
-        return GlmGroupLassoENet, GlmGroupLassoENetCVPath
+        Est, EstCV = GlmVanilla, None
 
     elif penalty == 'ridge':
-        return GlmRidge, GlmRidgeCVPath
+        Est = GlmRidge
+        if has_path_algo:
+            EstCV = GlmRidgeCVPath
+        else:
+            EstCV = GlmRidgeCVGridSearch
 
-    elif penalty == 'multi_task_lasso':
-        return GlmMultiTaskLasso, GlmMultiTaskLassoCVPath
+    elif penalty == 'lasso':
+        Est = GlmLasso
 
-    elif penalty == 'multi_task_lasso_enet':
-        return GlmMultiTaskLassoENet, GlmMultiTaskLassoENetCVPath
+        if has_path_algo:
+            EstCV = GlmLassoCVPath
+        else:
+            EstCV = GlmLassoCVGridSearch
 
-    elif penalty == 'nuclear_norm':
-        return GlmNuclearNorm, GlmNuclearNormCVPath
+    elif penalty == 'enet':
+        Est = GlmENet
+
+        if has_path_algo:
+            EstCV = GlmENetCVPath
+        else:
+            EstCV = GlmENetCVGridSearch
+
+    elif penalty == 'adpt_lasso':
+        Est = GlmAdaptiveLasso
+
+        if has_path_algo:
+            EstCV = GlmAdaptiveLassoCVPath
+        else:
+            EstCV = GlmAdaptiveLassoCVGridSearch
+
+    elif penalty == 'adpt_enet':
+        Est = GlmAdaptiveENet
+
+        if has_path_algo:
+            EstCV = GlmAdaptiveENetCVPath
+        else:
+            EstCV = GlmAdaptiveENetCVGridSearch
+
+    elif penalty == 'fcp_lla':
+        Est = GlmFcpLLA
+        EstCV = GlmFcpLLACV
 
     else:
         raise ValueError("Bad input for penalty: {}".format(penalty))
 
-
-def get_fcp_penalty(penalty='lasso'):
-    # Valid FCP models
-    assert penalty in _CONCAVEABLE_PENS
-
-    # penalty
-    if penalty == 'lasso':
-        return GlmFcpFitLLA, GlmFcpCV
-
-    elif penalty == 'group_lasso':
-        return GlmGroupFcpFitLLA, GlmFcpCV,
-
-    elif penalty == 'multi_task_lasso':
-        return GlmMultiTaskFcpFitLLA, GlmFcpCV
-
-    elif penalty == 'nuclear_norm':
-        return GlmNuclearNormFcpFitLLA, GlmFcpCV
-
-    else:
-        raise ValueError("Bad input for penalty: {}".format(penalty))
+    return Est, EstCV
 
 
 def get_solver(backend='fista'):
@@ -146,13 +160,28 @@ def get_solver(backend='fista'):
     ----------
     backend: str, dict
 
+    Output
+    ------
+    solve_glm, solve_glm_path, WL1Solver
+
+    solve_glm: callable
+        A function that solves a single penalized GLM problem.
+
+    solve_glm_path: None, callable
+        (Optional) A function that solves a penalized GLM path.
+
+    WL1Solver: class
+        An weighted L1 solver class for the LLA algorithm.
     """
+
+    wl1_solver = WL1SolverGlm
 
     # get solver
     if type(backend) == str:
         if backend == 'fista':
             solve_glm = solve_glm_fista
             solve_glm_path = solve_glm_path_fista
+            wl1_solver = WL1SolverGlmFista
 
         elif backend == 'andersoncd':
             solve_glm = solve_glm_andersoncd
@@ -173,124 +202,99 @@ def get_solver(backend='fista'):
     if solve_glm_path is not None:
         solve_glm_path = staticmethod(solve_glm_path)
 
-    return solve_glm, solve_glm_path
-
-# TODO: handle static method + None
+    return solve_glm, solve_glm_path, wl1_solver
 
 
-def get_pen_glm(loss_func='linear_regression',
+def get_pen_glm(loss_func='lin_reg',
                 penalty='lasso',
                 backend='fista'):
 
     if penalty in _MULTI_RESP_PENS:
         assert loss_func in _MULTI_RESP_LOSSES
 
-    MODEL_MIXIN = get_model_mixin(loss_func=loss_func)
-    GLM, GLM_CV = get_penalty(penalty=penalty)
-    solve_glm, solve_glm_path = get_solver(backend=backend)
+    solve_glm, solve_glm_path, WL1Solver = get_solver(backend=backend)
+    LOSS_MIXIN = get_loss_mixin(loss_func=loss_func)
+    GLM, GLM_CV = get_penalty(penalty=penalty,
+                              has_path_algo=solve_glm_path is not None)
+
+    if penalty == 'fcp_lla':
+        solve_glm_path = None
 
     # TODO-HACK: for reasons I do not understand I needed to
     # do this to get Estimator() to work below
-    temp = {}
-    temp['solve_glm'] = solve_glm
-    temp['solve_glm_path'] = solve_glm_path
+    temp = {'solve_glm': solve_glm,
+            'solve_glm_path': solve_glm_path,
+            'WL1Solver': WL1Solver}
 
+    ##############################################
+    # setup defaults inits for concave penalties #
+    ##############################################
+
+    if penalty in ['fcp_lla', 'adpt_lasso']:
+        Default, DefaultCV = get_pen_glm(loss_func=loss_func,
+                                         penalty='lasso',
+                                         backend=backend)
+
+    elif penalty == 'adpt_enet':
+        Default, DefaultCV = get_pen_glm(loss_func=loss_func,
+                                         penalty='enet',
+                                         backend=backend)
+
+    ###################
     # setup estimator #
     ###################
 
-    class Estimator(MODEL_MIXIN, GLM):
-        # solve_glm = solve_glm
-        solve_glm = temp['solve_glm']
+    if penalty == 'fcp_lla':
 
-        @add_init_params(GLM, MODEL_MIXIN)
-        def __init__(self): pass
+        class Estimator(LOSS_MIXIN, GLM):
+            solve_glm = temp['solve_glm']  # TODO-HACK: see above
+            WL1Solver = temp['WL1Solver']  # TODO-HACK: see above
+
+            @add_multi_resp_params(add=LOSS_MIXIN.is_multi_resp)
+            @add_from_classes(GLM, LOSS_MIXIN)
+            def __init__(self): pass
+
+            # TODO: make safe
+            def _get_defualt_init(self):
+                est = Default(**self._kws_for_default_init(c=Default))
+                return DefaultCV(estimator=est)
+
+    elif penalty in ['adpt_lasso', 'adpt_enet']:
+
+        class Estimator(LOSS_MIXIN, GLM):
+            solve_glm = temp['solve_glm']  # TODO-HACK: see above
+
+            @add_multi_resp_params(add=LOSS_MIXIN.is_multi_resp)
+            @add_from_classes(GLM, LOSS_MIXIN)
+            def __init__(self): pass
+
+            # TODO: make safe
+            def _get_defualt_init(self):
+                est = Default(**self._kws_for_default_init(c=Default))
+                return DefaultCV(estimator=est)
+
+    else:
+
+        class Estimator(LOSS_MIXIN, GLM):
+            solve_glm = temp['solve_glm']  # TODO-HACK: see above
+
+            @add_multi_resp_params(add=LOSS_MIXIN.is_multi_resp)
+            @add_from_classes(GLM, LOSS_MIXIN)
+            def __init__(self): pass
 
     ####################################
     # setup cross-validation estimator #
     ####################################
     if GLM_CV is not None:
 
-        if 'group' in penalty:
-            # TODO-HACK: this avoids issue of required positional argument
-            # is this how we want to handle this issue?
-            estimator = Estimator(groups=[])
-        else:
-            estimator = Estimator()
-
         class EstimatorCV(GLM_CV):
             # solve_glm_path = solve_glm_path
-            solve_glm_path = temp['solve_glm_path']
+            solve_glm_path = temp['solve_glm_path']  # TODO-HACK: see above
 
-            @add_init_params(GLM_CV)
-            def __init__(self, estimator=estimator): pass
+            @add_from_classes(GLM_CV)
+            def __init__(self, estimator=Estimator()): pass
 
     else:
         EstimatorCV = None
-
-    return Estimator, EstimatorCV
-
-
-# TODO: add in other penalty types eg group, multi task, nuc
-def get_fcp_glm(loss_func='linear_regression', penalty='lasso',
-                backend='fista'):
-
-    # get base model class
-    MODEL_MIXIN = get_model_mixin(loss_func=loss_func)
-    GLM_FCP, GLM_FCP_CV = get_fcp_penalty(penalty=penalty)
-    solve_glm = get_solver(backend=backend)[0]
-
-    temp = {'solve_glm': solve_glm}  # TODO-HACK: see above
-
-    # get default initializer
-    Default, DefaultCV = get_pen_glm(loss_func=loss_func,
-                                     penalty=penalty,
-                                     backend=backend)
-
-    ###################
-    # setup estimator #
-    ###################
-
-    class Estimator(MODEL_MIXIN, GLM_FCP):
-        solve_lla = staticmethod(solve_lla)
-        # solve_glm = solve_glm
-        solve_glm = temp['solve_glm']
-
-        @add_init_params(GLM_FCP, MODEL_MIXIN)
-        def __init__(self): pass
-
-    if 'group' in penalty:
-
-        def _get_defualt_init(self):
-            # return DefaultCV()
-            est = Default(groups=self.groups,
-                          fit_intercept=self.fit_intercept,
-                          opt_kws=self.opt_kws,
-                          standardize=self.standardize)
-
-            return DefaultCV(estimator=est)
-
-        Estimator._get_defualt_init = _get_defualt_init
-        estimator = Estimator(groups=[])
-
-    else:
-
-        def _get_defualt_init(self):
-            # return DefaultCV()
-            est = Default(fit_intercept=self.fit_intercept,
-                          opt_kws=self.opt_kws,
-                          standardize=self.standardize)
-            return DefaultCV(estimator=est)
-
-        Estimator._get_defualt_init = _get_defualt_init
-        estimator = Estimator()
-
-    class EstimatorCV(GLM_FCP_CV):
-
-        @add_init_params(GLM_FCP_CV)
-        def __init__(self, estimator=estimator): pass
-
-    ####################################
-    # setup cross-validation estimator #
-    ####################################
 
     return Estimator, EstimatorCV

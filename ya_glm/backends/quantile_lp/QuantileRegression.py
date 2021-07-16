@@ -1,4 +1,4 @@
-from ya_glm.glm_loss.linear_regression import LinRegMixin
+from ya_glm.glm_loss.quantile_regression import QuantileRegMixin
 
 from ya_glm.pen_glms.GlmVanilla import GlmVanilla
 
@@ -15,7 +15,6 @@ from ya_glm.pen_glms.GlmFcpLLA import GlmFcpLLA, GlmFcpLLACV
 from ya_glm.init_signature import add_from_classes
 
 from .glm_solver import solve_glm, solve_glm_path
-from .WL1SolverGlm import WL1SolverGlm
 
 
 ##############
@@ -23,41 +22,61 @@ from .WL1SolverGlm import WL1SolverGlm
 ##############
 
 
-class Vanilla(LinRegMixin, GlmVanilla):
+class Vanilla(QuantileRegMixin, GlmVanilla):
     solve_glm = staticmethod(solve_glm)
 
+    @add_from_classes(GlmVanilla, QuantileRegMixin)
+    def __init__(self): pass
 
-class Ridge(LinRegMixin, GlmRidge):
+
+class Ridge(QuantileRegMixin, GlmRidge):
     solve_glm = staticmethod(solve_glm)
 
+    @add_from_classes(GlmRidge, QuantileRegMixin)
+    def __init__(self): pass
 
-class Lasso(LinRegMixin, GlmLasso):
+
+class Lasso(QuantileRegMixin, GlmLasso):
     solve_glm = staticmethod(solve_glm)
 
+    @add_from_classes(GlmLasso, QuantileRegMixin)
+    def __init__(self): pass
 
-class ENet(LinRegMixin, GlmENet):
+
+class ENet(QuantileRegMixin, GlmENet):
     solve_glm = staticmethod(solve_glm)
 
+    @add_from_classes(GlmENet, QuantileRegMixin)
+    def __init__(self): pass
 
-class AdaptiveLasso(LinRegMixin, GlmAdaptiveLasso):
+
+class AdaptiveLasso(QuantileRegMixin, GlmAdaptiveLasso):
     solve_glm = staticmethod(solve_glm)
+
+    @add_from_classes(GlmAdaptiveLasso, QuantileRegMixin)
+    def __init__(self): pass
 
     def _get_defualt_init(self):
         est = Lasso(**self._kws_for_default_init())
         return LassoCV(estimator=est)
 
 
-class AdaptiveENet(LinRegMixin, GlmAdaptiveENet):
+class AdaptiveENet(QuantileRegMixin, GlmAdaptiveENet):
     solve_glm = staticmethod(solve_glm)
+
+    @add_from_classes(GlmAdaptiveENet, QuantileRegMixin)
+    def __init__(self): pass
 
     def _get_defualt_init(self):
         est = ENet(**self._kws_for_default_init())
         return ENetCV(estimator=est)
 
 
-class FcpLLA(LinRegMixin, GlmFcpLLA):
+class FcpLLA(QuantileRegMixin, GlmFcpLLA):
     solve_glm = staticmethod(solve_glm)
-    WL1Solver = WL1SolverGlm
+
+    @add_from_classes(GlmFcpLLA, QuantileRegMixin)
+    def __init__(self): pass
 
     def _get_defualt_init(self):
         est = Lasso(**self._kws_for_default_init())
@@ -74,7 +93,7 @@ class RidgeCV(GlmRidgeCVPath):
     @add_from_classes(GlmRidgeCVPath)
     def __init__(self, estimator=Ridge()): pass
 
-
+# TODO: do we really want to use the path algorithm here that calls cvxpy?
 class LassoCV(GlmLassoCVPath):
     solve_glm_path = staticmethod(solve_glm_path)
 
@@ -89,7 +108,7 @@ class ENetCV(GlmENetCVPath):
     def __init__(self, estimator=ENet()): pass
 
 
-class AdaptiveLassoCV(GlmAdaptiveLassoCVPath):
+class AdpativeLassoCV(GlmAdaptiveLassoCVPath):
     solve_glm_path = staticmethod(solve_glm_path)
 
     @add_from_classes(GlmAdaptiveLassoCVPath)

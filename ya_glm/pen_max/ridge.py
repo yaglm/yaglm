@@ -2,10 +2,10 @@ import numpy as np
 from ya_glm.linalg_utils import smallest_sval
 
 
-def ridge_max(X, y, fit_intercept=True,
-              weights=None,
-              loss_func='lin_reg', loss_kws={},
-              targ_ubd=1, norm_by_dim=True):
+def get_pen_max(X, y, fit_intercept=True,
+                weights=None,
+                loss_func='lin_reg', loss_kws={},
+                targ_ubd=1, norm_by_dim=True):
     """
     Returns a heuristic for the largest reasonable value for the ridge tuning parameter. See linear_regression_max_val documentation for a description.
 
@@ -189,4 +189,4 @@ def log_reg_ridge_max(X, y, fit_intercept=True, weights=None,
                              fit_intercept=fit_intercept,
                              weights=weights,
                              targ_ubd=targ_ubd,
-                             normalize=norm_by_dim)
+                             norm_by_dim=norm_by_dim)

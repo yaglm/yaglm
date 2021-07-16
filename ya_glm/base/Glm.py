@@ -2,12 +2,14 @@ from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.utils.validation import check_array, FLOAT_DTYPES
+from scipy.linalg import svd
 
 import numpy as np
 from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
 from ya_glm.processing import process_X, deprocess_fit
+from ya_glm.opt.GroupLasso import euclid_norm
 
 
 _glm_base_params = dedent("""
@@ -114,6 +116,7 @@ class Glm(BaseEstimator):
 
         X, out = process_X(X,
                            standardize=self.standardize,
+                           groups=self._get_groups(),
                            copy=copy,
                            check_input=False,
                            accept_sparse=False,  # TODO!
@@ -123,6 +126,24 @@ class Glm(BaseEstimator):
         out.update(y_out)
 
         return X, y, out
+
+    # TODO: do we want this?
+    # def _maybe_get(self, param):
+    #     """
+    #     Safely gets an attribute that may not exist (e.g. like self.param). Returns None if the object does not have the attribute.
+    #     """
+    #     if hasattr(self, param):
+    #         return self.__dict__[param]
+    #     else:
+    #         return None
+    def _get_groups(self):
+        """
+        Safely gets an attribute that may not exist (e.g. like self.param). Returns None if the object does not have the attribute.
+        """
+        if hasattr(self, 'groups'):
+            return self.groups
+        else:
+            return None
 
     def _set_fit(self, fit_out, pre_pro_out):
         """
@@ -219,6 +240,60 @@ class Glm(BaseEstimator):
         """
         X_pro, y_pro, _ = self.preprocess(X, y, copy=True)
         return self._get_pen_val_max_from_pro(X_pro, y_pro)
+
+    def _get_penalty_kind(self):
+        """
+        Returns the penalty kind.
+
+        Output
+        ------
+        pen_kind: str
+            One of ['entrywise', 'group', 'multi_task', 'nuc']
+        """
+
+        n_kinds = 0
+        kind = 'entrywise'  # default
+
+        if hasattr(self, 'groups') and self.groups is not None:
+            kind = 'group'
+            n_kinds += 1
+
+        if hasattr(self, 'multi_task') and self.multi_task:
+            kind = 'multi_task'
+            n_kinds += 1
+
+        if hasattr(self, 'nuc') and self.nuc:
+            kind = 'nuc'
+            n_kinds += 1
+
+        if n_kinds > 1:
+            raise ValueError("At most one of ['groups', 'multi_task', 'nuc'] "
+                             "can be provided")
+
+        return kind
+
+    def _get_coef_transform(self):
+        pen_kind = self._get_penalty_kind()
+
+        if pen_kind == 'entrywise':
+            def transform(x):
+                return abs(x)
+
+        elif pen_kind == 'group':
+            def transform(x):
+                return np.array([euclid_norm(x[grp_idxs])
+                                 for g, grp_idxs in enumerate(self.groups)])
+
+        elif pen_kind == 'multi_task':
+            def transform(x):
+                return np.array([euclid_norm(x[r, :])
+                                 for r in range(x.shape[0])])
+
+        elif pen_kind == 'nuc':
+            def transform(x):
+                return svd(x)[1]
+
+        return transform
 
     def _process_y(self, y, copy=True):
         """

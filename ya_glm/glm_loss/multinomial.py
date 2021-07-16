@@ -4,8 +4,6 @@ from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import check_is_fitted
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils.validation import check_array
-
-
 from sklearn.utils.extmath import softmax
 
 
@@ -92,7 +90,7 @@ def process_y_multinomial(y, copy=True, check_input=True):
     """
 
     if check_input:
-        y = check_array(y, copy=copy, ensure_2d=True)
+        y = check_array(y, copy=copy, ensure_2d=False)
         check_classification_targets(y)
 
     elif copy:

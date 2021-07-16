@@ -15,13 +15,14 @@ class ENetCVPathMixin(CVPathMixin):
         """
         raise NotImplementedError
 
-    def _run_cv(self, X, y=None, cv=None):
+    def _run_cv(self, estimator, X, y=None, cv=None):
+        # TODO: see if we can simplify this with self.get_tuning_sequence()
 
         # setup CV
-        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
+        cv = check_cv(cv, y, classifier=is_classifier(estimator))
 
         # setup path fitting function
-        fit_and_score_path = self._fit_and_score_path_getter()
+        fit_and_score_path = self._fit_and_score_path_getter(estimator)
 
         kws = self._get_solve_path_enet_base_kws()
 
@@ -66,12 +67,12 @@ class ENetCVPathMixin(CVPathMixin):
             if self._tune_pen_val():
                 # tune over pen_val
                 pen_val_seq = self.pen_val_seq_
-                l1_ratio_seq = self.l1_ratio * np.ones_like(pen_val_seq)
+                l1_ratio_seq = self.l1_ratio  # * np.ones_like(pen_val_seq)
 
             elif self._tune_l1_ratio():
                 # tune over l1_ratio
                 l1_ratio_seq = self.l1_ratio_seq_
-                pen_val_seq = self.pen_val * np.ones_like(pen_val_seq)
+                pen_val_seq = self.pen_val  # * np.ones_like(pen_val_seq)
 
             kws['lasso_pen_seq'] = pen_val_seq * l1_ratio_seq
             kws['ridge_pen_seq'] = pen_val_seq * (1 - l1_ratio_seq)

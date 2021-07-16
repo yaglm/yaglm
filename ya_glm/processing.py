@@ -6,7 +6,7 @@ from copy import deepcopy
 from ya_glm.utils import is_multi_response
 
 
-def process_X(X, standardize=False, copy=True,
+def process_X(X, standardize=False, groups=None, copy=True,
               check_input=True, accept_sparse=False,
               allow_const_cols=True):
     """
@@ -21,6 +21,9 @@ def process_X(X, standardize=False, copy=True,
 
     standardize: bool
         Whether or not to mean center then scale by the standard deviations.
+
+    groups: None, list of lists
+        (Optional) list of feature groups. If groups is provided and we apply standardization this applies and additional 1 / sqrt(group_size) scaling to feature.
 
     copy: bool
         Copy data matrix or standardize in place.
@@ -70,6 +73,18 @@ def process_X(X, standardize=False, copy=True,
 
         # for constant columns, put their scale as 1
         X_scale[const_cols] = 1
+
+        # adjust scaling for groups
+        if groups is not None:
+
+            # compute sqrts of group sizes
+            group_size_sqrts = np.array([np.sqrt(len(grp_idxs))
+                                         for grp_idxs in groups])
+
+            # sacle each feature by inverse sqrt of group size
+            for g, grp_idxs in enumerate(groups):
+                for feat_idx in grp_idxs:
+                    X_scale[feat_idx] /= group_size_sqrts[g]
 
     # check for constant columns
     if not allow_const_cols:
@@ -204,30 +219,6 @@ def check_Xy(X, y):
         raise ValueError("X and y must have the same number of rows!")
 
     return X, y
-
-# TODO: where does this go?
-def process_weights_group_lasso(groups, weights=None):
-    """
-    Processes the weights arguments for group lasso.
-
-    Parameters
-    ----------
-    groups: list of array-like
-
-    weights: str or array-like
-        If weights == 'size' then we return 1/sqrt(group sizes)
-    Output
-    ------
-    weights: None or array-like of floats
-    """
-    if weights is None:
-        return None
-
-    if type(weights) == str and weights == 'size':
-        group_sizes = np.array([len(grp) for grp in groups])
-        return 1 / np.sqrt(group_sizes)
-
-    return weights
 
 
 def check_estimator_type(estimator, valid_class):

@@ -115,7 +115,7 @@ EstCV(estimator=est).fit(X, y)
 
 # Quantile regression with your favorite optimization algorithm
 # you can easily provide your own optimization algorithm to be the backend solver
-from ya_glm.backends.quantile_lp.glm_solver import solve_glm # Linear Programming formulation of quantile regression
+from ya_glm.backends.quantile_lp.glm_solver import solve_glm
 
 Est, EstCV = get_pen_glm(loss_func='quantile',
                          penalty='adpt_lasso',

@@ -7,7 +7,6 @@ from sklearn.utils.validation import check_array
 # from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.metrics import log_loss
 from scipy.special import expit
-
 import numpy as np
 
 from ya_glm.cv.scoring import get_n_nonzero, score_binary_clf, Scorer

@@ -3,12 +3,12 @@ from copy import deepcopy
 from textwrap import dedent
 
 from ya_glm.info import is_multi_response
-from ya_glm.processing import process_weights_group_lasso
 from ya_glm.opt.linear_regression import LinRegLoss, LinRegMultiRespLoss
 from ya_glm.opt.huber_regression import HuberRegLoss, HuberRegMultiRespLoss
 from ya_glm.opt.multinomial import MultinomialLoss
 from ya_glm.opt.poisson_regression import PoissonRegLoss, \
     PoissonRegMultiRespLoss
+from ya_glm.opt.quantile_regression import QuantileRegLoss
 
 from ya_glm.opt.logistic_regression import LogRegLoss
 from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
@@ -139,6 +139,9 @@ def solve_glm(X, y,
                              X=X, y=y, fit_intercept=fit_intercept,
                              precomp_lip=precomp_lip)
 
+    if _LOSS_FUNC_CLS2STR[type(loss_func)] == 'quantile':
+        raise NotImplementedError("fista solver does not support quantile loss")
+
     # in case we passed a loss_func object, make sure fit_intercpet
     # agrees with loss_func
     fit_intercept = loss_func.fit_intercept
@@ -179,8 +182,6 @@ def solve_glm(X, y,
         lasso = None
 
     elif groups is not None:
-        lasso_weights = process_weights_group_lasso(groups=groups,
-                                                    weights=lasso_weights)
 
         lasso = GroupLasso(groups=groups,
                            mult=lasso_pen, weights=lasso_weights)
@@ -378,7 +379,7 @@ _LOSS_FUNC_STR2CLS = {'lin_reg': LinRegLoss,
                       'multinomial': MultinomialLoss,
                       'poisson': PoissonRegLoss,
                       'poisson_mr': PoissonRegMultiRespLoss,
-
+                      'quantile': QuantileRegLoss
                       }
 
 _LOSS_FUNC_CLS2STR = {v: k for (k, v) in _LOSS_FUNC_STR2CLS.items()}
@@ -519,3 +520,4 @@ def process_param_path(lasso_pen_seq=None, ridge_pen_seq=None, check_decr=True):
         raise ValueError("One of lasso_pen_seq, ridge_pen_seq should be provided ")
 
     return param_path
+

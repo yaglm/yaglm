@@ -2,6 +2,8 @@ from ya_glm.backends.quantile_lp.scipy_lin_prog import solve as solve_lin_prog
 from ya_glm.backends.quantile_lp.cvxpy_quad_prog import solve as solve_quad_prog
 from ya_glm.backends.quantile_lp.cvxpy_quad_prog import solve_path
 
+# from warnings import warn
+
 
 def solve_glm(X, y,
               loss_func='quantile',
@@ -30,8 +32,10 @@ def solve_glm(X, y,
     if loss_func != 'quantile':
         raise NotImplementedError("This solver only works for quantile regression")
 
-    if coef_init is not None or intercept_init is not None:
-        raise NotImplementedError("I do not think initialization works for these solvers")
+    # TODO: perhaps uncomment this warning?
+    # but it gets really annoying for the LLA algorithm
+    # if coef_init is not None or intercept_init is not None:
+    #     warn("Initialization does not currently work for this solver")
 
     if lasso_weights is not None and lasso_pen is None:
         lasso_pen = 1

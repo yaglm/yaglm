@@ -230,7 +230,7 @@ class MCP(Func):
 ###############
 
 
-class InvLog(Func):
+class Log(Func):
     """
     g(x) = pen_val * log(epsilon + |x|)
     """
@@ -267,7 +267,7 @@ class Lq(Func):
 _pen_fuc_docs = dict(
     options=dedent("""
     pen_func_kws: str
-        Which folded concave penalty function to use. Must be one of ['SCAD', 'MCP', 'InvLog', 'Lq', 'Lasso'].
+        Which folded concave penalty function to use. Must be one of ['SCAD', 'MCP', 'Log', 'Lq', 'Lasso'].
 
     pen_kws: dict
         Optional key-word arguments for folded concave penalty.
@@ -282,7 +282,7 @@ _pen_fuc_docs = dict(
 
 def get_penalty_func(pen_func, pen_val, pen_func_kws={}):
     pen_func = pen_func.lower()
-    assert pen_func in ['scad', 'mcp', 'invlog', 'lq', 'lasso']
+    assert pen_func in ['scad', 'mcp', 'log', 'lq', 'lasso']
 
     if pen_func == 'scad':
         c = SCAD
@@ -293,8 +293,8 @@ def get_penalty_func(pen_func, pen_val, pen_func_kws={}):
     elif pen_func == 'lq':
         c = Lq
 
-    elif pen_func == 'invlog':
-        c = InvLog
+    elif pen_func == 'log':
+        c = Log
 
     return c(pen_val=pen_val, **pen_func_kws)
 

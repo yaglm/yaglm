@@ -1,4 +1,4 @@
-from ya_glm.Glm import Glm
+from ya_glm.base.Glm import Glm
 
 
 class GlmVanilla(Glm):

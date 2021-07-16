@@ -2,81 +2,9 @@ import numpy as np
 from copy import deepcopy
 from numbers import Number
 
-def get_sequence_decr_max(max_val=1, min_val_mult=1e-3, num=20,
-                          spacing='lin', decr=True):
-    """
-    Gets a tuning parameter sequence decreasing from a maximum value.
-
-    Parameters
-    ----------
-    max_val: float
-        The largest value in the sequence.
-
-    min_val_mult: float
-        Minimum value = max_val  * min_val_mult
-
-    num: int
-        Number of values in the sequence.
-
-    spacing: str
-        Determines how points are spaced; must be on of ['lin', 'log'].
-
-    decr: Bool
-        Return the sequence in decreasing order.
-
-    Output
-    ------
-    seq: array-like of floats
-        The sequence.
-
-    """
-    assert spacing in ['lin', 'log']
-    assert min_val_mult <= 1
-
-    min_val = min_val_mult * max_val
-
-    if spacing == 'log':
-        assert min_val > 0
-
-    # compute the sequence
-    if spacing == 'lin':
-        seq = np.linspace(start=min_val,
-                          stop=max_val, num=num)
-
-    elif spacing == 'log':
-        seq = np.logspace(start=np.log10(min_val),
-                          stop=np.log10(max_val),
-                          num=num)
-
-    if decr:
-        seq = seq[::-1]
-
-    return seq
-
-
-def get_enet_ratio_seq(num=10, min_val=0.1):
-    """
-    Returns a sequence values for tuning the l1_ratio parameter of ElasticNet.
-    As suggested by sklearn.linear_model.ElasticNetCV, we pick values that
-    favor larger values of l1_ratio (meaning more lasso).
-
-
-    In deatil, the sequence is logarithmicly spaced between 1 and min_val.
-
-    Parameters
-    ----------
-    num: int
-        Number of values to return.
-
-    min_val: float
-        The smallest value of l1_ratio to return.
-
-    Output
-    ------
-    values: array-like, shape (num, )
-        The values.
-    """
-    return 1 + min_val - np.logspace(start=0, stop=np.log10(min_val), num=10)
+from sklearn.exceptions import NotFittedError
+from sklearn.utils.validation import check_is_fitted
+from sklearn.base import clone
 
 
 def is_multi_response(y):
@@ -230,3 +158,56 @@ def clip_zero(x, zero_tol=1e-8):
     non_zero_mask = abs(np.array(x)) > zero_tol
     x_[non_zero_mask] = x[non_zero_mask]
     return x_
+
+
+def at_most_one_none(*args):
+    """
+    Returns True if at most one of the args is not None.
+    """
+    n_none = sum([a is None for a in args])
+    return n_none <= 1
+
+
+def is_fitted(estimator):
+    """
+    Checks if an estimator has been fitted.
+
+    Parameters
+    ----------
+    estimator: sklearn estimator
+        The estimator to check.
+
+    Output
+    ------
+    bool:
+        Returns True iff the estimator has been fitted.
+    """
+
+    try:
+        check_is_fitted(estimator)
+        is_fitted = True
+    except NotFittedError:
+        is_fitted = False
+    return is_fitted
+
+
+def fit_if_unfitted(estimator, X, y=None):
+    """
+    Fits an estimator if it has not yet been fitted. If it has been fit then will just return the input estimator.
+
+    Parameters
+    -----------
+    estimator: sklearn estimator
+        The estimator.
+
+    X, y:
+        The input to estimator.fit(X, y)
+
+    Output
+    ------
+    estimator:
+        The fitted estimator.
+    """
+    if not is_fitted(estimator):
+        return clone(estimator).fit(X, y)
+    return estimator

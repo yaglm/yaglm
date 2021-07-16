@@ -1,5 +1,6 @@
-from ya_glm.models.linear_regression import LinRegMixin
-from ya_glm.models.linear_regression_multi_resp import LinRegMultiResponseMixin
+from ya_glm.glm_loss.linear_regression import LinRegMixin
+from ya_glm.glm_loss.linear_regression_multi_resp import \
+    LinRegMultiResponseMixin
 from ya_glm.autoassign import autoassign
 
 

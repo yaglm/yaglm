@@ -11,10 +11,10 @@ class CVPathMixin:
     solve_glm_path
     """
 
-    def _fit_and_score_path_getter(self):
+    def _fit_and_score_path_getter(self, estimator):
 
         # get the correct fit and score method
-        est = clone(self.estimator)
+        est = clone(estimator)
         def est_from_fit(fit_out, pre_pro_out):
             est._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
             return est
@@ -32,13 +32,13 @@ class CVPathMixin:
 
         return fit_and_score_path
 
-    def _run_cv(self, X, y=None, cv=None):
+    def _run_cv(self, estimator, X, y=None, cv=None):
 
         # setup CV
-        cv = check_cv(cv, y, classifier=is_classifier(self.estimator))
+        cv = check_cv(cv, y, classifier=is_classifier(estimator))
 
         # setup path fitting function
-        fit_and_score_path = self._fit_and_score_path_getter()
+        fit_and_score_path = self._fit_and_score_path_getter(estimator)
 
         cv_results, _ = \
             run_cv_path(X=X, y=y,

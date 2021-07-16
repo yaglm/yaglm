@@ -6,9 +6,7 @@ from ya_glm.cv.cv_select import add_se
 
 class CVGridSearchMixin:
 
-    def _run_cv(self, X, y=None, cv=None, estimator=None):
-        if estimator is None:
-            estimator = self._get_base_estimator()
+    def _run_cv(self, estimator, X, y=None, cv=None):
 
         cv_results = run_cv_grid(X, y,
                                  estimator=estimator,

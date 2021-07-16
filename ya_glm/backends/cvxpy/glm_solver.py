@@ -3,7 +3,6 @@ from functools import partial
 from time import time
 
 from ya_glm.utils import clip_zero
-from ya_glm.processing import process_weights_group_lasso
 from ya_glm.cvxpy.penalty import lasso_penalty, ridge_penalty,\
      tikhonov_penalty,  multi_task_lasso_penalty, group_lasso_penalty
 from ya_glm.cvxpy.loss_functions import lin_reg_loss, log_reg_loss,\
@@ -124,6 +123,9 @@ def process_output(problem, coef, intercept, fit_intercept, zero_tol):
     else:
         intercept_sol = None
 
+    if hasattr(intercept_sol, 'ndim') and intercept_sol.ndim == 0:
+        intercept_sol = float(intercept_sol)
+
     return coef_sol, intercept_sol, opt_data
 
 
@@ -184,9 +186,6 @@ def setup_problem(X, y,
     if lasso_pen is not None:
 
         if groups is not None:
-            lasso_weights = process_weights_group_lasso(groups=groups,
-                                                        weights=lasso_weights)
-
             objective += lasso_pen * \
                 group_lasso_penalty(coef, groups=groups, weights=lasso_weights)
 
