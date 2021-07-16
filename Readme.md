@@ -52,7 +52,7 @@ git clone https://github.com/idc9/ya_glm.git
 python setup.py install
 ```
 
-To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) you have to install their package manually -- see their github page.
+To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) you have to install their package manually -- see the github page.
 
 
 # Example
@@ -110,17 +110,13 @@ est = Est(groups=groups)
 EstCV(estimator=est).fit(X, y)
 
 
-# we provide a penalized quantile regression solver based on Linear Programming for
-# Lasso penalties or Quadratic Programming for Ridge type penalties
-
 # Quantile regression with your favorite optimization algorithm
 # you can easily provide your own optimization algorithm to be the backend solver
-from ya_glm.backends.quantile_lp.glm_solver import solve_glm
+from ya_glm.backends.quantile_lp.glm_solver import solve_glm # Linear Program formulation
 
 Est, EstCV = get_pen_glm(loss_func='quantile',
                          penalty='adpt_lasso',
-                         backend = {'solve_glm': solve_glm 
-                                   }
+                         backend = {'solve_glm': solve_glm}
                         )
 
 Est(quantile=0.5).fit(X, y)
