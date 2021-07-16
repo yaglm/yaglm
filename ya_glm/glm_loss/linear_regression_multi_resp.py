@@ -1,8 +1,10 @@
 from sklearn.utils.validation import check_array
+import numpy as np
+
 from ya_glm.glm_loss.linear_regression import LinRegMixin
 
 
-class LinRegMultiResponseMixin(LinRegMixin):
+class LinRegMultiRespMixin(LinRegMixin):
 
     is_multi_resp = True
 
@@ -12,13 +14,16 @@ class LinRegMultiResponseMixin(LinRegMixin):
 
         return loss_type, loss_kws
 
-    def _process_y(self, y, copy=True):
-        return process_y_lin_reg_mr(y, standardize=self.standardize,
+    def _process_y(self, y, sample_weight=None, copy=True):
+        return process_y_lin_reg_mr(y,
+                                    standardize=self.standardize,
+                                    sample_weight=sample_weight,
                                     copy=copy,
                                     check_input=True)
 
 
-def process_y_lin_reg_mr(y, standardize=False, copy=True, check_input=True):
+def process_y_lin_reg_mr(y, standardize=False, sample_weight=None,
+                         copy=True, check_input=True):
     """
     Processes and possibly mean center the y data i.e. y - y.mean()
 
@@ -26,6 +31,9 @@ def process_y_lin_reg_mr(y, standardize=False, copy=True, check_input=True):
     ----------
     y: array-like, shape (n_samples, n_responses)
         The response data.
+
+    sample_weight: None or array-like,  shape (n_samples,)
+            Individual weights for each sample.
 
     standardize: bool
         Whether or not to mean center.
@@ -61,7 +69,7 @@ def process_y_lin_reg_mr(y, standardize=False, copy=True, check_input=True):
     # mean center y
     out = {}
     if standardize:
-        out['y_offset'] = y.mean(axis=0)
+        out['y_offset'] = np.average(a=y, axis=0, weights=sample_weight)
         y -= out['y_offset']
 
     return y, out

@@ -1,7 +1,6 @@
-from sklearn.utils.validation import check_array
+from sklearn.utils.validation import check_array, column_or_1d
 from sklearn.metrics import r2_score, median_absolute_error
 from sklearn.base import RegressorMixin
-# from scipy.sparse.linalg import LinearOperator
 
 import numpy as np
 
@@ -18,8 +17,10 @@ class LinRegMixin(RegressorMixin):
 
         return loss_type, loss_kws
 
-    def _process_y(self, y, copy=True):
-        return process_y_lin_reg(y, standardize=self.standardize,
+    def _process_y(self, y, sample_weight=None, copy=True):
+        return process_y_lin_reg(y,
+                                 standardize=self.standardize,
+                                 sample_weight=sample_weight,
                                  copy=copy,
                                  check_input=True)
 
@@ -38,7 +39,8 @@ class LinRegMixin(RegressorMixin):
         return self._decision_function(X)
 
 
-def process_y_lin_reg(y, standardize=False, copy=True, check_input=True):
+def process_y_lin_reg(y, standardize=False, sample_weight=None,
+                      copy=True, check_input=True):
     """
     Processes and possibly mean center the y data i.e. y - y.mean()
 
@@ -49,6 +51,9 @@ def process_y_lin_reg(y, standardize=False, copy=True, check_input=True):
 
     standardize: bool
         Whether or not to mean center.
+
+    sample_weight: None or array-like,  shape (n_samples,)
+        Individual weights for each sample.
 
     copy: bool
         Make sure y is copied and not modified in place.
@@ -70,6 +75,7 @@ def process_y_lin_reg(y, standardize=False, copy=True, check_input=True):
     """
     if check_input:
         y = check_array(y, copy=copy, ensure_2d=False)
+        y = column_or_1d(y, warn=True)
     elif copy:
         y = y.copy(order='K')
 
@@ -78,26 +84,10 @@ def process_y_lin_reg(y, standardize=False, copy=True, check_input=True):
     # mean center y
     out = {}
     if standardize:
-        out['y_offset'] = y.mean()
+        out['y_offset'] = np.average(a=y, axis=0, weights=sample_weight)
         y -= out['y_offset']
 
     return y, out
-
-
-# def center_scale_sparse(X, X_offset, X_scale):
-#     X_offset_scale = X_offset / X_scale
-
-#     def matvec(b):
-#         return X.dot(b) - b.dot(X_offset_scale)
-
-#     def rmatvec(b):
-#         return X.T.dot(b) - X_offset_scale * np.sum(b)
-
-#     X_centered = LinearOperator(shape=X.shape,
-#                                 matvec=matvec,
-#                                 rmatvec=rmatvec)
-
-#     return X_centered
 
 
 class LinRegScorer(Scorer):

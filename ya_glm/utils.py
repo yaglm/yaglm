@@ -191,7 +191,7 @@ def is_fitted(estimator):
     return is_fitted
 
 
-def fit_if_unfitted(estimator, X, y=None):
+def fit_if_unfitted(estimator, X, y=None, **fit_params):
     """
     Fits an estimator if it has not yet been fitted. If it has been fit then will just return the input estimator.
 
@@ -201,7 +201,10 @@ def fit_if_unfitted(estimator, X, y=None):
         The estimator.
 
     X, y:
-        The input to estimator.fit(X, y)
+        The input to estimator.fit(X, y, **fit_params)
+
+    **fit_params:
+        Keyword args to be  passed to fit
 
     Output
     ------
@@ -209,5 +212,5 @@ def fit_if_unfitted(estimator, X, y=None):
         The fitted estimator.
     """
     if not is_fitted(estimator):
-        return clone(estimator).fit(X, y)
+        return clone(estimator).fit(X, y, **fit_params)
     return estimator

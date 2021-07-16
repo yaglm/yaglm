@@ -1,7 +1,7 @@
 from sklearn.base import RegressorMixin
 from sklearn._loss.glm_distribution import PoissonDistribution
 from sklearn.utils.validation import _check_sample_weight
-from sklearn.utils.validation import check_array
+from sklearn.utils.validation import check_array, column_or_1d
 
 import numpy as np
 
@@ -15,8 +15,9 @@ class PoissonRegMixin(RegressorMixin):
 
         return loss_type, loss_kws
 
-    def _process_y(self, y, copy=True):
-        return process_y_poisson(y, copy=copy, check_input=True)
+    def _process_y(self, y, sample_weight=None, copy=True):
+        return process_y_poisson(y, copy=copy, sample_weight=sample_weight,
+                                 check_input=True)
 
     def predict(self, X):
         """
@@ -40,7 +41,7 @@ class PoissonRegMixin(RegressorMixin):
         return poisson_Dsq(y_pred=y_pred, y=y, sample_weight=sample_weight)
 
 
-class PoissonRegMultiResponseMixin(RegressorMixin):
+class PoissonRegMultiRespMixin(RegressorMixin):
 
     is_multi_resp = True
 
@@ -50,8 +51,25 @@ class PoissonRegMultiResponseMixin(RegressorMixin):
 
         return loss_type, loss_kws
 
-    def _process_y(self, y, copy=True):
-        return process_y_poisson_multi_resp(y, copy=copy, check_input=True)
+    def _process_y(self, y, sample_weight=None, copy=True):
+        return process_y_poisson_multi_resp(y, sample_weight=sample_weight,
+                                            copy=copy, check_input=True)
+
+    def predict(self, X):
+        """
+        Predict using the linear model.
+
+        Parameters
+        ----------
+        X : array-like or sparse matrix, shape (n_samples, n_features)
+            Samples.
+        Returns
+        -------
+        C : array, shape (n_samples,)
+            Returns predicted values.
+        """
+        z = self.decision_function(X)
+        return np.exp(z)
 
     def score(self, X, y, sample_weight=None):
         sample_weight = _check_sample_weight(sample_weight, X)
@@ -62,10 +80,11 @@ class PoissonRegMultiResponseMixin(RegressorMixin):
                    for k in range(y.shape[1]))
 
 
-def process_y_poisson(y, copy=True, check_input=True):
+def process_y_poisson(y, sample_weight=None, copy=True, check_input=True):
 
     if check_input:
         y = check_array(y, copy=copy, ensure_2d=False)
+        y = column_or_1d(y, warn=True)
         assert y.min() >= 0
     elif copy:
         y = y.copy(order='K')
@@ -75,7 +94,8 @@ def process_y_poisson(y, copy=True, check_input=True):
     return y, {}
 
 
-def process_y_poisson_multi_resp(y, copy=True, check_input=True):
+def process_y_poisson_multi_resp(y, sample_weight=None,
+                                 copy=True, check_input=True):
 
     if check_input:
         y = check_array(y, copy=copy, ensure_2d=True)

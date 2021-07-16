@@ -4,10 +4,12 @@ from scipy.sparse import issparse, diags
 from copy import deepcopy
 
 from ya_glm.utils import is_multi_response
+from ya_glm.extmath import weighted_mean_std
+from ya_glm.sparse_utils import center_scale_sparse
 
 
-def process_X(X, standardize=False, groups=None, copy=True,
-              check_input=True, accept_sparse=False,
+def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
+              check_input=True, accept_sparse=True,
               allow_const_cols=True):
     """
     Processes and possibly standardize the X feature matrix.
@@ -24,6 +26,9 @@ def process_X(X, standardize=False, groups=None, copy=True,
 
     groups: None, list of lists
         (Optional) list of feature groups. If groups is provided and we apply standardization this applies and additional 1 / sqrt(group_size) scaling to feature.
+
+    sample_weight: None or array-like,  shape (n_samples,)
+        Individual weights for each sample.
 
     copy: bool
         Copy data matrix or standardize in place.
@@ -66,9 +71,15 @@ def process_X(X, standardize=False, groups=None, copy=True,
         else:
             X = X.copy(order='K')
 
+    if standardize:
+        X_offset, X_scale = weighted_mean_std(X,
+                                              sample_weight=sample_weight,
+                                              ddof=0)
+    elif not allow_const_cols:
+        X_scale = X.std(axis=0)  # need this for below
+
     # compute column STDs
     if standardize or not allow_const_cols:
-        X_scale = X.std(axis=0)
         const_cols = X_scale <= np.finfo(float).eps
 
         # for constant columns, put their scale as 1
@@ -93,14 +104,12 @@ def process_X(X, standardize=False, groups=None, copy=True,
 
     # center by feature means and scale by feature stds
     if standardize:
-        X_offset = X.mean(axis=0)
 
         out['X_scale'] = X_scale
         out['X_offset'] = X_offset
 
         if issparse(X):
-            raise NotImplementedError
-            # TODO: add this
+            X = center_scale_sparse(X, X_offset, X_scale)
 
         else:
             # mean center then scale

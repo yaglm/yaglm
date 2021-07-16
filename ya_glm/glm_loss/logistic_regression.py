@@ -2,7 +2,7 @@ from sklearn.linear_model._base import LinearClassifierMixin
 from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.multiclass import check_classification_targets
-from sklearn.utils.validation import check_array
+from sklearn.utils.validation import check_array, column_or_1d
 # from sklearn.utils import check_array
 # from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.metrics import log_loss
@@ -22,7 +22,7 @@ class LogRegMixin(LinearClassifierMixin):
 
         return loss_type, loss_kws
 
-    def _process_y(self, y, copy=True):
+    def _process_y(self, y, sample_weight=None, copy=True):
         return process_y_log_reg(y, copy=copy, check_input=True)
 
     def decision_function(self, X):
@@ -96,6 +96,7 @@ def process_y_log_reg(y, copy=True, check_input=True):
 
     if check_input:
         y = check_array(y, copy=copy, ensure_2d=False)
+        y = column_or_1d(y, warn=True)
         check_classification_targets(y)
 
     elif copy:
