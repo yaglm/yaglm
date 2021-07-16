@@ -58,6 +58,11 @@ To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) yo
 # Example
 
 
+There are two main objects Est and EstCV; the former fits a single penalized GLM (think [sklearn.linear_model.Lasso](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html)) and the latter tunes the penalized GLM using cross-validation while making use of a faster path algorithm if available (think [sklearn.linear_model.LassoCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html)). Both are sklearn compatible.
+
+Because there are many loss + penalty combinations we programmatically generate the Est and EstCV classes.
+
+
 ```python
 from ya_glm.estimator_getter import get_pen_glm
 from ya_glm.toy_data import sample_sparse_multinomial, sample_sparse_lin_reg
