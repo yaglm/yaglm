@@ -12,19 +12,22 @@ We currently support the following loss functions
 - Quantile regression
 - Multiple response versions of the linear, huber and poisson losses
 
-and the following penalties
+the following basic penalties
 
 - Lasso
 - [Group Lasso](https://rss.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/j.1467-9868.2005.00532.x?casa_token=wN_F5iYwNK4AAAAA:4PVnAz4icP5hR9FIRviV0zqnp_QAibv55uYkptKQKezvDoqtMzrSpFyHh15lL4IO1yFJ3Sfl4OwOuA) with user specified groups
 - [Multi-task Lasso](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.MultiTaskLasso.html#sklearn.linear_model.MultiTaskLasso) (i.e. L1 to L2 norm)
 - Nuclear norm
 - Ridge
+- Weighed versions of the above
 - [Tikhonov regularization](https://en.wikipedia.org/wiki/Tikhonov_regularization#Tikhonov_regularization)
-- [Elastic net](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) versions of the above Lasso penalties
-- Weighted versions of all of the above
-- Concave penalties such as [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf)
 
-The concave penalties are fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit. See [(Fan et al, 2014)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/) for details. We provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
+and the following more sophisticated penalties
+
+- [Elastic net](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) versions of the above
+- Adaptive Lasso versions of the above (including multi-task, group and nuclear norm)
+- Folded concave penalties (FCP) such as [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf) fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit ([Zou and Li, 2008](http://www.personal.psu.edu/ril4/research/AOS0316.pdf); [Fan et al, 2014](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/)). We also provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
+
 
 The built in cross-validation functionality supports
 
@@ -33,9 +36,9 @@ The built in cross-validation functionality supports
 - custom evaluation metrics
 - custom selection rules such as the '1se' rule from the glmnet package
 
-We provide a built in FISTA algorithm [(Beck and Teboulle, 2009)](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw) that covers most glm loss + non-smooth penalty combinations (the ya_glm.opt module is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox), [copt](https://github.com/openopt/copt), and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite penalized GLM optimization algorithm.**
+We provide a built in FISTA algorithm [(Beck and Teboulle, 2009)](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw) that covers most glm loss + non-smooth penalty combinations (`ya_glm.opt` is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite penalized GLM optimization algorithm.**
 
-We aim to add additional loss functions (e.g. quantile, gamma, cox regression) and penalties (e.g. generalized Lasso, TV1)
+We aim to add additional loss functions (e.g. gamma, cox regression) and penalties (e.g. generalized Lasso, TV1)
 
 
  **Beware**: this is a preliminary release of the package; the documentation and testing may leave you wanting and the code may be subject to breaking changes in the near future.
@@ -56,61 +59,71 @@ To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) yo
 
 
 ```python
-from ya_glm.backends.fista.LinearRegression import Lasso, LassoCV, RidgeCV, LassoENetCV, \
-    GroupLassoENet, GroupLassoENetCV, \
-    FcpLLA, FcpLLACV
+from ya_glm.estimator_getter import get_pen_glm
+from ya_glm.toy_data import sample_sparse_multinomial, sample_sparse_lin_reg
 
-from ya_glm.toy_data import sample_sparse_lin_reg
+# multinomial regression model with a row sparse coefficient matrix
+X, y = sample_sparse_multinomial(n_samples=100, n_features=10, n_classes=3)[0:2]
 
-# sample some linear regression data
-X, y = sample_sparse_lin_reg(n_samples=100, n_features=20)[0:2]
-
-# fit the Lasso penalized linear regression model we all known and love
-est = Lasso(pen_val=1).fit(X, y)
-
-# tune the Lasso penalty using cross-validation
-# just as in sklearn.linear_model.LassoCV we use a 
-# path algorithm to make this fast and set the tuning
-# parameter sequence with a sensible default
-est_cv = LassoCV(cv_select_rule='1se').fit(X, y)
-
-# or you could have picked a different penalty!
-# est_cv = RidgeCV().fit(X, y)
-# est_cv = LassoENetCV().fit(X, y)
-
-# we support user specified groups!
-groups = [range(10), range(10, 20)]
-est = GroupLassoENet(groups=groups)
-# and a cross-validation object that supports path solutions 
-est_cv = GroupLassoENetCV(estimator=est).fit(X, y)
+# programatically generate any loss + penalty combination
+Est, EstCV = get_pen_glm(loss_func='multinomial', 
+                         penalty='lasso' # 'enet', 'adpt_lasso', 'adpt_enet', 'fcp_lla'
+                        )
 
 
-# folded concave penalty with SCAD penalty
-# and initialized from the LassoCV solution
-# see (Fan et al. 2014) for details
-est = FcpLLA(init=LassoCV(), pen_func='scad')
+# fit using the sklean API you know and love
+Est(multi_task=True).fit(X, y)
+# Est().fit(X, y)  # entrywise Lasso
+# Est(nuc=True).fit(X, y)  # nuclear norm
 
-# we can also tune this with cross-validation
-est_cv = FcpLLACV(estimator=est).fit(X, y)
-```
+# tune the lasso penalty with cross-validation
+# we automatically compute the tuning sequence
+# for any loss + penalty combination (the concave ones included!)
+EstCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se rule
+      cv_n_jobs=-1 # parallelization over CV folds with joblib
+     ).fit(X, y)
 
-We can programmatically generate estimators for any loss + penalty combination (this avoids writing a ton of code by hand).
 
-```python
-from ya_glm.estimator_getter import get_pen_glm, get_fcp_glm
-from ya_glm.toy_data import sample_sparse_log_reg
+# Lets try a concave penalty such as the adaptive Lasso
+# or a concave penalty fit with the LLA algorithm
+Est_concave, EstCV_concave =  get_pen_glm(loss_func='multinomial', 
+                                          penalty='fcp_lla' # 'adpt_lasso'
+                                          )
 
-# sample some logistic regression data
-X, y = sample_sparse_log_reg(n_samples=100, n_features=20)[0:2]
+# concave penalties require an initilizer which is set via the init argument
+# by default we initialize with a LassoCV
+est = Est_concave(init='default', multi_task=True).fit(X, y)
 
-# Get a penalized logistic regression estimator and corresponding cross-validation object
-Est, EstCV = get_pen_glm(loss_func='log_reg', penalty='lasso')
+# but you can provide any init estimator you want
+init = EstCV(estimator=Est(multi_task=True), cv=10)
+est = Est_concave(init=init)
+est_cv = EstCV_concave(estimator=est)
 
-# Or a concave penalized logistic regression estimator
-# Est, EstCV = get_fcp_glm(loss_func='log_reg', penalty='lasso')
 
-est = Est().fit(X, y) # single fit
-est_cv = EstCV().fit(X, y) # cross-validation
+# Here we an Elastic Net version of the Adaptive Lasso
+# with user specified groups for a liner regression example
+Est, EstCV = get_pen_glm(loss_func='lin_reg', penalty='adpt_enet')
+X, y = sample_sparse_lin_reg(n_samples=100, n_features=10, n_nonzero=5)[0:2]
+
+groups = [range(5), range(5, 10)]
+est = Est(groups=groups)
+EstCV(estimator=est).fit(X, y)
+
+
+# we provide a penalized qunatile regression solve based on 
+# Linear Programming for Lasso penalties or Quadratic Programming for Ridge type penalties
+from ya_glm.backends.quantile_lp.glm_solver import solve_glm
+
+# Quantile regression with your favorite optimzation algorithm
+# you can easily provide your own optimization algorithm to be the backend solver
+Est, EstCV = get_pen_glm(loss_func='quantile',
+                         penalty='adpt_lasso',
+                         backend = {'solve_glm': solve_glm # solves a single penalize GLM problem
+                                    # 'solve_glm_path': None # path algorithm 
+                                   }
+                        )
+
+Est(quantile=0.5).fit(X, y)
 ```
 
 
@@ -136,6 +149,8 @@ bug fixes, spelling errors, new features, etc.
 # References
 
 Beck, A. and Teboulle, M., 2009. [A fast iterative shrinkage-thresholding algorithm for linear inverse problems](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw). SIAM journal on imaging sciences, 2(1), pp.183-202.
+
+Zou, H. and Li, R., 2008. [One-step sparse estimates in nonconcave penalized likelihood models](http://www.personal.psu.edu/ril4/research/AOS0316.pdf). Annals of statistics, 36(4), p.1509.
 
 
 Fan, J., Xue, L. and Zou, H., 2014. [Strong oracle optimality of folded concave penalized estimation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/). Annals of statistics, 42(3), p.819.
