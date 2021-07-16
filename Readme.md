@@ -66,19 +66,19 @@ from ya_glm.toy_data import sample_sparse_multinomial, sample_sparse_lin_reg
 X, y = sample_sparse_multinomial(n_samples=100, n_features=10, n_classes=3)[0:2]
 
 # programatically generate any loss + penalty combination
-Est, EstCV = get_pen_glm(loss_func='multinomial', 
+Est, EstCV = get_pen_glm(loss_func='multinomial', # 'lin_reg', 'poisson', ...
                          penalty='lasso' # 'enet', 'adpt_lasso', 'adpt_enet', 'fcp_lla'
                         )
 
 
-# fit using the sklean API you know and love
+# fit using the sklearn API you know and love!
 Est(multi_task=True).fit(X, y)
 # Est().fit(X, y)  # entrywise Lasso
 # Est(nuc=True).fit(X, y)  # nuclear norm
 
 # tune the lasso penalty with cross-validation
-# we automatically compute the tuning sequence
-# for any loss + penalty combination (the concave ones included!)
+# we automatically generate the tuning sequence
+# for any loss + penalty combination (including concave ones!)
 EstCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se rule
       cv_n_jobs=-1 # parallelization over CV folds with joblib
      ).fit(X, y)
@@ -87,10 +87,10 @@ EstCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se 
 # Lets try a concave penalty such as the adaptive Lasso
 # or a concave penalty fit with the LLA algorithm
 Est_concave, EstCV_concave =  get_pen_glm(loss_func='multinomial', 
-                                          penalty='fcp_lla' # 'adpt_lasso'
+                                          penalty='adpt_lasso' # 'fcp_lla'
                                           )
 
-# concave penalties require an initilizer which is set via the init argument
+# concave penalties require an initializer which is set via the 'init' argument
 # by default we initialize with a LassoCV
 est = Est_concave(init='default', multi_task=True).fit(X, y)
 
@@ -100,7 +100,7 @@ est = Est_concave(init=init)
 est_cv = EstCV_concave(estimator=est)
 
 
-# Here we an Elastic Net version of the Adaptive Lasso
+# Here we use an Elastic Net version of the Adaptive Group Lasso
 # with user specified groups for a liner regression example
 Est, EstCV = get_pen_glm(loss_func='lin_reg', penalty='adpt_enet')
 X, y = sample_sparse_lin_reg(n_samples=100, n_features=10, n_nonzero=5)[0:2]
@@ -110,16 +110,16 @@ est = Est(groups=groups)
 EstCV(estimator=est).fit(X, y)
 
 
-# we provide a penalized qunatile regression solve based on 
-# Linear Programming for Lasso penalties or Quadratic Programming for Ridge type penalties
-from ya_glm.backends.quantile_lp.glm_solver import solve_glm
+# we provide a penalized quantile regression solver based on Linear Programming for
+# Lasso penalties or Quadratic Programming for Ridge type penalties
 
-# Quantile regression with your favorite optimzation algorithm
+# Quantile regression with your favorite optimization algorithm
 # you can easily provide your own optimization algorithm to be the backend solver
+from ya_glm.backends.quantile_lp.glm_solver import solve_glm # Linear Programming formulation of quantile regression
+
 Est, EstCV = get_pen_glm(loss_func='quantile',
                          penalty='adpt_lasso',
-                         backend = {'solve_glm': solve_glm # solves a single penalize GLM problem
-                                    # 'solve_glm_path': None # path algorithm 
+                         backend = {'solve_glm': solve_glm 
                                    }
                         )
 
