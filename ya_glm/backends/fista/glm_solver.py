@@ -1,25 +1,17 @@
 import numpy as np
-from copy import deepcopy
 from textwrap import dedent
 
-from ya_glm.info import is_multi_response
-from ya_glm.opt.linear_regression import LinRegLoss, LinRegMultiRespLoss
-from ya_glm.opt.huber_regression import HuberRegLoss, HuberRegMultiRespLoss
-from ya_glm.opt.multinomial import MultinomialLoss
-from ya_glm.opt.poisson_regression import PoissonRegLoss, \
-    PoissonRegMultiRespLoss
-from ya_glm.opt.quantile_regression import QuantileRegLoss
-
-from ya_glm.opt.logistic_regression import LogRegLoss
-from ya_glm.opt.penalty import LassoPenalty, RidgePenalty, \
+from ya_glm.opt.penalty.vec import LassoPenalty, RidgePenalty, \
     WithIntercept, TikhonovPenalty
-from ya_glm.opt.GroupLasso import GroupLasso
-from ya_glm.opt.mat_penalty import MultiTaskLasso, NuclearNorm, \
+from ya_glm.opt.penalty.GroupLasso import GroupLasso
+from ya_glm.opt.penalty.mat_penalty import MultiTaskLasso, NuclearNorm, \
     MatricizeEntrywisePen, \
     MatWithIntercept
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
 from ya_glm.opt.fista import solve_fista
-from ya_glm.opt.base import Func, Sum
+from ya_glm.opt.base import Sum
+from ya_glm.opt.glm_loss.get import get_glm_loss, safe_is_multi_response, \
+    _LOSS_FUNC_CLS2STR
 
 
 _solve_glm_params = dedent("""
@@ -37,6 +29,9 @@ loss_kws: dict
 
 fit_intercept: bool
     Whether or not to fit an intercept.
+
+sample_weight: None or array-like,  shape (n_samples,)
+    Individual weights for each sample.
 
 lasso_pen: None, float
     (Optional) The L1 penalty parameter value.
@@ -72,9 +67,6 @@ coef_init: None, array-like, shape (n_features, )
 intercept_init: None, float
     (Optional) Initialization for the intercept.
 
-precomp_lip: None, float
-    (Optional) Precomputed Lipschitz constant.
-
 xtol: float, None
     The change in X stopping criterion. If provided, we terminate the algorithm if |x_new - x_current|_max < x_tol
 
@@ -109,6 +101,7 @@ def solve_glm(X, y,
               loss_func='lin_reg',
               loss_kws={},
               fit_intercept=True,
+              sample_weight=None,
 
               lasso_pen=None,
               lasso_weights=None,
@@ -121,7 +114,6 @@ def solve_glm(X, y,
 
               coef_init=None,
               intercept_init=None,
-              precomp_lip=None,
               xtol=1e-4,
               rtol=None,
               atol=None,
@@ -136,8 +128,9 @@ def solve_glm(X, y,
 
     # get loss function object
     loss_func = get_glm_loss(loss_func=loss_func, loss_kws=loss_kws,
-                             X=X, y=y, fit_intercept=fit_intercept,
-                             precomp_lip=precomp_lip)
+                             X=X, y=y,
+                             fit_intercept=fit_intercept,
+                             sample_weight=sample_weight)
 
     if _LOSS_FUNC_CLS2STR[type(loss_func)] == 'quantile':
         raise NotImplementedError("fista solver does not support quantile loss")
@@ -149,9 +142,14 @@ def solve_glm(X, y,
     #####################
     # set initial value #
     #####################
-    init_val = process_init(X=X, y=y, loss_func=loss_func,
-                            fit_intercept=fit_intercept,
-                            coef_init=coef_init, intercept_init=intercept_init)
+    if coef_init is None or intercept_init is None:
+        init_val = loss_func.default_init()
+    else:
+        init_val = loss_func.cat_intercept_coef(intercept_init, coef_init)
+
+    # init_val = process_init(X=X, y=y, loss_func=loss_func,
+    #                         fit_intercept=fit_intercept,
+    #                         coef_init=coef_init, intercept_init=intercept_init)
 
     #############################
     # pre process penalty input #
@@ -294,7 +292,7 @@ def solve_glm_path(X, y,
                    lasso_pen_seq=None, ridge_pen_seq=None,
                    loss_func='lin_reg', loss_kws={},
                    fit_intercept=True,
-                   precomp_lip=None,
+                   sample_weight=None,
                    # generator=True,
                    check_decr=True,
                    **kws):
@@ -335,8 +333,9 @@ def solve_glm_path(X, y,
 
     # this will precompute the lipschitz constant
     loss_func = get_glm_loss(loss_func=loss_func, loss_kws=loss_kws,
-                             X=X, y=y, fit_intercept=fit_intercept,
-                             precomp_lip=precomp_lip)
+                             X=X, y=y,
+                             fit_intercept=fit_intercept,
+                             sample_weight=sample_weight)
 
     # possibly get initializers
     if 'coef_init' in kws:
@@ -371,125 +370,58 @@ def solve_glm_path(X, y,
         yield fit_out, params
 
 
-_LOSS_FUNC_STR2CLS = {'lin_reg': LinRegLoss,
-                      'lin_reg_mr': LinRegMultiRespLoss,
-                      'huber_reg': HuberRegLoss,
-                      'huber_reg_mr': HuberRegMultiRespLoss,
-                      'log_reg': LogRegLoss,
-                      'multinomial': MultinomialLoss,
-                      'poisson': PoissonRegLoss,
-                      'poisson_mr': PoissonRegMultiRespLoss,
-                      'quantile': QuantileRegLoss
-                      }
+# def process_init(X, y, loss_func, fit_intercept=True, coef_init=None,
+#                  intercept_init=None):
+#     """
+#     Processes the initializer.
 
-_LOSS_FUNC_CLS2STR = {v: k for (k, v) in _LOSS_FUNC_STR2CLS.items()}
+#     Parameters
+#     ----------
 
+#     Outout
+#     ------
+#     init_val: array-like
+#         The initial value. Shape is (n_features, ), (n_features + 1, )
+#         (n_features, n_responses) or (n_features, n_responses + 1)
+#     """
 
-def get_glm_loss(X, y,
-                 loss_func='lin_reg', loss_kws={},
-                 fit_intercept=True, precomp_lip=None):
-    """
-    Returns an GLM loss function object.
+#     if coef_init is None or (fit_intercept and intercept_init is None):
 
-    Parameters
-    ----------
-    X: array-like, shape (n_samples, n_features)
-        The training covariate data.
+#         # determine the coefficient shape
+#         if safe_is_multi_response(loss_func):
+#             coef_shape = (X.shape[1], y.shape[1])
+#         else:
+#             coef_shape = X.shape[1]
 
-    y: array-like, shape (n_samples, )
-        The training response data.
+#         # initialize coefficient
+#         if coef_init is None:
+#             coef_init = np.zeros(coef_shape)
 
-    fit_intercept: bool
-        Whether or not to fit an intercept.
+#         # initialize intercept
+#         if intercept_init is None:
+#             if isinstance(coef_shape, tuple):
+#                 intercept_init = np.zeros(coef_shape[1])
+#             else:
+#                 intercept_init = 0
 
-    loss_func: str
-        Which GLM loss function to use.
-        Must be one of ['linear_regression', 'logistic_regression'].
-        This may also be an instance of ya_glm.opt.base.Func.
+#     # format
+#     coef_init = np.array(coef_init)
+#     if fit_intercept:
+#         if coef_init.ndim > 1:
+#             intercept_init = np.array(intercept_init)
+#         else:
+#             intercept_init = float(intercept_init)
 
-    precomp_lip: None, float
-        (Optional) Precomputed Lipchitz constant
+#     # maybe concatenate
+#     if fit_intercept:
+#         if coef_init.ndim == 2:
+#             init_val = np.vstack([intercept_init, coef_init])
+#         else:
+#             init_val = np.concatenate([[intercept_init], coef_init])
+#     else:
+#         init_val = deepcopy(coef_init)
 
-    Output
-    ------
-    glm_loss: ya_glm.opt.Func
-        The GLM loss function object.
-    """
-
-    if isinstance(loss_func, Func):
-        return loss_func
-
-    assert loss_func in _LOSS_FUNC_STR2CLS.keys()
-    obj_class = _LOSS_FUNC_STR2CLS[loss_func]
-
-    kws = {'X': X, 'y': y, 'fit_intercept': fit_intercept,
-           **loss_kws}
-
-    if precomp_lip is not None:
-        kws['lip'] = precomp_lip
-
-    return obj_class(**kws)
-
-
-def safe_is_multi_response(loss_func):
-    if isinstance(loss_func, Func):
-        return is_multi_response(_LOSS_FUNC_CLS2STR[type(loss_func)])
-    else:
-        return is_multi_response(loss_func)
-
-
-def process_init(X, y, loss_func, fit_intercept=True, coef_init=None,
-                 intercept_init=None):
-    """
-    Processes the initializer.
-
-    Parameters
-    ----------
-
-    Outout
-    ------
-    init_val: array-like
-        The initial value. Shape is (n_features, ), (n_features + 1, )
-        (n_features, n_responses) or (n_features, n_responses + 1)
-    """
-
-    if coef_init is None or (fit_intercept and intercept_init is None):
-
-        # determine the coefficient shape
-        if safe_is_multi_response(loss_func):
-            coef_shape = (X.shape[1], y.shape[1])
-        else:
-            coef_shape = X.shape[1]
-
-        # initialize coefficient
-        if coef_init is None:
-            coef_init = np.zeros(coef_shape)
-
-        # initialize intercept
-        if intercept_init is None:
-            if isinstance(coef_shape, tuple):
-                intercept_init = np.zeros(coef_shape[1])
-            else:
-                intercept_init = 0
-
-    # format
-    coef_init = np.array(coef_init)
-    if fit_intercept:
-        if coef_init.ndim > 1:
-            intercept_init = np.array(intercept_init)
-        else:
-            intercept_init = float(intercept_init)
-
-    # maybe concatenate
-    if fit_intercept:
-        if coef_init.ndim == 2:
-            init_val = np.vstack([intercept_init, coef_init])
-        else:
-            init_val = np.concatenate([[intercept_init], coef_init])
-    else:
-        init_val = deepcopy(coef_init)
-
-    return init_val
+#     return init_val
 
 
 def process_param_path(lasso_pen_seq=None, ridge_pen_seq=None, check_decr=True):
@@ -520,4 +452,3 @@ def process_param_path(lasso_pen_seq=None, ridge_pen_seq=None, check_decr=True):
         raise ValueError("One of lasso_pen_seq, ridge_pen_seq should be provided ")
 
     return param_path
-

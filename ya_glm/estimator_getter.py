@@ -4,12 +4,13 @@ from ya_glm.glm_loss.multinomial import MultinomialMixin
 
 from ya_glm.glm_loss.logistic_regression import LogRegMixin
 from ya_glm.glm_loss.linear_regression_multi_resp import \
-    LinRegMultiResponseMixin
+    LinRegMultiRespMixin
 from ya_glm.glm_loss.huber_regression import HuberRegMixin, \
-    HuberRegMultiResponseMixin
+    HuberRegMultiRespMixin
 from ya_glm.glm_loss.poisson_regression import PoissonRegMixin,\
-    PoissonRegMultiResponseMixin
-from ya_glm.glm_loss.quantile_regression import QuantileRegMixin
+    PoissonRegMultiRespMixin
+from ya_glm.glm_loss.quantile_regression import QuantileRegMixin, \
+    QuantileRegMultiRespMixin
 
 # penalties
 from ya_glm.pen_glms.GlmVanilla import GlmVanilla
@@ -52,38 +53,31 @@ from ya_glm.info import _MULTI_RESP_LOSSES, _MULTI_RESP_PENS
 from ya_glm.lla.WeightedLassoSolver import WL1SolverGlm
 
 
+_LOSS_MIXIN_STR2CLS = {'lin_reg': LinRegMixin,
+                       'lin_reg_mr': LinRegMultiRespMixin,
+
+                       'log_reg': LogRegMixin,
+                       'multinomial': MultinomialMixin,
+
+                       'poisson': PoissonRegMixin,
+                       'poisson_mr': PoissonRegMultiRespMixin,
+
+                       'huber': HuberRegMixin,
+                       'huber_mr': HuberRegMultiRespMixin,
+
+                       'quantile': QuantileRegMixin,
+                       'quantile_mr': QuantileRegMultiRespMixin
+                       }
+
+
 def get_loss_mixin(loss_func='lin_reg'):
 
-    # loss function
-    if loss_func == 'lin_reg':
-        return LinRegMixin
-
-    elif loss_func == 'lin_reg_mr':
-        return LinRegMultiResponseMixin
-
-    if loss_func == 'huber_reg':
-        return HuberRegMixin
-
-    elif loss_func == 'huber_reg_mr':
-        return HuberRegMultiResponseMixin
-
-    elif loss_func == 'log_reg':
-        return LogRegMixin
-
-    elif loss_func == 'multinomial':
-        return MultinomialMixin
-
-    elif loss_func == 'poisson':
-        return PoissonRegMixin
-
-    elif loss_func == 'poisson_mr':
-        return PoissonRegMultiResponseMixin
-
-    elif loss_func == 'quantile':
-        return QuantileRegMixin
-
+    if loss_func in _LOSS_MIXIN_STR2CLS.keys():
+        return _LOSS_MIXIN_STR2CLS[loss_func]
     else:
-        raise NotImplementedError("{} not supported".format(loss_func))
+        raise NotImplementedError("{} not supported, must be one of"
+                                  "{}".format(loss_func,
+                                              list(_LOSS_MIXIN_STR2CLS.keys())))
 
 
 def get_penalty(penalty='lasso', has_path_algo=True):

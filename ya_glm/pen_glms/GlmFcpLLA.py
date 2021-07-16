@@ -8,7 +8,7 @@ from ya_glm.cv.CVGridSearch import CVGridSearchMixin
 from ya_glm.pen_max.fcp_lla import get_pen_max
 from ya_glm.lla.lla import solve_lla
 
-from ya_glm.opt.concave_penalty import get_penalty_func
+from ya_glm.opt.penalty.concave_penalty import get_penalty_func
 from ya_glm.init_signature import add_from_classes, keep_agreeable
 from ya_glm.utils import maybe_add
 from ya_glm.processing import check_estimator_type
@@ -38,7 +38,7 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
                  groups=None,
                  ): pass
 
-    def compute_fit(self, X, y, init_data):
+    def compute_fit(self, X, y, init_data, sample_weight=None):
 
         coef_init = init_data['coef']
         if self.fit_intercept:
@@ -58,6 +58,7 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
                                     loss_func=loss_func,
                                     loss_kws=loss_kws,
                                     fit_intercept=self.fit_intercept,
+                                    sample_weight=sample_weight,
                                     solver_kws=self._get_extra_solver_kws())
 
         wl1_solver.solve_glm = self.solve_glm
@@ -74,7 +75,7 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
 
         return {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
 
-    def _get_pen_val_max_from_pro(self, X, y, init_data):
+    def _get_pen_val_max_from_pro(self, X, y, init_data, sample_weight=None):
 
         loss_func, loss_kws = self.get_loss_info()
         pen_kind = self._get_penalty_kind()
@@ -90,6 +91,7 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
                            loss_kws=loss_kws,
                            groups=groups,
                            fit_intercept=self.fit_intercept,
+                           sample_weight=sample_weight,
                            pen_kind=pen_kind)
 
     def _get_extra_solver_kws(self):

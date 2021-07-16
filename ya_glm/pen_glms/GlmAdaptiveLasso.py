@@ -11,7 +11,7 @@ from ya_glm.cv.CVGridSearch import CVGridSearchMixin
 from ya_glm.pen_max.lasso import get_pen_max
 
 from ya_glm.init_signature import add_from_classes, keep_agreeable
-from ya_glm.opt.concave_penalty import get_penalty_func
+from ya_glm.opt.penalty.concave_penalty import get_penalty_func
 from ya_glm.utils import maybe_add, lasso_and_ridge_from_enet
 from ya_glm.processing import check_estimator_type, process_init_data
 
@@ -24,7 +24,7 @@ from ya_glm.processing import check_estimator_type, process_init_data
 
 class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
 
-    def compute_fit(self, X, y, init_data):
+    def compute_fit(self, X, y, init_data, sample_weight=None):
 
         kws = self._get_solve_kws()
 
@@ -36,6 +36,9 @@ class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
             kws['lasso_weights'] = self.adpt_weights_
         else:
             kws['lasso_weights'] = self.adpt_weights
+
+        if sample_weight is not None:
+            kws['sample_weight'] = sample_weight
 
         coef, intercept, opt_data = self.solve_glm(X=X, y=y, **kws)
 
@@ -62,7 +65,8 @@ class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
         weights = penalty_func.grad(t)
         return weights
 
-    def _lasso_get_pen_val_max_from_pro(self, X, y, init_data):
+    def _lasso_get_pen_val_max_from_pro(self, X, y, init_data,
+                                        sample_weight=None):
         loss_func, loss_kws = self.get_loss_info()
         pen_kind = self._get_penalty_kind()
 
@@ -75,7 +79,8 @@ class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
                'fit_intercept': self.fit_intercept,
                'loss_func': loss_func,
                'loss_kws': loss_kws,
-               'weights': adpt_weights
+               'weights': adpt_weights,
+               'sample_weight': sample_weight
                }
 
         if pen_kind == 'group':
@@ -111,12 +116,13 @@ class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
 
 
 class AdptCVMixin:
-    def _pre_fit(self, X, y, init_data, estimator):
+    def _pre_fit(self, X, y, init_data, estimator, sample_weight=None):
         """
         Sets the adaptive weights parameter.
         """
         # pre-process data
-        X_pro, y_pro, pre_pro_out = estimator.preprocess(X, y, copy=True)
+        X_pro, y_pro, pre_pro_out = \
+            estimator.preprocess(X, y, sample_weight=sample_weight, copy=True)
 
         # possibly process the init data e.g. shift/scale
         init_data_pro = process_init_data(init_data=init_data,
@@ -196,8 +202,10 @@ class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
 
         return kws
 
-    def _get_pen_val_max_from_pro(self, X, y, init_data):
-        return self._lasso_get_pen_val_max_from_pro(X, y, init_data)
+    def _get_pen_val_max_from_pro(self, X, y, init_data, sample_weight=None):
+        return self.\
+            _lasso_get_pen_val_max_from_pro(X, y, init_data,
+                                            sample_weight=sample_weight)
 
 
 class GlmAdaptiveLassoCVPath(AdptCVMixin, CVPathMixin, GlmCVWithInitSinglePen):
@@ -296,8 +304,10 @@ class GlmAdaptiveENet(GlmAdaptiveLassoBase):
 
         return kws
 
-    def _get_pen_val_max_from_pro(self, X, y, init_data):
-        l1_max = self._lasso_get_pen_val_max_from_pro(X, y, init_data)
+    def _get_pen_val_max_from_pro(self, X, y, init_data, sample_weight=None):
+        l1_max = self.\
+            _lasso_get_pen_val_max_from_pro(X, y, init_data,
+                                            sample_weight=sample_weight)
         return l1_max / self.l1_ratio
 
 

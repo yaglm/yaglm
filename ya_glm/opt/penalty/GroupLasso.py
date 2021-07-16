@@ -1,5 +1,6 @@
 import numpy as np
 from ya_glm.opt.base import Func
+from ya_glm.opt.utils import euclid_norm
 
 
 class L2Penalty(Func):
@@ -60,10 +61,6 @@ class GroupLasso(Func):
                 out[x_idx] = p[p_idx]
 
         return out
-
-
-def euclid_norm(x):
-    return np.sqrt((x ** 2).sum())
 
 
 def L2_prox(x, mult):

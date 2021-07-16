@@ -5,6 +5,7 @@ def get_pen_max(X, y, init_data, pen_func, pen_func_kws,
                 loss_func, loss_kws={},
                 groups=None,
                 fit_intercept=True,
+                sample_weight=None,
                 pen_kind='entrywise'):
     """
     Returns the largest reasonable tuning parameter value for fitting a
@@ -31,6 +32,8 @@ def get_pen_max(X, y, init_data, pen_func, pen_func_kws,
 
     fit_intercept:
 
+    sample_weight:
+
     pen_kind:
 
     """
@@ -38,6 +41,7 @@ def get_pen_max(X, y, init_data, pen_func, pen_func_kws,
     kws = {'X': X,
            'y': y,
            'fit_intercept': fit_intercept,
+           'sample_weight': sample_weight,
            'loss_func': loss_func,
            'loss_kws': loss_kws}
 

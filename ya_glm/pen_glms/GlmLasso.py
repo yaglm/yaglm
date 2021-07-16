@@ -68,7 +68,7 @@ class GlmLasso(Glm):
 
         return kws
 
-    def _get_pen_val_max_from_pro(self, X, y):
+    def _get_pen_val_max_from_pro(self, X, y, sample_weight=None):
         loss_func, loss_kws = self.get_loss_info()
         pen_kind = self._get_penalty_kind()
 
@@ -77,7 +77,8 @@ class GlmLasso(Glm):
                'fit_intercept': self.fit_intercept,
                'loss_func': loss_func,
                'loss_kws': loss_kws,
-               'weights': self.lasso_weights
+               'weights': self.lasso_weights,
+               'sample_weight': sample_weight
                }
 
         if pen_kind == 'group':
@@ -167,7 +168,7 @@ class GlmENet(Glm):
 
         return kws
 
-    def _get_pen_val_max_from_pro(self, X, y):
+    def _get_pen_val_max_from_pro(self, X, y, sample_weight=None):
         loss_func, loss_kws = self.get_loss_info()
         pen_kind = self._get_penalty_kind()
 
@@ -176,7 +177,8 @@ class GlmENet(Glm):
                'fit_intercept': self.fit_intercept,
                'loss_func': loss_func,
                'loss_kws': loss_kws,
-               'weights': self.lasso_weights
+               'weights': self.lasso_weights,
+               'sample_weight': sample_weight
                }
 
         if pen_kind == 'group':

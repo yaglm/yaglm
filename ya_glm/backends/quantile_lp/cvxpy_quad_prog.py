@@ -6,7 +6,7 @@ from ya_glm.backends.quantile_lp.utils import get_lin_prog_data, \
     get_coef_inter, get_quad_mat
 
 
-def solve(X, y, fit_intercept=True, quantile=0.5, sample_weights=None,
+def solve(X, y, fit_intercept=True, quantile=0.5, sample_weight=None,
           lasso_pen=1, ridge_pen=None,
           lasso_weights=None, ridge_weights=None, tikhonov=None,
           coef_init=None, intercept_init=None,
@@ -29,7 +29,7 @@ def solve(X, y, fit_intercept=True, quantile=0.5, sample_weights=None,
         setup_problem(X=X, y=y,
                       fit_intercept=fit_intercept,
                       quantile=quantile,
-                      sample_weights=sample_weights,
+                      sample_weight=sample_weight,
                       lasso_pen=lasso_pen,
                       ridge_pen=ridge_pen,
                       lasso_weights=lasso_weights,
@@ -120,7 +120,7 @@ def solve_path(fit_intercept=True, cp_kws={}, zero_tol=1e-8,
         yield fit_out, params
 
 
-def setup_problem(X, y, fit_intercept=True, quantile=0.5, sample_weights=None,
+def setup_problem(X, y, fit_intercept=True, quantile=0.5, sample_weight=None,
                   lasso_pen=1, ridge_pen=None,
                   lasso_weights=None, ridge_weights=None, tikhonov=None,
                   coef_init=None, intercept_init=None):
@@ -142,7 +142,7 @@ def setup_problem(X, y, fit_intercept=True, quantile=0.5, sample_weights=None,
                           fit_intercept=fit_intercept,
                           quantile=quantile,
                           lasso_pen=lasso_pen,
-                          sample_weights=sample_weights,
+                          sample_weight=sample_weight,
                           lasso_weights=lasso_weights)
 
     lin_coef = cp.hstack(lin_coef)

@@ -10,7 +10,7 @@ from ya_glm.backends.quantile_lp.utils import get_lin_prog_data, get_coef_inter
 
 
 def solve(X, y, fit_intercept=True, quantile=0.5, lasso_pen=1,
-          sample_weights=None,
+          sample_weight=None,
           lasso_weights=None,
           tol=None,
           solver='highs'):
@@ -28,13 +28,14 @@ def solve(X, y, fit_intercept=True, quantile=0.5, lasso_pen=1,
     fit_intercept: bool
         Whether or not to fit an intercept.
 
+
     quantile: float
         Which quantile.
 
     lasso_pen: float
         The multiplicated penalty strength parameter.
 
-    sample_weights: None, array-like shape (n_features, )
+    sample_weight: None, array-like shape (n_features, )
         Sample weights
 
     lasso_weights: None, array-like shape (n_features, )
@@ -60,7 +61,7 @@ def solve(X, y, fit_intercept=True, quantile=0.5, lasso_pen=1,
                           fit_intercept=fit_intercept,
                           quantile=quantile,
                           lasso_pen=lasso_pen,
-                          sample_weights=sample_weights,
+                          sample_weight=sample_weight,
                           lasso_weights=lasso_weights)
 
     if 'highs' in solver:

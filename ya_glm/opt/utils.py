@@ -3,6 +3,10 @@ from scipy.sparse import issparse
 import numpy as np
 
 
+def euclid_norm(x):
+    return np.sqrt((x ** 2).sum())
+
+
 def decat_coef_inter_vec(cat):
     """
     De-concatenates a vector of the coefficient and intercept.

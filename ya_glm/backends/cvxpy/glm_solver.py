@@ -14,6 +14,7 @@ def solve_glm(X, y,
               loss_func='lin_reg',
               loss_kws={},
               fit_intercept=True,
+              sample_weight=None,
               lasso_pen=None,
               lasso_weights=None,
               groups=None,
@@ -27,6 +28,9 @@ def solve_glm(X, y,
               zero_tol=1e-8,
               solver=None,
               cp_kws={}):
+
+    if sample_weight is not None:
+        raise NotImplementedError("need to add")
 
     start_time = time()
     ######################
