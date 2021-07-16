@@ -4,6 +4,7 @@ from joblib import Parallel, delayed
 from itertools import product
 from sklearn.model_selection._split import check_cv
 from sklearn.base import is_classifier, clone
+from sklearn.utils.validation import _check_fit_params
 
 
 class CVPathMixin:
@@ -32,7 +33,7 @@ class CVPathMixin:
 
         return fit_and_score_path
 
-    def _run_cv(self, estimator, X, y=None, cv=None):
+    def _run_cv(self, estimator, X, y=None, cv=None, fit_params=None):
 
         # setup CV
         cv = check_cv(cv, y, classifier=is_classifier(estimator))
@@ -45,6 +46,7 @@ class CVPathMixin:
                         fold_iter=cv.split(X, y),
                         fit_and_score_path=fit_and_score_path,
                         kws=self._get_solve_path_kws(),
+                        fit_params=fit_params,
                         include_spilt_vals=True,  # TODO: maybe give option for this?
                         add_params=False,
                         n_jobs=self.cv_n_jobs,
@@ -74,7 +76,8 @@ class CVPathMixin:
         raise NotImplementedError
 
 
-def run_cv_path(X, y, fold_iter, fit_and_score_path, kws={},
+def run_cv_path(X, y, fold_iter, fit_and_score_path,
+                kws={}, fit_params={},
                 include_spilt_vals=True, add_params=True,
                 n_jobs=None, verbose=0, pre_dispatch='2*n_jobs'):
     """
@@ -122,7 +125,8 @@ def run_cv_path(X, y, fold_iter, fit_and_score_path, kws={},
                         verbose=verbose)
     fold_path_results = \
         parallel(delayed(fit_and_score_path)
-                 (X=X, y=y, train=train, test=test, kws=kws)
+                 (X=X, y=y, train=train, test=test,
+                  kws=kws, fit_params=fit_params)
                  for (train, test) in fold_iter)
 
     # TODO: maybe remove std
@@ -138,7 +142,7 @@ def run_cv_path(X, y, fold_iter, fit_and_score_path, kws={},
 
 def score_from_fit_path(X, y, train, test,
                         solve_path, est_from_fit, scorer=None,
-                        kws={},
+                        kws={}, fit_params=None,
                         preprocess=None):
     """
 
@@ -171,9 +175,11 @@ def score_from_fit_path(X, y, train, test,
     kws: dict
         Key word arguments for fit_path
 
+    fit_params : dict
+        Parameters to pass to the fit method of the estimator.
+
     preprocess: None, callable(X, y, copy) -> X, y, pre_pro_data
         An (optional) function that pre-processes the training data before calling the fit_path function. It should copy the data -- not modify it in place!
-
 
     Output
     ------
@@ -202,11 +208,21 @@ def score_from_fit_path(X, y, train, test,
         y_train = None
         y_test = None
 
+    # possibly subset fit params e.g. sample weights
+    fit_params = fit_params if fit_params is not None else {}
+    fit_params_tr = _check_fit_params(X=X, fit_params=fit_params, indices=train)
+
     # possibly apply processing
     if preprocess is not None:
-        # TODO: might want to handle case when y is None differently
+        if 'sample_weight' in fit_params_tr:
+            sample_weight_tr = fit_params_tr['sample_weight']
+        else:
+            sample_weight_tr = None
+
         X_train_pro, y_train_pro, pre_pro_out = \
-             preprocess(X=X_train, y=y_train, copy=True)
+            preprocess(X=X_train, y=y_train,
+                       sample_weight=sample_weight_tr,
+                       copy=True)
     else:
         X_train_pro = X_train
         y_train_pro = y_train
@@ -221,7 +237,8 @@ def score_from_fit_path(X, y, train, test,
                     }
 
     # Solve the path!!
-    solution_path = solve_path(X=X_train_pro, y=y_train_pro, **kws)
+    solution_path = solve_path(X=X_train_pro, y=y_train_pro,
+                               **fit_params_tr, **kws)
 
     for fit_out, param in solution_path:
 

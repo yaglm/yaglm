@@ -1,6 +1,6 @@
 from ya_glm.glm_loss.linear_regression import LinRegMixin
 from ya_glm.glm_loss.linear_regression_multi_resp import \
-    LinRegMultiResponseMixin
+    LinRegMultiRespMixin
 from ya_glm.autoassign import autoassign
 
 
@@ -17,7 +17,7 @@ class HuberRegMixin(LinRegMixin):
         return loss_type, loss_kws
 
 
-class HuberRegMultiResponseMixin(LinRegMultiResponseMixin):
+class HuberRegMultiRespMixin(LinRegMultiRespMixin):
     is_multi_resp = True
 
     @autoassign

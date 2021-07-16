@@ -32,6 +32,7 @@ class WL1SolverGlm(_WL1SolverGlm):
                            loss_func=self.glm_loss,
 
                            loss_kws=self.loss_kws,
+                           sample_weight=self.sample_weight,
                            fit_intercept=self.fit_intercept,
                            lasso_pen=1,
                            lasso_weights=L1_weights,

@@ -39,7 +39,7 @@ class GlmRidge(Glm):
 
         return kws
 
-    def _get_pen_val_max_from_pro(self, X, y):
+    def _get_pen_val_max_from_pro(self, X, y, sample_weight=None):
         loss_func, loss_kws = self.get_loss_info()
 
         if self.tikhonov is None:
@@ -48,6 +48,7 @@ class GlmRidge(Glm):
                                loss_func=loss_func,
                                loss_kws=loss_kws,
                                weights=self.weights,
+                               sample_weight=sample_weight,
                                targ_ubd=1,
                                norm_by_dim=True)
 

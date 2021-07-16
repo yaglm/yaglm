@@ -3,7 +3,7 @@ from scipy.sparse import diags, block_diag, csr_matrix
 
 
 def get_lin_prog_data(X, y, fit_intercept=True, quantile=0.5, lasso_pen=1,
-                      sample_weights=None,
+                      sample_weight=None,
                       lasso_weights=None):
     """
     Gets the data needed for the linear program.
@@ -18,10 +18,10 @@ def get_lin_prog_data(X, y, fit_intercept=True, quantile=0.5, lasso_pen=1,
     # TODO: perhaps filter zero sample weights as in https://github.com/scikit-learn/scikit-learn/blob/0d064cfd4eda6dd4f7c8711a4870d2f02fda52fb/sklearn/linear_model/_quantile.py#L195-L209
 
     # format sample weights vec
-    if sample_weights is None:
-        sample_weights = np.ones(n_samples) / n_samples
+    if sample_weight is None:
+        sample_weight = np.ones(n_samples) / n_samples
     else:
-        sample_weights = np.array(sample_weights).copy() / n_samples
+        sample_weight = np.array(sample_weight).copy() / n_samples
 
     # format the L1_vec
     if lasso_weights is None:
@@ -44,8 +44,8 @@ def get_lin_prog_data(X, y, fit_intercept=True, quantile=0.5, lasso_pen=1,
 
     c = [
         lasso_pen * L1_vec,
-        sample_weights * quantile,
-        sample_weights * (1 - quantile),
+        sample_weight * quantile,
+        sample_weight * (1 - quantile),
     ]
 
     if fit_intercept:

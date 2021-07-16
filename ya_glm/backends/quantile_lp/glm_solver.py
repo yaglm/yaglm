@@ -9,6 +9,7 @@ def solve_glm(X, y,
               loss_func='quantile',
               loss_kws={},
               fit_intercept=True,
+              sample_weight=None,
 
               lasso_pen=None,
               lasso_weights=None,
@@ -52,7 +53,7 @@ def solve_glm(X, y,
            'quantile': quantile,
            'lasso_pen': lasso_pen,
            'lasso_weights': lasso_weights,
-           # 'sample_weights': None,  # TODO: add
+           'sample_weight': sample_weight,  # TODO: add
            **solver_kws}
 
     if ridge_pen is None:

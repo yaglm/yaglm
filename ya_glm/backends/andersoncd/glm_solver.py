@@ -13,9 +13,11 @@ def solve_glm(X, y,
               loss_func='lin_reg',
               loss_kws={},
               fit_intercept=True,
+              sample_weight=None,
 
               lasso_pen=None,
               lasso_weights=None,
+
 
               # groups=None,
               # L1to2=False,
@@ -30,6 +32,9 @@ def solve_glm(X, y,
               max_iter=20, max_epochs=50000,
               p0=10, verbose=0, tol=1e-4, prune=0,
               return_n_iter=False):
+
+    if sample_weight is not None:
+        raise NotImplementedError("need to add")
 
     X = check_array(X, 'csc', dtype=[np.float64, np.float32],
                     order='F', copy=False, accept_large_sparse=False)

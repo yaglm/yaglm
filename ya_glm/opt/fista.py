@@ -116,11 +116,11 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
         return x_new, step, bt_iter
 
     # setup values
-    value = deepcopy(np.array(init_val))
-    value_prev = deepcopy(value)
+    value = np.array(init_val)
+    value_prev = value.copy()
     if accel:
-        value_aux = deepcopy(value)
-        value_aux_prev = deepcopy(value)
+        value_aux = value.copy()
+        value_aux_prev = value.copy()
         t, t_prev = 1, 1
 
     else:
@@ -221,7 +221,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
         if x_stop or obj_stop:
             break
         else:
-            value_prev = deepcopy(value)
+            value_prev = value.copy()
             if accel:
                 value_aux_prev = value_aux
                 t_prev = deepcopy(t)

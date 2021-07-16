@@ -2,8 +2,8 @@ import numpy as np
 from scipy.linalg import svd
 
 from ya_glm.opt.base import Func
-from ya_glm.opt.utils import decat_coef_inter_mat
-from ya_glm.opt.GroupLasso import euclid_norm, L2_prox
+from ya_glm.opt.utils import decat_coef_inter_mat, euclid_norm
+from ya_glm.opt.penalty.GroupLasso import L2_prox
 
 
 class MatWithIntercept(Func):

@@ -15,7 +15,7 @@ class ENetCVPathMixin(CVPathMixin):
         """
         raise NotImplementedError
 
-    def _run_cv(self, estimator, X, y=None, cv=None):
+    def _run_cv(self, estimator, X, y=None, cv=None, fit_params=None):
         # TODO: see if we can simplify this with self.get_tuning_sequence()
 
         # setup CV
@@ -44,6 +44,7 @@ class ENetCVPathMixin(CVPathMixin):
                                 fold_iter=cv.split(X, y),
                                 fit_and_score_path=fit_and_score_path,
                                 kws=kws,
+                                fit_params=fit_params,
                                 include_spilt_vals=False,  # maybe make this True?
                                 add_params=False,
                                 n_jobs=self.cv_n_jobs,
@@ -83,6 +84,7 @@ class ENetCVPathMixin(CVPathMixin):
                             fold_iter=cv.split(X, y),
                             fit_and_score_path=fit_and_score_path,
                             kws=kws,
+                            fit_params=fit_params,
                             include_spilt_vals=False,  # maybe make this True?
                             add_params=False,
                             n_jobs=self.cv_n_jobs,

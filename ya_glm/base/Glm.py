@@ -1,7 +1,8 @@
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
-from sklearn.utils.validation import check_array, FLOAT_DTYPES
+from sklearn.utils.validation import check_array, _check_sample_weight, \
+    FLOAT_DTYPES
 from scipy.linalg import svd
 
 import numpy as np
@@ -9,7 +10,7 @@ from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
 from ya_glm.processing import process_X, deprocess_fit
-from ya_glm.opt.GroupLasso import euclid_norm
+from ya_glm.opt.utils import euclid_norm
 
 
 _glm_base_params = dedent("""
@@ -33,7 +34,7 @@ class Glm(BaseEstimator):
     def __init__(self, fit_intercept=True, standardize=False, opt_kws={}):
         pass
 
-    def fit(self, X, y):
+    def fit(self, X, y, sample_weight=None):
         """
         Fits the GLM.
 
@@ -44,22 +45,32 @@ class Glm(BaseEstimator):
 
         y: array-like, shape (n_samples, )
             The training response data.
+
+        sample_weight: None or array-like,  shape (n_samples,)
+            Individual weights for each sample.
         """
 
-        X, y = self._validate_data(X, y)
+        X, y, sample_weight = self._validate_data(X, y,
+                                                  sample_weight=sample_weight)
 
         # TODO: do we want to give the user the option to not copy?
-        X, y, pre_pro_out = self.preprocess(X, y, copy=True)
+        X, y, pre_pro_out = self.preprocess(X=X, y=y,
+                                            sample_weight=sample_weight,
+                                            copy=True)
+
+        kws = self._get_solve_kws()
+        if sample_weight is not None:
+            kws['sample_weight'] = sample_weight
 
         coef, intercept, out_data = self.solve_glm(X=X, y=y,
-                                                   **self._get_solve_kws())
+                                                   **kws)
 
         self._set_fit(fit_out={'coef': coef, 'intercept': intercept,
                                'opt_data': out_data},
                       pre_pro_out=pre_pro_out)
         return self
 
-    def _validate_data(self, X, y, accept_sparse=False):
+    def _validate_data(self, X, y, sample_weight=None, accept_sparse=True):
         """
         Validates the X/y data. This should not change the raw input data, but may reformat the data (e.g. convert pandas to numpy).
 
@@ -76,6 +87,10 @@ class Glm(BaseEstimator):
         X = check_array(X, accept_sparse=accept_sparse,
                         dtype=FLOAT_DTYPES)
 
+        if sample_weight is not None:
+            sample_weight = _check_sample_weight(sample_weight, X,
+                                                 dtype=X.dtype)
+
         # make sure y is numpy and of same dtype as X
         y = np.asarray(y, dtype=X.dtype)
 
@@ -83,11 +98,11 @@ class Glm(BaseEstimator):
         if y.shape[0] != X.shape[0]:
             raise ValueError("X and y must have the same number of rows!")
 
-        return X, y
+        return X, y, sample_weight
 
-    def preprocess(self, X, y, copy=True):
+    def preprocess(self, X, y, sample_weight=None, copy=True):
         """
-        Preprocesses the data for fitting. This method may transform the data e.g. centering and scaling X.
+        Preprocesses the data for fitting. This method may transform the data e.g. centering and scaling X. If sample weights are provided then these are used for computing weighted means / standard deviations for standardization.
 
         Parameters
         ----------
@@ -96,6 +111,9 @@ class Glm(BaseEstimator):
 
         y: array-like, shape (n_samples, ) or (n_samples, n_responses)
             The response data.
+
+        sample_weight: None or array-like,  shape (n_samples,)
+            Individual weights for each sample.
 
         copy: bool
             Whether or not to copy the X/y arrays or modify them in place.
@@ -113,37 +131,21 @@ class Glm(BaseEstimator):
         pro_pro_out: dict
             Data from preprocessing e.g. X_center, X_scale.
         """
+        groups = self.groups if hasattr(self, 'groups') else None
 
         X, out = process_X(X,
                            standardize=self.standardize,
-                           groups=self._get_groups(),
+                           groups=groups,
+                           sample_weight=sample_weight,
                            copy=copy,
                            check_input=False,
                            accept_sparse=False,  # TODO!
                            allow_const_cols=not self.fit_intercept)
 
-        y, y_out = self._process_y(y, copy=copy)
+        y, y_out = self._process_y(y, sample_weight=sample_weight, copy=copy)
         out.update(y_out)
 
         return X, y, out
-
-    # TODO: do we want this?
-    # def _maybe_get(self, param):
-    #     """
-    #     Safely gets an attribute that may not exist (e.g. like self.param). Returns None if the object does not have the attribute.
-    #     """
-    #     if hasattr(self, param):
-    #         return self.__dict__[param]
-    #     else:
-    #         return None
-    def _get_groups(self):
-        """
-        Safely gets an attribute that may not exist (e.g. like self.param). Returns None if the object does not have the attribute.
-        """
-        if hasattr(self, 'groups'):
-            return self.groups
-        else:
-            return None
 
     def _set_fit(self, fit_out, pre_pro_out):
         """
@@ -221,7 +223,7 @@ class Glm(BaseEstimator):
     def _more_tags(self):
         return {'requires_y': True}
 
-    def get_pen_val_max(self, X, y):
+    def get_pen_val_max(self, X, y, sample_weight=None):
         """
         Returns the largest reasonable penalty parameter for the processed data.
 
@@ -233,13 +235,20 @@ class Glm(BaseEstimator):
         y: array-like, shape (n_samples, )
             The training response data.
 
+        sample_weight: None or array-like,  shape (n_samples,)
+            Individual weights for each sample.
+
         Output
         ------
         pen_val_max: float
             Largest reasonable tuning parameter value.
         """
-        X_pro, y_pro, _ = self.preprocess(X, y, copy=True)
-        return self._get_pen_val_max_from_pro(X_pro, y_pro)
+        X_pro, y_pro, _ = self.preprocess(X, y,
+                                          sample_weight=sample_weight,
+                                          copy=True)
+
+        return self._get_pen_val_max_from_pro(X_pro, y_pro,
+                                              sample_weight=sample_weight)
 
     def _get_penalty_kind(self):
         """
@@ -295,12 +304,18 @@ class Glm(BaseEstimator):
 
         return transform
 
-    def _process_y(self, y, copy=True):
+    def _process_y(self, y, sample_weight=None, copy=True):
         """
         Parameters
         ---------
         y: array-like, shape (n_samples, ) or (n_samples, n_responses)
             The response data.
+
+        sample_weight: None or array-like,  shape (n_samples,)
+            Individual weights for each sample
+
+        copy: bool
+            Whether or not to copy the X/y arrays or modify them in place.
 
         Output
         ------
@@ -315,7 +330,7 @@ class Glm(BaseEstimator):
         """
         raise NotImplementedError
 
-    def _get_pen_val_max_from_pro(self, X, y):
+    def _get_pen_val_max_from_pro(self, X, y, sample_weight=None):
         """
         Computes the largest reasonable tuning parameter value.
         """

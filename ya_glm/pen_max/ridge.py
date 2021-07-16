@@ -2,7 +2,7 @@ import numpy as np
 from ya_glm.linalg_utils import smallest_sval
 
 
-def get_pen_max(X, y, fit_intercept=True,
+def get_pen_max(X, y, fit_intercept=True, sample_weight=None,
                 weights=None,
                 loss_func='lin_reg', loss_kws={},
                 targ_ubd=1, norm_by_dim=True):
@@ -38,13 +38,17 @@ def get_pen_max(X, y, fit_intercept=True,
     """
 
     if loss_func == 'lin_reg':
-        return lin_reg_ridge_max(X, y, fit_intercept,
+        return lin_reg_ridge_max(X, y,
+                                 fit_intercept=fit_intercept,
+                                 sample_weight=sample_weight,
                                  targ_ubd=targ_ubd,
                                  weights=weights,
                                  norm_by_dim=norm_by_dim)
 
     elif loss_func == 'log_reg':
-        return log_reg_ridge_max(X, y, fit_intercept,
+        return log_reg_ridge_max(X, y,
+                                 fit_intercept=fit_intercept,
+                                 sample_weight=sample_weight,
                                  targ_ubd=targ_ubd,
                                  weights=weights,
                                  norm_by_dim=norm_by_dim)
@@ -53,7 +57,8 @@ def get_pen_max(X, y, fit_intercept=True,
         raise NotImplementedError('{} not supported'.format(loss_func))
 
 
-def lin_reg_ridge_max(X, y, fit_intercept=True, weights=None,
+def lin_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
+                      weights=None,
                       targ_ubd=1, norm_by_dim=True):
     """
     Computes a default value for the largest ridge penalty value to try.
@@ -102,6 +107,9 @@ def lin_reg_ridge_max(X, y, fit_intercept=True, weights=None,
     """
     # TODO: normalize is a bad name here -- change this name
 
+    if sample_weight is not None:
+        raise NotImplementedError('TODO')
+
     if weights is not None:
         raise NotImplementedError
 
@@ -130,7 +138,8 @@ def lin_reg_ridge_max(X, y, fit_intercept=True, weights=None,
         return scaled_prod - eval_min
 
 
-def log_reg_ridge_max(X, y, fit_intercept=True, weights=None,
+def log_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
+                      weights=None,
                       targ_ubd=1, norm_by_dim=True):
     """
     This is my best guess for a reasonable default largest ridge penalty value for logistic
@@ -173,6 +182,9 @@ def log_reg_ridge_max(X, y, fit_intercept=True, weights=None,
         The defualt largest ridge penalty value to use.
 
     """
+    if sample_weight is not None:
+        raise NotImplementedError('TODO')
+
     if fit_intercept:
         p = np.mean(y)
     else:

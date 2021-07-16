@@ -55,7 +55,7 @@ class GlmCV(CVSlectMixin, BaseEstimator):
                  cv_pre_dispatch='2*n_jobs'):
         pass
 
-    def fit(self, X, y):
+    def fit(self, X, y, sample_weight=None):
         """
         Runs cross-validation then refits the GLM with the selected tuning parameter.
 
@@ -66,19 +66,32 @@ class GlmCV(CVSlectMixin, BaseEstimator):
 
         y: array-like, shape (n_samples, )
             The training response data.
+
+        sample_weight: None or array-like,  shape (n_samples,)
+            Individual weights for each sample.
         """
 
         # check the input data
         self._check_base_estimator(self.estimator)
         est = clone(self.estimator)
-        X, y = est._validate_data(X, y)
+        X, y, sample_weight = est._validate_data(X, y,
+                                                 sample_weight=sample_weight)
 
         # set up the tuning parameter values using the processed data
-        self._set_tuning_values(X=X, y=y)
+        self._set_tuning_values(X=X, y=y, sample_weight=sample_weight)
+
+        # maybe add sample weight to fit params
+        if sample_weight is not None:
+            fit_params = {'sample_weight': sample_weight}
+        else:
+            fit_params = None
 
         # run cross-validation on the raw data
         start_time = time()
-        self.cv_results_ = self._run_cv(estimator=est, X=X, y=y, cv=self.cv)
+        self.cv_results_ = \
+            self._run_cv(estimator=est, X=X, y=y, cv=self.cv,
+                         fit_params=fit_params)
+
         self.cv_data_ = {'cv_runtime':  time() - start_time}
 
         # select best tuning parameter values
@@ -90,7 +103,7 @@ class GlmCV(CVSlectMixin, BaseEstimator):
 
         # refit on the raw data
         start_time = time()
-        self.best_estimator_ = est.fit(X, y)
+        self.best_estimator_ = est.fit(X, y, sample_weight=sample_weight)
         self.cv_data_['refit_runtime'] = time() - start_time
 
         return self
@@ -127,7 +140,7 @@ class GlmCV(CVSlectMixin, BaseEstimator):
         """
         raise NotImplementedError
 
-    def _set_tuning_values(self, X, y):
+    def _set_tuning_values(self, X, y, **kws):
         """
         Sets the tuning parameter sequence from the transformed data.
 
@@ -138,6 +151,9 @@ class GlmCV(CVSlectMixin, BaseEstimator):
 
         y: array-like, shape (n_samples, )
             The processed training response data.
+
+        **kws:
+            Additional keyword arguments.
         """
         # subclass should overwrite
         raise NotImplementedError
@@ -182,11 +198,13 @@ class GlmCVSinglePen(GlmCV):
                  ):
         pass
 
-    def _set_tuning_values(self, X, y):
+    def _set_tuning_values(self, X, y, sample_weight=None):
         if self.pen_vals is None:
-            pen_val_max = self.estimator.get_pen_val_max(X, y)
+            pen_val_max = self.estimator.\
+                get_pen_val_max(X=X, y=y, sample_weight=sample_weight)
         else:
             pen_val_max = None
+
         self._set_tune_from_pen_max(pen_val_max=pen_val_max)
 
     def _set_tune_from_pen_max(self, pen_val_max=None):
@@ -283,9 +301,10 @@ class GlmCVENet(GlmCVSinglePen):
         else:
             return True
 
-    def _set_tuning_values(self, X, y):
+    def _set_tuning_values(self, X, y, sample_weight=None):
         if self.pen_vals is None:
-            enet_pen_max = self.estimator.get_pen_val_max(X, y)
+            enet_pen_max = self.estimator.\
+                get_pen_val_max(X, y, sample_weight=sample_weight)
             lasso_pen_max = enet_pen_max * self.estimator.l1_ratio
         else:
             lasso_pen_max = None

@@ -17,7 +17,7 @@ class MultinomialMixin(LinearClassifierMixin):
 
         return loss_type, loss_kws
 
-    def _process_y(self, y, copy=True):
+    def _process_y(self, y, sample_weight=None, copy=True):
         return process_y_multinomial(y, check_input=True)
 
     def decision_function(self, X):

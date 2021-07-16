@@ -1,5 +1,5 @@
 from ya_glm.lla.utils import safe_concat
-from ya_glm.backends.fista.glm_solver import get_glm_loss
+from ya_glm.opt.glm_loss.get import get_glm_loss
 
 
 class BaseWeightedLassoSolver(object):
@@ -56,19 +56,21 @@ class WL1SolverGlm(BaseWeightedLassoSolver):
     solve_glm = None
 
     def __init__(self, X, y, loss_func, loss_kws,
-                 fit_intercept, solver_kws={}):
+                 fit_intercept, sample_weight=None, solver_kws={}):
 
         self.X = X
         self.y = y
         self.loss_func = loss_func
         self.loss_kws = loss_kws
         self.fit_intercept = fit_intercept
+        self.sample_weight = sample_weight
         self.solver_kws = solver_kws
 
         self.glm_loss = get_glm_loss(X=X, y=y,
                                      loss_func=loss_func,
                                      loss_kws=loss_kws,
-                                     fit_intercept=fit_intercept)
+                                     fit_intercept=fit_intercept,
+                                     sample_weight=sample_weight)
 
     def solve(self, L1_weights, opt_init=None, opt_init_upv=None):
         """
@@ -94,6 +96,7 @@ class WL1SolverGlm(BaseWeightedLassoSolver):
                            loss_func=self.loss_func,
                            loss_kws=self.loss_kws,
                            fit_intercept=self.fit_intercept,
+                           sample_weight=self.sample_weight,
                            lasso_pen=1,
                            lasso_weights=L1_weights,
                            coef_init=opt_init,
