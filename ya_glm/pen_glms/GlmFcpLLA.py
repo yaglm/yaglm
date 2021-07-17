@@ -1,4 +1,4 @@
-# from textwrap import dedent
+from textwrap import dedent
 
 from ya_glm.base.Glm import Glm
 from ya_glm.base.GlmWithInit import GlmWithInitMixin
@@ -11,21 +11,54 @@ from ya_glm.lla.lla import solve_lla
 from ya_glm.opt.penalty.concave_penalty import get_penalty_func
 from ya_glm.init_signature import add_from_classes, keep_agreeable
 from ya_glm.utils import maybe_add
-from ya_glm.processing import check_estimator_type
+from ya_glm.processing import check_estimator_type, process_init_data
 
-# _lla_params = dedent("""
-# lla_n_steps: int
-#     Maximum number of LLA steps to take.
 
-# lla_kws: dict
-#     Key word arguments to LLA algorithm. See TODO.
-# """)
+_glm_fcp_lla__params = dedent("""
+pen_val: float
+    The penalty value for the concave penalty.
+
+pen_func: str
+    The concave penalty function.
+
+pen_func_kws: dict
+    Keyword arguments for the concave penalty function e.g. 'a' for the SCAD function.
+
+init: str, estimator, dict with key ['coef', 'intercept'].
+    Where the LLA algorithm is initialized from. If a fitted estimator or dict is provided the initial values will be exctracted. If an unfitted estimator is provided the estimator will be fitted from the data. If 'default' then a default initializer will be used.
+
+lla_n_steps: int
+    Number of LLA steps to take from the initializer.
+
+lla_kws: dict
+    Additional keyword arguments to self.solve_lla.
+
+groups: None, list of ints
+    Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
+
+ridge_pen_val: None, float
+    Penalty strength for an optional ridge penalty.
+
+ridge_weights: None, array-like shape (n_featuers, )
+    Optional features weights for the ridge peanlty.
+
+tikhonov: None, array-like (K, n_features)
+    Optional tikhonov matrix for the ridge penalty. Both tikhonov and ridge weights cannot be provided at the same time.
+
+adpt_weights: None, array-like
+    Optional user specified adpative weights that are used instead of determining them from 'init'. These are the exact weights used and will not be be processed (e.g. scaled if standardization is used).
+
+    """)
 
 
 class GlmFcpLLA(GlmWithInitMixin, Glm):
     solve_lla = staticmethod(solve_lla)
     solve_glm = None
     WL1Solver = None  # base class for WL1 solver
+
+    descr = dedent("""
+    Folded concave penalty fit by applying the local linear approximation (LLA) algorithm to a good initializer.
+    """)
 
     @add_from_classes(Glm)
     def __init__(self,
@@ -38,11 +71,31 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
                  groups=None,
                  ): pass
 
-    def compute_fit(self, X, y, init_data, sample_weight=None):
+    def fit(self, X, y, sample_weight=None):
 
-        coef_init = init_data['coef']
-        if self.fit_intercept:
-            intercept_init = init_data['intercept']
+        # validate the data!
+        X, y, sample_weight = self._validate_data(X, y,
+                                                  sample_weight=sample_weight)
+
+        # get data for initialization
+        init_data = self.get_init_data(X, y)
+        if 'est' in init_data:
+            self.init_est_ = init_data['est']
+            del init_data['est']
+
+        # pre-process data
+        X_pro, y_pro, pre_pro_out = self.preprocess(X, y,
+                                                    sample_weight=sample_weight,
+                                                    copy=True)
+
+        # possibly process the init data e.g. shift/scale
+        init_data_pro = process_init_data(init_data=init_data,
+                                          pre_pro_out=pre_pro_out)
+
+        # extract coef / intercept init
+        coef_init = init_data_pro['coef']
+        if self.fit_intercept and 'intercept' in init_data_pro:
+            intercept_init = init_data_pro['intercept']
         else:
             intercept_init = None
 
@@ -53,7 +106,6 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
 
         # Setup weighted L1 solver
         loss_func, loss_kws = self.get_loss_info()
-
         wl1_solver = self.WL1Solver(X=X, y=y,
                                     loss_func=loss_func,
                                     loss_kws=loss_kws,
@@ -63,7 +115,9 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
 
         wl1_solver.solve_glm = self.solve_glm
 
-        # solve!
+        ###############################
+        # Fit with the LLA algorithm! #
+        ###############################
         coef, intercept, opt_data = \
             self.solve_lla(wl1_solver=wl1_solver,
                            penalty_fcn=penalty_func,
@@ -73,7 +127,25 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
                            n_steps=self.lla_n_steps,
                            **self.lla_kws)
 
-        return {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
+        # set the fit
+        fit_out = {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
+        self._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
+        return self
+
+    def get_pen_val_max(self, X, y, init_data=None, sample_weight=None):
+        if init_data is None:
+            init_data = self.get_init_data(X, y, sample_weight=sample_weight)
+
+        X_pro, y_pro, pre_pro_out = self.preprocess(X, y,
+                                                    sample_weight=sample_weight,
+                                                    copy=True)
+
+        init_data_pro = process_init_data(init_data=init_data,
+                                          pre_pro_out=pre_pro_out)
+
+        return self._get_pen_val_max_from_pro(X=X_pro, y=y_pro,
+                                              init_data=init_data_pro,
+                                              sample_weight=sample_weight)
 
     def _get_pen_val_max_from_pro(self, X, y, init_data, sample_weight=None):
 
@@ -149,22 +221,11 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
         return {k: self.__dict__[k] for k in keys}
 
 
-# GlmFcpFitLLA.__doc__ = dedent("""
-#     Generalized linear model penalized by a folded concave penalty and fit with the local linear approximation (LLA) algorithm.
-
-#     Parameters
-#     ----------
-#     {}
-
-#     {}
-
-#     {}
-#     """.format(_glm_base_params, _glm_fcp_base_params, _lla_params)
-# )
-# TODO: better solution than manually adding all of these
-
-
 class GlmFcpLLACV(CVGridSearchMixin, GlmCVWithInitSinglePen):
+
+    descr = dedent("""
+    Tunes the penalty parameter of a concave penalty function fit with the LLA algorithm via cross-validation.
+    """)
 
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmFcpLLA)

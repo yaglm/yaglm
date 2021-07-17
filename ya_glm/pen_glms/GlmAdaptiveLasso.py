@@ -1,4 +1,5 @@
 import numpy as np
+from textwrap import dedent
 
 from ya_glm.base.Glm import Glm
 from ya_glm.base.GlmCVWithInit import GlmCVWithInitSinglePen, GlmCVWithInitENet
@@ -24,25 +25,68 @@ from ya_glm.processing import check_estimator_type, process_init_data
 
 class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
 
-    def compute_fit(self, X, y, init_data, sample_weight=None):
+    def fit(self, X, y, sample_weight=None):
+
+        # get the adaptive weights and preprocessed data
+        adpt_weights, X_pro, y_pro, pre_pro_out, init_data_pro = \
+            self._get_adpt_weights_and_pro_data(X, y, sample_weight)
+
+        ##########################
+        # solve the GLM problem! #
+        ##########################
 
         kws = self._get_solve_kws()
-
-        if self.adpt_weights is None:
-            self.adpt_weights_ = \
-                self._get_adpt_weights_from_pro_init(init_data=init_data,
-                                                     n_samples=X.shape[0])
-
-            kws['lasso_weights'] = self.adpt_weights_
-        else:
-            kws['lasso_weights'] = self.adpt_weights
-
         if sample_weight is not None:
             kws['sample_weight'] = sample_weight
+        kws['lasso_weights'] = adpt_weights
 
         coef, intercept, opt_data = self.solve_glm(X=X, y=y, **kws)
 
-        return {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
+        fit_out = {'coef': coef, 'intercept': intercept, 'opt_data': opt_data}
+        self._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
+        self.adpt_weights_ = adpt_weights
+
+        return self
+
+    def _get_adpt_weights_and_pro_data(self, X, y, sample_weight=None):
+        # validate the data!
+        X, y, sample_weight = self._validate_data(X, y,
+                                                  sample_weight=sample_weight)
+
+        if self.adpt_weights is None:
+
+            # get data for initialization if we have not already provided
+            # the adaptive weights
+            init_data = self.get_init_data(X, y)
+            if 'est' in init_data:
+                self.init_est_ = init_data['est']
+                del init_data['est']
+
+        else:
+            init_data = None
+            adpt_weights = self.adpt_weights
+
+        # pre-process data for fitting
+        X_pro, y_pro, pre_pro_out = self.preprocess(X, y,
+                                                    sample_weight=sample_weight,
+                                                    copy=True)
+
+        if self.adpt_weights is None:
+            # if we have not already provided the adpative weights
+            # then compute them now
+
+            # possibly process the init data e.g. shift/scale
+            init_data_pro = process_init_data(init_data=init_data,
+                                              pre_pro_out=pre_pro_out)
+
+            adpt_weights = \
+                self._get_adpt_weights_from_pro_init(init_data=init_data_pro,
+                                                     n_samples=X.shape[0])
+
+        else:
+            init_data_pro = None
+
+        return adpt_weights, X_pro, y_pro, pre_pro_out, init_data_pro
 
     def _get_adpt_weights_from_pro_init(self, init_data, n_samples=None):
         """
@@ -65,14 +109,14 @@ class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
         weights = penalty_func.grad(t)
         return weights
 
-    def _lasso_get_pen_val_max_from_pro(self, X, y, init_data,
-                                        sample_weight=None):
+    def _get_pen_max_lasso(self, X, y, init_data, sample_weight=None):
+
+        # get the adaptive weights and processed data
+        adpt_weights, X_pro, y_pro, pre_pro_out, init_data_pro = \
+            self._get_adpt_weights_and_pro_data(X, y, sample_weight)
+
         loss_func, loss_kws = self.get_loss_info()
         pen_kind = self._get_penalty_kind()
-
-        adpt_weights = \
-            self._get_adpt_weights_from_pro_init(init_data=init_data,
-                                                 n_samples=X.shape[0])
 
         kws = {'X': X,
                'y': y,
@@ -120,37 +164,69 @@ class AdptCVMixin:
         """
         Sets the adaptive weights parameter.
         """
-        # pre-process data
-        X_pro, y_pro, pre_pro_out = \
-            estimator.preprocess(X, y, sample_weight=sample_weight, copy=True)
 
-        # possibly process the init data e.g. shift/scale
-        init_data_pro = process_init_data(init_data=init_data,
-                                          pre_pro_out=pre_pro_out)
-
-        adpt_weights = estimator.\
-            _get_adpt_weights_from_pro_init(init_data_pro,
-                                            n_samples=X.shape[0])
+        # get the adaptive weights and preprocessed data
+        adpt_weights, X_pro, y_pro, pre_pro_out, init_data_pro = \
+            estimator._get_adpt_weights_and_pro_data(X, y, sample_weight)
 
         estimator.set_params(adpt_weights=adpt_weights)
         self.adpt_weights_ = adpt_weights
         return estimator
 
 
+_glm_adpt_lasso_params = dedent("""
+pen_val: float
+    The penalty value.
+
+pen_func: str
+    The concave function used to determine the adaptive weights.
+
+pen_func_kws: dict
+    Keyword arguments to the function used to determine the adpative weights.
+
+init: str, estimator, dict with key ['coef'].
+    The initial coefficient estimate that is used to determine the adaptive weights. If a fitted estimator or dict is provided the coefficient will be exctracted. If an unfitted estimator is provided the coefficient will be fitted from the data. If 'default' then a default initializer will be used.
+
+pertub_init: None, float, str
+    Possibly add a small value to the absolute values of the initial coefficient. If pertub_init='n_samples' then the purturbation value is 1 / n_samples.
+
+groups: None, list of ints
+    Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
+
+ridge_pen_val: None, float
+    Penalty strength for an optional ridge penalty.
+
+ridge_weights: None, array-like shape (n_featuers, )
+    Optional features weights for the ridge peanlty.
+
+tikhonov: None, array-like (K, n_features)
+    Optional tikhonov matrix for the ridge penalty. Both tikhonov and ridge weights cannot be provided at the same time.
+
+adpt_weights: None, array-like
+    Optional user specified adpative weights that are used instead of determining them from 'init'. These are the exact weights used and will not be be processed (e.g. scaled if standardization is used).
+
+    """)
+
+
 class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
 
     solve_glm = None
 
+    descr = dedent("""
+    Adaptive Lasso or group lasso penalty with an optional ridge penalty.
+    """)
+
     @add_from_classes(Glm)
     def __init__(self,
                  pen_val=1,
-                 pen_func='log',
+                 pen_func='log',  # TODO: is this the name we want?
                  pen_func_kws={},
                  init='default',
                  pertub_init='n_samples',
-                 adpt_weights=None,  # TODO: we do this for tuning, perhaps better solution?
+                 groups=None,
                  ridge_pen_val=None, ridge_weights=None, tikhonov=None,
-                 groups=None): pass
+                 adpt_weights=None,  # TODO: we do this for tuning, perhaps better solution?
+                 ): pass
 
     def _get_solve_kws(self):
         """
@@ -202,13 +278,16 @@ class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
 
         return kws
 
-    def _get_pen_val_max_from_pro(self, X, y, init_data, sample_weight=None):
+    def get_pen_val_max(self, X, y, init_data, sample_weight=None):
         return self.\
-            _lasso_get_pen_val_max_from_pro(X, y, init_data,
-                                            sample_weight=sample_weight)
+            _get_pen_max_lasso(X, y, init_data, sample_weight=sample_weight)
 
 
 class GlmAdaptiveLassoCVPath(AdptCVMixin, CVPathMixin, GlmCVWithInitSinglePen):
+
+    descr = dedent("""
+    Tunes the Adaptive Lasso penalty parameter via cross-validation using a path algorithm.
+    """)
 
     def _get_solve_path_kws(self):
         if not hasattr(self, 'pen_val_seq_'):
@@ -231,12 +310,58 @@ class GlmAdaptiveLassoCVPath(AdptCVMixin, CVPathMixin, GlmCVWithInitSinglePen):
 
 class GlmAdaptiveLassoCVGridSearch(AdptCVMixin, CVGridSearchMixin,
                                    GlmCVWithInitSinglePen):
+
+    descr = dedent("""
+        Tunes the Adaptive Lasso penalty parameter via cross-validation.
+        """)
+
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmAdaptiveLasso)
 
 
+_glm_adpt_enet_params = dedent("""
+pen_val: float
+    The penalty strength (corresponds to lambda in glmnet)
+
+l1_ratio: float
+    The ElasticNet mixing parameter, with ``0 <= l1_ratio <= 1``. For
+        ``l1_ratio = 0`` the penalty is an L2 penalty. ``For l1_ratio = 1`` it
+        is an L1 penalty.  For ``0 < l1_ratio < 1``, the penalty is a
+        combination of L1 and L2.
+
+pen_func: str
+    The concave function used to determine the adaptive weights.
+
+pen_func_kws: dict
+    Keyword arguments to the function used to determine the adpative weights.
+
+init: str, estimator, dict with key ['coef'].
+    The initial coefficient estimate that is used to determine the adaptive weights. If a fitted estimator or dict is provided the coefficient will be exctracted. If an unfitted estimator is provided the coefficient will be fitted from the data. If 'default' then a default initializer will be used.
+
+pertub_init: None, float, str
+    Possibly add a small value to the absolute values of the initial coefficient. If pertub_init='n_samples' then the purturbation value is 1 / n_samples.
+
+groups: None, list of ints
+    Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
+
+ridge_weights: None, array-like shape (n_featuers, )
+    Optional features weights for the ridge peanlty.
+
+tikhonov: None, array-like (K, n_features)
+    Optional tikhonov matrix for the ridge penalty. Both tikhonov and ridge weights cannot be provided at the same time.
+
+adpt_weights: None, array-like
+    Optional user specified adpative weights that are used instead of determining them from 'init'. These are the exact weights used and will not be be processed (e.g. scaled if standardization is used).
+
+    """)
+
+
 class GlmAdaptiveENet(GlmAdaptiveLassoBase):
     solve_glm = None
+
+    descr = dedent("""
+    Adaptive ElasticNet or group ElasticNet.
+    """)
 
     @add_from_classes(Glm)
     def __init__(self,
@@ -245,9 +370,10 @@ class GlmAdaptiveENet(GlmAdaptiveLassoBase):
                  pen_func_kws={},
                  init='default',
                  pertub_init='n_samples',
-                 adpt_weights=None,  # TODO: see above
+                 groups=None,
                  ridge_pen_val=None, ridge_weights=None, tikhonov=None,
-                 groups=None): pass
+                 adpt_weights=None,  # TODO: see above
+                 ): pass
 
     def _get_solve_kws(self):
         """
@@ -304,15 +430,19 @@ class GlmAdaptiveENet(GlmAdaptiveLassoBase):
 
         return kws
 
-    def _get_pen_val_max_from_pro(self, X, y, init_data, sample_weight=None):
-        l1_max = self.\
-            _lasso_get_pen_val_max_from_pro(X, y, init_data,
-                                            sample_weight=sample_weight)
+    def get_pen_val_max(self, X, y, init_data, sample_weight=None):
+        l1_max = self._get_pen_max_lasso(X, y, init_data,
+                                         sample_weight=sample_weight)
+
         return l1_max / self.l1_ratio
 
 
 class GlmAdaptiveENetCVPath(AdptCVMixin, ENetCVPathMixin, GlmCVWithInitENet):
     solve_glm_path = None
+
+    descr = dedent("""
+        Tunes the Adaptive ElasticNet penalty parameter and or the l1_ratio via cross-validation. Makes use of a path algorithm for computing the penalty value tuning path.
+        """)
 
     def _get_solve_path_enet_base_kws(self):
         kws = self.estimator._get_solve_kws()
@@ -332,5 +462,10 @@ class GlmAdaptiveENetCVPath(AdptCVMixin, ENetCVPathMixin, GlmCVWithInitENet):
 
 class GlmAdaptiveENetCVGridSearch(AdptCVMixin, CVGridSearchMixin,
                                   GlmCVWithInitENet):
+
+    descr = dedent("""
+        Tunes the Adaptive ElasticNet penalty parameter and or the l1_ratio via cross-validation.
+        """)
+
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmAdaptiveENet)

@@ -14,6 +14,7 @@ from ya_glm.pen_seq import get_pen_val_seq, get_enet_pen_val_seq, \
 from ya_glm.cv.cv_select import CVSlectMixin  # select_best_cv_tune_param
 
 
+# TODO: move estimator descripting to subclasses
 _cv_params = dedent(
 """
 estimator: estimator object
@@ -251,7 +252,6 @@ GlmCVSinglePen.__doc__ = dedent(
 
 
 _enet_cv_params = dedent("""
-
 l1_ratio: float, str, list
     The l1_ratio value to use. If a float is provided then this parameter is fixed and not tuned over. If l1_ratio='tune' then the l1_ratio is tuned over using an automatically generated tuning parameter sequence. Alternatively, the user may provide a list of l1_ratio values to tune over.
 

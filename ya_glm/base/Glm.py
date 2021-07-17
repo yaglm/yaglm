@@ -15,13 +15,13 @@ from ya_glm.opt.utils import euclid_norm
 
 _glm_base_params = dedent("""
     fit_intercept: bool
-        Whether or not to fit an intercept.
+        Whether or not to fit an intercept. The intercept will not be penalized.
 
     standardize: bool
-        Whether or not to perform internal standardization before fitting the data. Here standardization means mean centering and scaling each column by its standard deviation. Putting each column on the same scale makes sense for fitting penalized models. Note the fitted coefficient/intercept is transformed to be on the original scale of the input data.
+        Whether or not to perform internal standardization before fitting the data. Standardization means mean centering and scaling each column by its standard deviation. For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size). Putting each variable on the same scale makes sense for fitting penalized models. Note the fitted coefficient/intercept is transformed to be on the original scale of the input data.
 
     opt_kws: dict
-        Keyword arguments to the glm solver optimization algorithm.
+        Additional keyword arguments for solve_glm.
     """)
 
 
@@ -102,7 +102,7 @@ class Glm(BaseEstimator):
 
     def preprocess(self, X, y, sample_weight=None, copy=True):
         """
-        Preprocesses the data for fitting. This method may transform the data e.g. centering and scaling X. If sample weights are provided then these are used for computing weighted means / standard deviations for standardization.
+        Preprocesses the data for fitting. This method may transform the data e.g. centering and scaling X. If sample weights are provided then these are used for computing weighted means / standard deviations for standardization. For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size).
 
         Parameters
         ----------
@@ -138,8 +138,8 @@ class Glm(BaseEstimator):
                            groups=groups,
                            sample_weight=sample_weight,
                            copy=copy,
-                           check_input=False,
-                           accept_sparse=False,  # TODO!
+                           check_input=True,
+                           accept_sparse=True,
                            allow_const_cols=not self.fit_intercept)
 
         y, y_out = self._process_y(y, sample_weight=sample_weight, copy=copy)
