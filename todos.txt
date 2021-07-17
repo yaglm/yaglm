@@ -1,28 +1,21 @@
 Need to do
 ----------
 
-- multinomial
-- huber
-- Poisson
-- Gamma
-- max pen val for Tikhonov
-- total variation CV and max pen val
-- extend LLA algorithm to group lasso and nuclear norm
-
 - testing testing testing
 - documentation documentation documentation
 - speed comparison of opt module
 - compare fits to sklearn baseline
 
-- 1se rule for ENet
+- Gamma
+- max pen val for Tikhonov
+- total variation CV and max pen val
 
+- 1se rule for ENet
 
 Eventualy
 ---------
-- sample weights
 - cox
 - cv over other parameters with path algorithms
-- quantile regression (this will require a different default solver -- perhaps cvxpy?)
 - constraints: positive, simplex
 - bulid coordinate descent framework (e.g. based on https://arxiv.org/abs/1410.1386)
 - for cv_scorer figure out how to have custom fit_metrics (e.g. for n_nonzero) instead of the ugly train/test

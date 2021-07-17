@@ -10,5 +10,5 @@ class GlmVanilla(Glm):
                 'loss_kws': loss_kws,
 
                 'fit_intercept': self.fit_intercept,
-                **self.opt_kws,
+                **self.opt_kws
                 }

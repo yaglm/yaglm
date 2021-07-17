@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 from ya_glm.base.Glm import Glm
 from ya_glm.base.GlmCV import GlmCVSinglePen
 from ya_glm.cv.CVPath import CVPathMixin
@@ -9,7 +11,23 @@ from ya_glm.utils import maybe_add
 from ya_glm.processing import check_estimator_type
 
 
+_glm_ridge_params = dedent("""
+pen_val: float
+    The penalty value.
+
+weights: None, array-like shape (n_featuers, )
+    Optional features weights for the ridge peanlty.
+
+tikhonov: None, array-like (K, n_features)
+    Optional tikhonov matrix for the ridge penalty. Both tikhonov and weights cannot be provided at the same time.
+    """)
+
+
 class GlmRidge(Glm):
+
+    descr = dedent("""
+    Ridge penalty.
+    """)
 
     @add_from_classes(Glm)
     def __init__(self, pen_val=1, weights=None, tikhonov=None): pass
@@ -59,6 +77,10 @@ class GlmRidge(Glm):
 
 class GlmRidgeCVPath(CVPathMixin, GlmCVSinglePen):
 
+    descr = dedent("""
+    Tunes the ridge penalty parameter via cross-validation using a path algorithm.
+    """)
+
     def _get_solve_path_kws(self):
         if not hasattr(self, 'pen_val_seq_'):
             raise RuntimeError("pen_val_seq_ has not yet been set")
@@ -73,6 +95,10 @@ class GlmRidgeCVPath(CVPathMixin, GlmCVSinglePen):
 
 
 class GlmRidgeCVGridSearch(CVGridSearchMixin, GlmCVSinglePen):
+
+    descr = dedent("""
+    Tunes the ridge penalty parameter via cross-validation.
+    """)
 
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmRidge)

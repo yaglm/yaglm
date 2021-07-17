@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 from ya_glm.base.Glm import Glm
 from ya_glm.base.GlmCV import GlmCVSinglePen, GlmCVENet
 from ya_glm.cv.CVPath import CVPathMixin
@@ -11,12 +13,41 @@ from ya_glm.utils import maybe_add, lasso_and_ridge_from_enet
 from ya_glm.processing import check_estimator_type
 
 
+_glm_lasso_params = dedent("""
+pen_val: float
+    The penalty value.
+
+lasso_weights: None, array-like
+    Optional weights to put on each term in the penalty.
+
+groups: None, list of ints
+    Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
+
+ridge_pen_val: None, float
+    Penalty strength for an optional ridge penalty.
+
+ridge_weights: None, array-like shape (n_featuers, )
+    Optional features weights for the ridge peanlty.
+
+tikhonov: None, array-like (K, n_features)
+    Optional tikhonov matrix for the ridge penalty. Both tikhonov and ridge weights cannot be provided at the same time.
+    """)
+
+
 class GlmLasso(Glm):
 
+    descr = dedent("""
+        Lasso or group lasso penalty with an optional ridge penalty.
+        """)
+
+    descr_mr = dedent("""
+        Lasso, group lasso, multi-task lasso or nuclear norm penalty with an optional ridge penalty.
+        """)
+
     @add_from_classes(Glm)
-    def __init__(self, pen_val=1, lasso_weights=None,
-                 ridge_pen_val=None, ridge_weights=None, tikhonov=None,
-                 groups=None): pass
+    def __init__(self, pen_val=1, lasso_weights=None, groups=None,
+                 ridge_pen_val=None, ridge_weights=None, tikhonov=None
+                 ): pass
 
     def _get_solve_kws(self):
         """
@@ -89,6 +120,10 @@ class GlmLasso(Glm):
 
 class GlmLassoCVPath(CVPathMixin, GlmCVSinglePen):
 
+    desrc = dedent("""
+        Tunes the lasso penalty parameter via cross-validation using a path algorithm.
+        """)
+
     def _get_solve_path_kws(self):
         if not hasattr(self, 'pen_val_seq_'):
             raise RuntimeError("pen_val_seq_ has not yet been set")
@@ -103,11 +138,52 @@ class GlmLassoCVPath(CVPathMixin, GlmCVSinglePen):
 
 
 class GlmLassoCVGridSearch(CVGridSearchMixin, GlmCVSinglePen):
+    desrc = dedent("""
+    Tunes the lasso penalty parameter via cross-validation.
+    """)
+
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmLasso)
 
 
+_glm_lasso_params = dedent("""
+pen_val: float
+    The penalty strength (corresponds to lambda in glmnet)
+
+l1_ratio: float
+    The ElasticNet mixing parameter, with ``0 <= l1_ratio <= 1``. For
+        ``l1_ratio = 0`` the penalty is an L2 penalty. ``For l1_ratio = 1`` it
+        is an L1 penalty.  For ``0 < l1_ratio < 1``, the penalty is a
+        combination of L1 and L2.
+
+lasso_weights: None, array-like
+    Optional weights to put on each term in the penalty.
+
+groups: None, list of ints
+    Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
+
+tikhonov: None, array-like (K, n_features)
+    Optional tikhonov matrix for the ridge penalty.
+    """)
+
+
 class GlmENet(Glm):
+
+    descr = dedent("""
+        Elastic net penalty
+
+        pen_val * (l1_ratio) Lasso(coef) + pen_val * (1 - l1_ratio) * Ridge(coef)
+
+        where Lasso(coef) is either the Lasso or group Lasso penalty.
+        """)
+
+    descr_mr = dedent("""
+        Elastic net penalty
+
+        pen_val * (l1_ratio) Lasso(coef) + pen_val * (1 - l1_ratio) * Ridge(coef)
+
+        where Lasso(coef) is either the Lasso, group Lasso, multi-task Lasso or nuclear norm.
+        """)
 
     @add_from_classes(Glm)
     def __init__(self, pen_val=1, l1_ratio=0.5,
@@ -192,6 +268,10 @@ class GlmENet(Glm):
 class GlmENetCVPath(ENetCVPathMixin, GlmCVENet):
     solve_glm_path = None
 
+    desrc = dedent("""
+        Tunes the ElasticNet penalty parameter and or the l1_ratio via cross-validation. Makes use of a path algorithm for computing the penalty value tuning path.
+        """)
+
     def _get_solve_path_enet_base_kws(self):
         kws = self.estimator._get_solve_kws()
         del kws['lasso_pen']
@@ -203,5 +283,10 @@ class GlmENetCVPath(ENetCVPathMixin, GlmCVENet):
 
 
 class GlmENetCVGridSearch(CVGridSearchMixin, GlmCVSinglePen):
+
+    desrc = dedent("""
+        Tunes the ElasticNet penalty parameter and or the l1_ratio via cross-validation.
+        """)
+
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmENet)
