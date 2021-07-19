@@ -294,6 +294,7 @@ class Glm(BaseEstimator):
         """
 
         n_kinds = 0
+        # TODO: perhaps give option for vanilla
         kind = 'entrywise'  # default
 
         if hasattr(self, 'groups') and self.groups is not None:

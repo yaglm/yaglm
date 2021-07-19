@@ -119,6 +119,10 @@ def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
     return X, out
 
 
+def process_groups(groups, n_features):
+    return [np.array(grp_idxs).astype(int) for grp_idxs in groups]
+
+
 def deprocess_fit(coef, intercept, pre_pro_out, fit_intercept):
     """
     The X may be centered and scaled and the y data may be centered before fitting. This function undoes the processing on the fit coefficient/intercept so the new coef/intercept match the scale of the original data.
