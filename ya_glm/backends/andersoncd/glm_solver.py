@@ -20,7 +20,7 @@ def solve_glm(X, y,
 
 
               # groups=None,
-              # L1to2=False,
+              # multi_task=False,
               # nuc=False,
               ridge_pen=None,
               # ridge_weights=None,
@@ -47,7 +47,7 @@ def solve_glm(X, y,
     #            lasso_pen=lasso_pen,
     #            lasso_weights=lasso_weights,
     #            groups=groups,
-    #            L1to2=L1to2,
+    #            multi_task=multi_task,
     #            nuc=nuc,
     #            ridge_pen=ridge_pen,
     #            ridge_weights=ridge_weights,
@@ -100,7 +100,7 @@ def solve_glm_path(X, y,
                    lasso_pen=None,
                    lasso_weights=None,
                    # groups=None,
-                   # L1to2=False,
+                   # multi_task=False,
                    # nuc=False,
                    ridge_pen=None,
                    # ridge_weights=None,
@@ -138,7 +138,7 @@ def solve_glm_path(X, y,
     #            lasso_pen=temp_lasso_pen,
     #            lasso_weights=lasso_weights,
     #            groups=groups,
-    #            L1to2=L1to2,
+    #            multi_task=multi_task,
     #            nuc=nuc,
     #            ridge_pen=temp_ridge_pen,
     #            ridge_weights=ridge_weights,
@@ -203,7 +203,7 @@ def solve_glm_path(X, y,
 #                lasso_pen,
 #                lasso_weights,
 #                groups,
-#                L1to2,
+#                multi_task,
 #                nuc,
 #                ridge_pen,
 #                ridge_weights,
@@ -222,8 +222,8 @@ def solve_glm_path(X, y,
 #     if groups is not None:
 #         raise NotImplementedError("groups is not supported")
 
-#     if L1to2:
-#         raise NotImplementedError("L1to2 is not yet supported")
+#     if multi_task:
+#         raise NotImplementedError("multi_task is not yet supported")
 
 #     if nuc:
 #         raise NotImplementedError("nuc is not yet supported")

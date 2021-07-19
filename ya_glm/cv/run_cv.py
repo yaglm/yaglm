@@ -1,79 +1,45 @@
-from functools import partial
 import numpy as np
 from joblib import Parallel, delayed
 from itertools import product
-from sklearn.model_selection._split import check_cv
-from sklearn.base import is_classifier, clone
 from sklearn.utils.validation import _check_fit_params
+from sklearn.model_selection import GridSearchCV
+
+from ya_glm.cv.cv_select import add_se
 
 
-class CVPathMixin:
+def run_cv_grid(X, y, estimator, param_grid, cv,
+                scoring=None, fit_params=None,
+                n_jobs=None, verbose=0, pre_dispatch='2*n_jobs'):
     """
-    solve_glm_path
+    Runs cross-validation using sklearn.model_selection.GridSearchCV.
+    Mostly see documentation of GridSearchCV
+
+    Parameters
+    ----------
+    TODO
+
+    Output
+    ------
+    cv_results: dict
     """
+    cv_est = GridSearchCV(estimator=estimator,
+                          param_grid=param_grid,
+                          scoring=scoring,
+                          n_jobs=n_jobs,
+                          refit=False,
+                          cv=cv,
+                          verbose=verbose,
+                          pre_dispatch=pre_dispatch,
+                          error_score=np.nan,
+                          return_train_score=True)
 
-    def _fit_and_score_path_getter(self, estimator):
+    fit_params = fit_params if fit_params is not None else {}
+    cv_est.fit(X, y, **fit_params)
 
-        # get the correct fit and score method
-        est = clone(estimator)
-        def est_from_fit(fit_out, pre_pro_out):
-            est._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
-            return est
-
-        if hasattr(est, 'preprocess'):
-            preprocess = est.preprocess
-        else:
-            preprocess = None
-
-        fit_and_score_path = partial(score_from_fit_path,
-                                     solve_path=self.solve_glm_path,
-                                     est_from_fit=est_from_fit,
-                                     scorer=self.cv_scorer,
-                                     preprocess=preprocess)
-
-        return fit_and_score_path
-
-    def _run_cv(self, estimator, X, y=None, cv=None, fit_params=None):
-
-        # setup CV
-        cv = check_cv(cv, y, classifier=is_classifier(estimator))
-
-        # setup path fitting function
-        fit_and_score_path = self._fit_and_score_path_getter(estimator)
-
-        cv_results, _ = \
-            run_cv_path(X=X, y=y,
-                        fold_iter=cv.split(X, y),
-                        fit_and_score_path=fit_and_score_path,
-                        kws=self._get_solve_path_kws(),
-                        fit_params=fit_params,
-                        include_spilt_vals=True,  # TODO: maybe give option for this?
-                        add_params=False,
-                        n_jobs=self.cv_n_jobs,
-                        verbose=self.cv_verbose,
-                        pre_dispatch=self.cv_pre_dispatch)
-
-        # add parameter sequence to CV results
-        # this allows us to pass fit_path a one parameter sequence
-        # while cv_results_ uses different names
-        param_seq = self.get_tuning_sequence()
-        cv_results = add_params_to_cv_results(param_seq=param_seq,
-                                              cv_results=cv_results)
-
-        return cv_results
-
-    def _get_solve_path_kws(self):
-        """
-        The solve path function will be call as
-
-        solve_path(X=X, y=y, **kws)
-
-        Output
-        ------
-        kws: dict
-            All keyword arguments for computing the path.
-        """
-        raise NotImplementedError
+    cv_results = add_se(cv_est.cv_results_)
+    # TODO: maybe remove splits
+    # TODO: maybe remove std
+    return cv_results
 
 
 def run_cv_path(X, y, fold_iter, fit_and_score_path,

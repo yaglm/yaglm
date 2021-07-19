@@ -1,4 +1,4 @@
-from ya_glm.info import is_multi_response
+from itertools import chain
 from ya_glm.opt.glm_loss.linear_regression import LinReg, LinRegMultiResp
 from ya_glm.opt.glm_loss.huber_regression import HuberReg, HuberRegMultiResp
 from ya_glm.opt.glm_loss.multinomial import Multinomial
@@ -9,23 +9,31 @@ from ya_glm.opt.glm_loss.logistic_regression import LogReg
 
 from ya_glm.opt.base import Func
 
-_LOSS_FUNC_STR2CLS = {'lin_reg': LinReg,
-                      'lin_reg_mr': LinRegMultiResp,
+_LOSS_CLS_VEC = {'lin_reg': LinReg,
 
-                      'huber_reg': HuberReg,
-                      'huber_reg_mr': HuberRegMultiResp,
+                 'huber_reg': HuberReg,
 
-                      'log_reg': LogReg,
-                      'multinomial': Multinomial,
+                 'log_reg': LogReg,
 
-                      'poisson': PoissonReg,
-                      'poisson_mr': PoissonRegMultiResp,
+                 'poisson': PoissonReg,
 
-                      'quantile': QuantileReg,
-                      'quantile_mr': QuantileRegMultiResp
-                      }
+                 'quantile': QuantileReg,
+                 }
 
-_LOSS_FUNC_CLS2STR = {v: k for (k, v) in _LOSS_FUNC_STR2CLS.items()}
+_LOSS_CLS_MAT = {
+                 'lin_reg': LinRegMultiResp,
+
+                 'huber_reg': HuberRegMultiResp,
+
+                 'multinomial': Multinomial,
+
+                 'poisson': PoissonRegMultiResp,
+
+                 'quantile': QuantileRegMultiResp,
+                }
+
+_LOSS_FUNC_CLS2STR = {v: k for (k, v) in chain(_LOSS_CLS_VEC.items(),
+                                               _LOSS_CLS_MAT.items())}
 
 
 def get_glm_loss(X, y,
@@ -66,8 +74,10 @@ def get_glm_loss(X, y,
     if isinstance(loss_func, Func):
         return loss_func
 
-    assert loss_func in _LOSS_FUNC_STR2CLS.keys()
-    obj_class = _LOSS_FUNC_STR2CLS[loss_func]
+    if y.ndim == 1 or y.shape[1] == 1:
+        CLS = _LOSS_CLS_VEC[loss_func]
+    else:
+        CLS = _LOSS_CLS_MAT[loss_func]
 
     kws = {'X': X, 'y': y, 'fit_intercept': fit_intercept,
            'loss_kws': loss_kws}
@@ -75,11 +85,4 @@ def get_glm_loss(X, y,
     if sample_weight is not None:
         kws['sample_weight'] = sample_weight
 
-    return obj_class(**kws)
-
-
-def safe_is_multi_response(loss_func):
-    if isinstance(loss_func, Func):
-        return is_multi_response(_LOSS_FUNC_CLS2STR[type(loss_func)])
-    else:
-        return is_multi_response(loss_func)
+    return CLS(**kws)

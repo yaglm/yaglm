@@ -1,6 +1,5 @@
 from ya_glm.autoassign import autoassign
 from inspect import Signature, signature, Parameter
-from textwrap import dedent
 
 from makefun import wraps, add_signature_parameters
 
@@ -119,23 +118,3 @@ def add_to_init(params, add_first=False):
         return __init__
 
     return init_wrapper
-
-
-def add_multi_resp_params(add=False):
-
-    if add:
-        return add_to_init(params=[('multi_task', False),
-                                   ('nuc', False)])
-    else:
-        def same(init):
-            return init
-        return same
-
-
-_multi_resp_pen_params = dedent("""
-    multi_task: bool
-        Use multi-task lasso.
-
-    nuc: bool
-        Use nuclear norm penalty.
-    """)

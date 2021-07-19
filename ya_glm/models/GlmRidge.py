@@ -1,6 +1,8 @@
 from textwrap import dedent
 
-from ya_glm.base.Glm import Glm
+from ya_glm.base.Glm import PenGlm
+from ya_glm.base.LossMixin import LossMixin
+
 from ya_glm.base.GlmCV import GlmCVSinglePen
 from ya_glm.cv.CVPath import CVPathMixin
 from ya_glm.cv.CVGridSearch import CVGridSearchMixin
@@ -23,15 +25,15 @@ tikhonov: None, array-like (K, n_features)
     """)
 
 
-class GlmRidge(Glm):
+class GlmRidge(LossMixin, PenGlm):
 
     _pen_descr = dedent("""
     Ridge penalty.
     """)
 
-    _params_descr = merge_param_docs(_ridge_params, Glm._params_descr)
+    _params_descr = merge_param_docs(_ridge_params, PenGlm._params_descr)
 
-    @add_from_classes(Glm)
+    @add_from_classes(PenGlm)
     def __init__(self, pen_val=1, weights=None, tikhonov=None): pass
 
     def _get_solve_kws(self):
@@ -40,10 +42,8 @@ class GlmRidge(Glm):
             raise ValueError("Both weigths and tikhonov"
                              "cannot both be provided")
 
-        loss_func, loss_kws = self.get_loss_info()
-
-        kws = {'loss_func': loss_func,
-               'loss_kws': loss_kws,
+        kws = {'loss_func': self.loss_func,
+               'loss_kws': self.get_loss_kws(),
 
                'fit_intercept': self.fit_intercept,
                **self.opt_kws,

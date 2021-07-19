@@ -1,11 +1,7 @@
 import numpy as np
 
-from ya_glm.utils import is_multi_response
 from ya_glm.linalg_utils import leading_sval
 from ya_glm.opt.glm_loss.get import get_glm_loss
-
-from ya_glm.info import _MULTI_RESP_LOSSES
-
 
 def get_pen_max(pen_kind, **kws):
     if pen_kind == 'entrywise':
@@ -43,8 +39,6 @@ def lasso_max(X, y, fit_intercept, loss_func,
 def get_L1toL2_max(X, y, fit_intercept, loss_func, loss_kws={},
                    weights=None, sample_weight=None):
 
-    assert loss_func in _MULTI_RESP_LOSSES
-
     grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
                         sample_weight=sample_weight,
                         loss_func=loss_func, loss_kws=loss_kws)
@@ -80,8 +74,6 @@ def group_lasso_max(X, y, groups, fit_intercept, loss_func,
 
 def nuclear_norm_max(X, y, fit_intercept, loss_func,
                      loss_kws={}, weights=None, sample_weight=None):
-
-    assert loss_func in _MULTI_RESP_LOSSES
 
     # TODO: double check this is right
     grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,

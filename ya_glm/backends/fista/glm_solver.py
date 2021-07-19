@@ -10,8 +10,7 @@ from ya_glm.opt.penalty.mat_penalty import MultiTaskLasso, NuclearNorm, \
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
 from ya_glm.opt.fista import solve_fista
 from ya_glm.opt.base import Sum
-from ya_glm.opt.glm_loss.get import get_glm_loss, safe_is_multi_response, \
-    _LOSS_FUNC_CLS2STR
+from ya_glm.opt.glm_loss.get import get_glm_loss, _LOSS_FUNC_CLS2STR
 
 
 _solve_glm_params = dedent("""
@@ -42,7 +41,7 @@ lasso_weights: None, array-like, shape (n_features, )
 groups: None, list of array-like
     (Optional) The group indicies for group Lasso.
 
-L1to2: bool
+multi_task: bool
     For matrix coefficients whether or not to use the L1 to L2 (i.e. sum of row L2 norms) norm or just the entrywise Lasso.
 
 nuc: bool
@@ -106,7 +105,7 @@ def solve_glm(X, y,
               lasso_pen=None,
               lasso_weights=None,
               groups=None,
-              L1to2=False,
+              multi_task=False,
               nuc=False,
               ridge_pen=None,
               ridge_weights=None,
@@ -124,7 +123,7 @@ def solve_glm(X, y,
     # setup loss function #
     #######################
 
-    is_mr = safe_is_multi_response(loss_func)
+    is_mr = y.ndim > 1 and y.shape[1] > 1
 
     # get loss function object
     loss_func = get_glm_loss(loss_func=loss_func, loss_kws=loss_kws,
@@ -184,7 +183,7 @@ def solve_glm(X, y,
         lasso = GroupLasso(groups=groups,
                            mult=lasso_pen, weights=lasso_weights)
 
-    elif is_mr and L1to2:
+    elif is_mr and multi_task:
         lasso = MultiTaskLasso(mult=lasso_pen, weights=lasso_weights)
         is_already_mat_pen = True
 
@@ -368,60 +367,6 @@ def solve_glm_path(X, y,
 
         # if generator:
         yield fit_out, params
-
-
-# def process_init(X, y, loss_func, fit_intercept=True, coef_init=None,
-#                  intercept_init=None):
-#     """
-#     Processes the initializer.
-
-#     Parameters
-#     ----------
-
-#     Outout
-#     ------
-#     init_val: array-like
-#         The initial value. Shape is (n_features, ), (n_features + 1, )
-#         (n_features, n_responses) or (n_features, n_responses + 1)
-#     """
-
-#     if coef_init is None or (fit_intercept and intercept_init is None):
-
-#         # determine the coefficient shape
-#         if safe_is_multi_response(loss_func):
-#             coef_shape = (X.shape[1], y.shape[1])
-#         else:
-#             coef_shape = X.shape[1]
-
-#         # initialize coefficient
-#         if coef_init is None:
-#             coef_init = np.zeros(coef_shape)
-
-#         # initialize intercept
-#         if intercept_init is None:
-#             if isinstance(coef_shape, tuple):
-#                 intercept_init = np.zeros(coef_shape[1])
-#             else:
-#                 intercept_init = 0
-
-#     # format
-#     coef_init = np.array(coef_init)
-#     if fit_intercept:
-#         if coef_init.ndim > 1:
-#             intercept_init = np.array(intercept_init)
-#         else:
-#             intercept_init = float(intercept_init)
-
-#     # maybe concatenate
-#     if fit_intercept:
-#         if coef_init.ndim == 2:
-#             init_val = np.vstack([intercept_init, coef_init])
-#         else:
-#             init_val = np.concatenate([[intercept_init], coef_init])
-#     else:
-#         init_val = deepcopy(coef_init)
-
-#     return init_val
 
 
 def process_param_path(lasso_pen_seq=None, ridge_pen_seq=None, check_decr=True):

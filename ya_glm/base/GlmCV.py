@@ -1,17 +1,19 @@
-from sklearn.base import BaseEstimator, clone
+from sklearn.base import BaseEstimator, clone, is_classifier
 from sklearn.utils.validation import check_is_fitted
 from sklearn.model_selection import ParameterGrid
-import numpy as np
+from sklearn.model_selection._split import check_cv
+from functools import partial
+
 from time import time
-from numbers import Number
 from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
 from ya_glm.init_signature import add_from_classes
 from ya_glm.make_docs import merge_param_docs
-from ya_glm.pen_seq import get_pen_val_seq, get_enet_pen_val_seq, \
-    get_enet_ratio_seq
+from ya_glm.pen_seq import get_pen_val_seq
 from ya_glm.cv.cv_select import CVSlectMixin  # select_best_cv_tune_param
+from ya_glm.cv.run_cv import run_cv_grid, run_cv_path, \
+    add_params_to_cv_results, score_from_fit_path
 
 
 # TODO: move estimator descripting to subclasses
@@ -113,11 +115,22 @@ class GlmCV(CVSlectMixin, BaseEstimator):
         else:
             fit_params = None
 
-        # run cross-validation on the raw data
+        ########################
+        # run cross-validation #
+        ########################
         start_time = time()
-        self.cv_results_ = \
-            self._run_cv(estimator=est, X=X, y=y, cv=self.cv,
-                         fit_params=fit_params)
+        if self.has_path_algo:
+            # if we have a path algorithm available use it
+
+            self.cv_results_ = \
+                self._run_cv_path(estimator=est, X=X, y=y, cv=self.cv,
+                                  fit_params=fit_params)
+
+        else:
+            # otherwise just do grid search
+            self.cv_results_ = \
+                self._run_cv_grid(estimator=est, X=X, y=y, cv=self.cv,
+                                  fit_params=fit_params)
 
         self.cv_data_ = {'cv_runtime':  time() - start_time}
 
@@ -128,7 +141,9 @@ class GlmCV(CVSlectMixin, BaseEstimator):
         # set best tuning params
         est.set_params(**self.best_tune_params_)
 
-        # refit on the raw data
+        #########################################
+        # refit with selected parameter setting #
+        #########################################
         start_time = time()
         self.best_estimator_ = est.fit(X, y, sample_weight=sample_weight)
         self.cv_data_['refit_runtime'] = time() - start_time
@@ -160,6 +175,95 @@ class GlmCV(CVSlectMixin, BaseEstimator):
             raise NotImplementedError("This method does not have a predict_log_proba function")
         else:
             return self.best_estimator_.predict_log_proba(X)
+
+    ####################
+    # Cross-validation #
+    ####################
+    @property
+    def has_path_algo(self):
+        return hasattr(self.estimator, 'solve_glm_path') and \
+            self.estimator.solve_glm_path is not None
+
+    def _run_cv_grid(self, estimator, X, y=None,
+                     cv=None, fit_params=None):
+
+        cv_results = run_cv_grid(X, y,
+                                 estimator=estimator,
+                                 param_grid=self.get_tuning_param_grid(),
+                                 cv=cv,
+                                 scoring=self.cv_scorer,
+                                 fit_params=fit_params,
+                                 n_jobs=self.cv_n_jobs,
+                                 verbose=self.cv_verbose,
+                                 pre_dispatch=self.cv_pre_dispatch)
+
+        return cv_results
+
+    def _run_cv_path(self, estimator, X, y=None, cv=None, fit_params=None):
+
+        # setup CV
+        cv = check_cv(cv, y, classifier=is_classifier(estimator))
+
+        # setup path fitting function
+        fit_and_score_path = self._fit_and_score_path_getter(estimator)
+
+        cv_results, _ = \
+            run_cv_path(X=X, y=y,
+                        fold_iter=cv.split(X, y),
+                        fit_and_score_path=fit_and_score_path,
+                        kws=self._get_solve_path_kws(),
+                        fit_params=fit_params,
+                        include_spilt_vals=True,  # TODO: maybe give option for this?
+                        add_params=False,
+                        n_jobs=self.cv_n_jobs,
+                        verbose=self.cv_verbose,
+                        pre_dispatch=self.cv_pre_dispatch)
+
+        # add parameter sequence to CV results
+        # this allows us to pass fit_path a one parameter sequence
+        # while cv_results_ uses different names
+        param_seq = self.get_tuning_sequence()
+        cv_results = add_params_to_cv_results(param_seq=param_seq,
+                                              cv_results=cv_results)
+
+        return cv_results
+
+    def _fit_and_score_path_getter(self, estimator):
+
+        # get the correct fit and score method
+        est = clone(estimator)
+        def est_from_fit(fit_out, pre_pro_out):
+            est._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
+            return est
+
+        if hasattr(est, 'preprocess'):
+            preprocess = est.preprocess
+        else:
+            preprocess = None
+
+        fit_and_score_path = partial(score_from_fit_path,
+                                     solve_path=est.solve_glm_path,
+                                     est_from_fit=est_from_fit,
+                                     scorer=self.cv_scorer,
+                                     preprocess=preprocess)
+
+        return fit_and_score_path
+
+    ################################
+    # Subclasses need to implement #
+    ################################
+    def _get_solve_path_kws(self):
+        """
+        The solve path function will be call as
+
+        solve_path(X=X, y=y, **kws)
+
+        Output
+        ------
+        kws: dict
+            All keyword arguments for computing the path.
+        """
+        raise NotImplementedError
 
     def check_base_estimator(self, estimator):
         """
@@ -262,164 +366,3 @@ class GlmCVSinglePen(GlmCV):
         param_grid: dict of lists
         """
         return {'pen_val': self.pen_val_seq_}
-
-
-_enet_cv_params = dedent("""
-l1_ratio: float, str, list
-    The l1_ratio value to use. If a float is provided then this parameter is fixed and not tuned over. If l1_ratio='tune' then the l1_ratio is tuned over using an automatically generated tuning parameter sequence. Alternatively, the user may provide a list of l1_ratio values to tune over.
-
-n_l1_ratio_vals: int
-    Number of l1_ratio values to tune over. The l1_ratio tuning sequence is a logarithmically spaced grid of values between 0 and 1 that has more values close to 1.
-
-l1_ratio_min:
-    The smallest l1_ratio value to tune over.
-""")
-
-
-class GlmCVENet(GlmCVSinglePen):
-    """
-    Base class for Elastic Net penalized GLMs tuned with cross-validation.
-    """
-    _param_descr = merge_param_docs(GlmCVSinglePen._params_descr,
-                                    _pen_seq_params)
-
-    @add_from_classes(GlmCVSinglePen, add_first=False)
-    def __init__(self,
-                 # pen_min_mult=1e-4,  # make this more extreme for enet
-                 l1_ratio=0.5,
-                 n_l1_ratio_vals=10,
-                 l1_ratio_min=0.1,
-                 ):
-        pass
-
-    def _tune_l1_ratio(self):
-        """
-        Output
-        ------
-        yes_tune_l1_ratio: bool
-            Whether or not we tune the l1_ratio parameter.
-        """
-        # Do we tune the l1_ratio
-        if self.l1_ratio == 'tune' or hasattr(self.l1_ratio, '__len__'):
-            return True
-        else:
-            return False
-
-    def _tune_pen_val(self):
-        """
-        Output
-        ------
-        yes_tune_pen_val: bool
-            Whether or not we tune the pen_val parameter.
-        """
-
-        # Do we tune the pen_vals
-        if isinstance(self.pen_vals, Number):
-            return False
-        else:
-            return True
-
-    def _set_tuning_values(self, X, y, sample_weight=None):
-        if self.pen_vals is None:
-            enet_pen_max = self.estimator.\
-                get_pen_val_max(X, y, sample_weight=sample_weight)
-            lasso_pen_max = enet_pen_max * self.estimator.l1_ratio
-        else:
-            lasso_pen_max = None
-
-        self._set_tune_from_lasso_max(X, y, lasso_pen_max=lasso_pen_max)
-
-    def _set_tune_from_lasso_max(self, X, y, lasso_pen_max=None):
-        """
-        Sets the ElasticNet tuning sequence given the largest reasonable lasso penalty value.
-
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The training covariate data.
-
-        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
-            The training response data.
-
-        lasso_pen_max: float
-            The lasso penalty max value
-        """
-
-        ##################################
-        # setup l1_ratio tuning sequence #
-        ##################################
-        if self._tune_l1_ratio():
-            l1_ratio_val = None
-
-            if self.l1_ratio is not None and not self.l1_ratio == 'tune':
-                # user specified values
-                l1_ratio_seq = np.array(self.l1_ratio).reshape(-1)
-
-            else:
-                # otherwise set these values by default
-                l1_ratio_seq = \
-                    get_enet_ratio_seq(min_val=self.l1_ratio_min,
-                                       num=self.n_l1_ratio_vals)
-
-            self.l1_ratio_seq_ = l1_ratio_seq
-
-        else:
-            l1_ratio_val = self.l1_ratio
-            l1_ratio_seq = None
-
-        #################################
-        # setup pen_val tuning sequence #
-        #################################
-
-        if self._tune_pen_val():
-
-            self.pen_val_seq_ = \
-                get_enet_pen_val_seq(lasso_pen_val_max=lasso_pen_max,
-                                     pen_vals=self.pen_vals,
-                                     n_pen_vals=self.n_pen_vals,
-                                     pen_min_mult=self.pen_min_mult,
-                                     pen_spacing=self.pen_spacing,
-                                     l1_ratio_seq=l1_ratio_seq,
-                                     l1_ratio_val=l1_ratio_val)
-
-    def get_tuning_param_grid(self):
-        if self._tune_l1_ratio() and self._tune_pen_val():
-            return self.get_tuning_sequence()
-
-        elif self._tune_l1_ratio():
-            return {'l1_ratio': self.l1_ratio_seq_}
-
-        elif self._tune_pen_val():
-            return {'pen_val': self.pen_val_seq_}
-
-    def get_tuning_sequence(self):
-        """
-        Returns a list of tuning parameter values.
-
-        Output
-        ------
-        values: iterable
-        """
-        if self._tune_l1_ratio() and self._tune_pen_val():
-            n_l1_ratios, n_pen_vals = self.pen_val_seq_.shape
-
-            # outer loop over l1_ratios, inner loop over pen_vals
-            param_list = []
-            for l1_idx in range(n_l1_ratios):
-                l1_ratio_val = self.l1_ratio_seq_[l1_idx]
-
-                for pen_idx in range(n_pen_vals):
-                    pen_val = self.pen_val_seq_[l1_idx, pen_idx]
-
-                    param_list.append({'l1_ratio': l1_ratio_val,
-                                       'pen_val': pen_val})
-
-            return param_list
-
-        elif self._tune_l1_ratio():
-            param_grid = {'l1_ratio': self.l1_ratio_seq_}
-            return list(ParameterGrid(param_grid))
-
-        elif self._tune_pen_val():
-            param_grid = {'pen_val': self.pen_val_seq_}
-            return list(ParameterGrid(param_grid))

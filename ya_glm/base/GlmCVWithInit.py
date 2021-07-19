@@ -1,7 +1,8 @@
 from time import time
 from sklearn.base import clone
 
-from ya_glm.base.GlmCV import GlmCVSinglePen, GlmCVENet
+from ya_glm.base.GlmCV import GlmCVSinglePen
+from ya_glm.base.GlmCVENet import GlmCVENet
 
 
 class CVWithInitMixin:
@@ -42,11 +43,24 @@ class CVWithInitMixin:
         else:
             fit_params = None
 
-        # run cross-validation
+        ########################
+        # run cross-validation #
+        ########################
         self.cv_data_ = {}
         start_time = time()
-        self.cv_results_ = self._run_cv(estimator=est, X=X, y=y, cv=self.cv,
-                                        fit_params=fit_params)
+        if self.has_path_algo:
+            # if we have a path algorithm available use it
+
+            self.cv_results_ = \
+                self._run_cv_path(estimator=est, X=X, y=y, cv=self.cv,
+                                  fit_params=fit_params)
+
+        else:
+            # otherwise just do grid search
+            self.cv_results_ = \
+                self._run_cv_grid(estimator=est, X=X, y=y, cv=self.cv,
+                                  fit_params=fit_params)
+
         self.cv_data_['cv_runtime'] = time() - start_time
 
         # select best tuning parameter values
@@ -56,7 +70,10 @@ class CVWithInitMixin:
         # set best tuning params
         est.set_params(**self.best_tune_params_)
 
-        # refit on the raw data
+        #########################################
+        # refit with selected parameter setting #
+        #########################################
+
         start_time = time()
         est.fit(X, y, sample_weight=sample_weight)
         self.cv_data_['refit_runtime'] = time() - start_time

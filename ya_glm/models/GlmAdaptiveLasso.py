@@ -1,11 +1,10 @@
 from textwrap import dedent
 
-from ya_glm.base.Glm import Glm
+from ya_glm.base.Glm import PenGlm
+from ya_glm.base.LossMixin import LossMixin
+
 from ya_glm.base.GlmAdptLasso import GlmAdaptiveLassoBase, AdptCVMixin
 from ya_glm.base.GlmCVWithInit import GlmCVWithInitSinglePen, GlmCVWithInitENet
-from ya_glm.cv.CVPath import CVPathMixin
-from ya_glm.cv.ENetCVPath import ENetCVPathMixin
-from ya_glm.cv.CVGridSearch import CVGridSearchMixin
 
 
 from ya_glm.init_signature import add_from_classes
@@ -33,6 +32,12 @@ pertub_init: None, float, str
 groups: None, list of ints
     Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
 
+multi_task: bool
+    Use multi-task lasso on the coefficient matrix for multiple response cases.
+
+nuc: bool
+    Apply the penalty to the singular values of the coefficient matrix for multiple response cases.
+
 ridge_pen_val: None, float
     Penalty strength for an optional ridge penalty.
 
@@ -48,17 +53,15 @@ adpt_weights: None, array-like
     """)
 
 
-class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
-
-    solve_glm = None
+class GlmAdaptiveLasso(LossMixin, GlmAdaptiveLassoBase):
 
     _pen_descr = dedent("""
     Adaptive Lasso or group lasso penalty with an optional ridge penalty.
     """)
 
-    _params_descr = merge_param_docs(_adpt_lasso_params, Glm._params_descr)
+    _params_descr = merge_param_docs(_adpt_lasso_params, PenGlm._params_descr)
 
-    @add_from_classes(Glm)
+    @add_from_classes(PenGlm)
     def __init__(self,
                  pen_val=1,
                  pen_func='log',  # TODO: is this the name we want?
@@ -66,6 +69,8 @@ class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
                  init='default',
                  pertub_init='n_samples',
                  groups=None,
+                 multi_task=False,
+                 nuc=False,
                  ridge_pen_val=None, ridge_weights=None, tikhonov=None,
                  adpt_weights=None,  # TODO: we do this for tuning, perhaps better solution?
                  ): pass
@@ -79,10 +84,8 @@ class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
             raise ValueError("Both ridge weigths and tikhonov"
                              "cannot both be provided")
 
-        loss_func, loss_kws = self.get_loss_info()
-
-        kws = {'loss_func': loss_func,
-               'loss_kws': loss_kws,
+        kws = {'loss_func': self.loss_func,
+               'loss_kws': self.get_loss_kws(),
 
                'fit_intercept': self.fit_intercept,
                **self.opt_kws,
@@ -99,24 +102,13 @@ class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
         extra_kws = {
                      'ridge_pen': self.ridge_pen_val,
                      'ridge_weights': self.ridge_weights,
-                     'tikhonov': self.tikhonov
+                     'tikhonov': self.tikhonov,
+                     'groups': self.groups,
+                     'multi_task': self.multi_task,
+                     'nuc': self.nuc
                      }
 
         kws = maybe_add(kws, **extra_kws)
-
-        ##################################
-        # potential lasso type arguments #
-        ##################################
-
-        pen_kind = self._get_penalty_kind()
-        if pen_kind == 'group':
-            kws['groups'] = self.groups
-
-        elif pen_kind == 'multi_task':
-            kws['L1to2'] = True
-
-        elif pen_kind == 'nuc':
-            kws['nuc'] = True
 
         return kws
 
@@ -125,7 +117,7 @@ class GlmAdaptiveLasso(GlmAdaptiveLassoBase):
             _get_pen_max_lasso(X, y, init_data, sample_weight=sample_weight)
 
 
-class GlmAdaptiveLassoCVPath(AdptCVMixin, CVPathMixin, GlmCVWithInitSinglePen):
+class GlmAdaptiveLassoCV(AdptCVMixin, GlmCVWithInitSinglePen):
 
     _cv_descr = dedent("""
     Tunes the Adaptive Lasso penalty parameter via cross-validation using a path algorithm.
@@ -145,17 +137,6 @@ class GlmAdaptiveLassoCVPath(AdptCVMixin, CVPathMixin, GlmCVWithInitSinglePen):
             raise ValueError("adpt_weights has not been set")
 
         return kws
-
-    def _check_base_estimator(self, estimator):
-        check_estimator_type(estimator, GlmAdaptiveLasso)
-
-
-class GlmAdaptiveLassoCVGridSearch(AdptCVMixin, CVGridSearchMixin,
-                                   GlmCVWithInitSinglePen):
-
-    _cv_descr = dedent("""
-        Tunes the Adaptive Lasso penalty parameter via cross-validation.
-        """)
 
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmAdaptiveLasso)
@@ -186,6 +167,12 @@ pertub_init: None, float, str
 groups: None, list of ints
     Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
 
+multi_task: bool
+    Use multi-task lasso on the coefficient matrix for multiple response cases.
+
+nuc: bool
+    Apply the penalty to the singular values of the coefficient matrix for multiple response cases.
+
 ridge_weights: None, array-like shape (n_featuers, )
     Optional features weights for the ridge peanlty.
 
@@ -194,20 +181,19 @@ tikhonov: None, array-like (K, n_features)
 
 adpt_weights: None, array-like
     Optional user specified adpative weights that are used instead of determining them from 'init'. These are the exact weights used and will not be be processed (e.g. scaled if standardization is used).
-
     """)
 
 
-class GlmAdaptiveENet(GlmAdaptiveLassoBase):
+class GlmAdaptiveENet(LossMixin, GlmAdaptiveLassoBase):
     solve_glm = None
 
     _pen_descr = dedent("""
     Adaptive ElasticNet or group ElasticNet.
     """)
 
-    _params_descr = merge_param_docs(_adpt_enet_params, Glm._params_descr)
+    _params_descr = merge_param_docs(_adpt_enet_params, PenGlm._params_descr)
 
-    @add_from_classes(Glm)
+    @add_from_classes(PenGlm)
     def __init__(self,
                  pen_val=1, l1_ratio=0.5,
                  pen_func='log',
@@ -215,6 +201,8 @@ class GlmAdaptiveENet(GlmAdaptiveLassoBase):
                  init='default',
                  pertub_init='n_samples',
                  groups=None,
+                 multi_task=False,
+                 nuc=False,
                  ridge_pen_val=None, ridge_weights=None, tikhonov=None,
                  adpt_weights=None,  # TODO: see above
                  ): pass
@@ -228,14 +216,12 @@ class GlmAdaptiveENet(GlmAdaptiveLassoBase):
             raise ValueError("Both ridge weigths and tikhonov"
                              "cannot both be provided")
 
-        loss_func, loss_kws = self.get_loss_info()
-
         lasso_pen, ridge_pen = \
             lasso_and_ridge_from_enet(pen_val=self.pen_val,
                                       l1_ratio=self.l1_ratio)
 
-        kws = {'loss_func': loss_func,
-               'loss_kws': loss_kws,
+        kws = {'loss_func': self.loss_func,
+               'loss_kws': self.get_loss_kws(),
 
                'fit_intercept': self.fit_intercept,
                **self.opt_kws,
@@ -253,24 +239,13 @@ class GlmAdaptiveENet(GlmAdaptiveLassoBase):
         # this way we can use solvers that doesn't have these kws
         extra_kws = {
                      'ridge_weights': self.ridge_weights,
-                     'tikhonov': self.tikhonov
+                     'tikhonov': self.tikhonov,
+                     'groups': self.groups,
+                     'multi_task': self.multi_task,
+                     'nuc': self.nuc
                      }
 
         kws = maybe_add(kws, **extra_kws)
-
-        ##################################
-        # potential lasso type arguments #
-        ##################################
-
-        pen_kind = self._get_penalty_kind()
-        if pen_kind == 'group':
-            kws['groups'] = self.groups
-
-        elif pen_kind == 'multi_task':
-            kws['L1to2'] = True
-
-        elif pen_kind == 'nuc':
-            kws['nuc'] = True
 
         return kws
 
@@ -281,11 +256,10 @@ class GlmAdaptiveENet(GlmAdaptiveLassoBase):
         return l1_max / self.l1_ratio
 
 
-class GlmAdaptiveENetCVPath(AdptCVMixin, ENetCVPathMixin, GlmCVWithInitENet):
-    solve_glm_path = None
+class GlmAdaptiveENetCV(AdptCVMixin, GlmCVWithInitENet):
 
     _cv_descr = dedent("""
-        Tunes the Adaptive ElasticNet penalty parameter and or the l1_ratio via cross-validation. Makes use of a path algorithm for computing the penalty value tuning path.
+        Tunes the Adaptive ElasticNet penalty parameter and or the l1_ratio via cross-validation.
         """)
 
     def _get_solve_path_enet_base_kws(self):
@@ -299,17 +273,6 @@ class GlmAdaptiveENetCVPath(AdptCVMixin, ENetCVPathMixin, GlmCVWithInitENet):
             raise ValueError("adpt_weights has not been set")
 
         return kws
-
-    def _check_base_estimator(self, estimator):
-        check_estimator_type(estimator, GlmAdaptiveENet)
-
-
-class GlmAdaptiveENetCVGridSearch(AdptCVMixin, CVGridSearchMixin,
-                                  GlmCVWithInitENet):
-
-    _cv_descr = dedent("""
-        Tunes the Adaptive ElasticNet penalty parameter and or the l1_ratio via cross-validation.
-        """)
 
     def _check_base_estimator(self, estimator):
         check_estimator_type(estimator, GlmAdaptiveENet)

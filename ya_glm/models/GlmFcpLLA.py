@@ -1,15 +1,16 @@
 from textwrap import dedent
 
-from ya_glm.base.Glm import Glm
+from ya_glm.base.Glm import PenGlm
+from ya_glm.base.LossMixin import LossMixin
+
 from ya_glm.base.GlmWithInit import GlmWithInitMixin
 from ya_glm.base.GlmCVWithInit import GlmCVWithInitSinglePen
-from ya_glm.cv.CVGridSearch import CVGridSearchMixin
 
 from ya_glm.pen_max.fcp_lla import get_pen_max
 from ya_glm.lla.lla import solve_lla
 
 from ya_glm.opt.penalty.concave_penalty import get_penalty_func
-from ya_glm.init_signature import add_from_classes, keep_agreeable
+from ya_glm.init_signature import add_from_classes
 from ya_glm.utils import maybe_add
 from ya_glm.processing import check_estimator_type, process_init_data
 from ya_glm.make_docs import merge_param_docs
@@ -36,6 +37,12 @@ lla_kws: dict
 groups: None, list of ints
     Optional groups of variables. If groups is provided then each element in the list should be a list of feature indices. Variables not in a group are not penalized.
 
+multi_task: bool
+    Use multi-task lasso on the coefficient matrix for multiple response cases.
+
+nuc: bool
+    Apply the penalty to the singular values of the coefficient matrix for multiple response cases.
+
 ridge_pen_val: None, float
     Penalty strength for an optional ridge penalty.
 
@@ -44,14 +51,10 @@ ridge_weights: None, array-like shape (n_featuers, )
 
 tikhonov: None, array-like (K, n_features)
     Optional tikhonov matrix for the ridge penalty. Both tikhonov and ridge weights cannot be provided at the same time.
-
-adpt_weights: None, array-like
-    Optional user specified adpative weights that are used instead of determining them from 'init'. These are the exact weights used and will not be be processed (e.g. scaled if standardization is used).
-
     """)
 
 
-class GlmFcpLLA(GlmWithInitMixin, Glm):
+class GlmFcpLLA(LossMixin, GlmWithInitMixin, PenGlm):
     solve_lla = staticmethod(solve_lla)
     solve_glm = None
     WL1Solver = None  # base class for WL1 solver
@@ -60,17 +63,19 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
     Folded concave penalty fit by applying the local linear approximation (LLA) algorithm to a good initializer.
     """)
 
-    _params_descr = merge_param_docs(_fcp_lla__params, Glm._params_descr)
+    _params_descr = merge_param_docs(_fcp_lla__params, PenGlm._params_descr)
 
-    @add_from_classes(Glm)
+    @add_from_classes(PenGlm)
     def __init__(self,
                  pen_val=1,
                  pen_func='scad',
                  pen_func_kws={},
                  init='default',
                  lla_n_steps=1, lla_kws={},
-                 ridge_pen_val=None, ridge_weights=None, tikhonov=None,
                  groups=None,
+                 multi_task=False,
+                 nuc=False,
+                 ridge_pen_val=None, ridge_weights=None, tikhonov=None
                  ): pass
 
     def fit(self, X, y, sample_weight=None):
@@ -107,10 +112,9 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
                                         pen_func_kws=self.pen_func_kws)
 
         # Setup weighted L1 solver
-        loss_func, loss_kws = self.get_loss_info()
         wl1_solver = self.WL1Solver(X=X, y=y,
-                                    loss_func=loss_func,
-                                    loss_kws=loss_kws,
+                                    loss_func=self.loss_func,
+                                    loss_kws=self.get_loss_kws(),
                                     fit_intercept=self.fit_intercept,
                                     sample_weight=sample_weight,
                                     solver_kws=self._get_extra_solver_kws())
@@ -151,7 +155,6 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
 
     def _get_pen_val_max_from_pro(self, X, y, init_data, sample_weight=None):
 
-        loss_func, loss_kws = self.get_loss_info()
         pen_kind = self._get_penalty_kind()
         if pen_kind == 'group':
             groups = self.groups
@@ -161,8 +164,8 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
         return get_pen_max(X=X, y=y, init_data=init_data,
                            pen_func=self.pen_func,
                            pen_func_kws=self.pen_func_kws,
-                           loss_func=loss_func,
-                           loss_kws=loss_kws,
+                           loss_func=self.loss_func,
+                           loss_kws=self.get_loss_kws(),
                            groups=groups,
                            fit_intercept=self.fit_intercept,
                            sample_weight=sample_weight,
@@ -184,24 +187,13 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
         # this way we can use solvers that doesn't have these kws
         extra_kws = {'ridge_pen': self.ridge_pen_val,
                      'ridge_weights': self.ridge_weights,
-                     'tikhonov': self.tikhonov
+                     'tikhonov': self.tikhonov,
+                     'groups': self.groups,
+                     'multi_task': self.multi_task,
+                     'nuc': self.nuc
                      }
 
         kws = maybe_add(kws, **extra_kws)
-
-        ##################################
-        # potential lasso type arguments #
-        ##################################
-
-        pen_kind = self._get_penalty_kind()
-        if pen_kind == 'group':
-            kws['groups'] = self.groups
-
-        elif pen_kind == 'multi_task':
-            kws['L1to2'] = True
-
-        elif pen_kind == 'nuc':
-            kws['nuc'] = True
 
         return kws
 
@@ -209,21 +201,16 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
 
         keys = ['fit_intercept', 'standardize', 'opt_kws',
                 'ridge_pen_val', 'ridge_weights', 'tikhonov',
-                'groups']
-
-        if hasattr(self, 'multi_task'):
-            keys.append('multi_task')
-
-        if hasattr(self, 'nuc'):
-            keys.append('nuc')
-
-        if c is not None:
-            keys = keep_agreeable(keys, func=c.__init__)
+                'groups', 'multi_task', 'nuc']
 
         return {k: self.__dict__[k] for k in keys}
 
 
-class GlmFcpLLACV(CVGridSearchMixin, GlmCVWithInitSinglePen):
+class GlmFcpLLACV(GlmCVWithInitSinglePen):
+
+    @property
+    def has_path_algo(self):
+        return False
 
     _cv_descr = dedent("""
     Tunes the penalty parameter of a concave penalty function fit with the LLA algorithm via cross-validation.

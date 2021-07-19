@@ -1,5 +1,5 @@
 import numpy as np
-from ya_glm.base.Glm import Glm
+from ya_glm.base.Glm import PenGlm
 from ya_glm.base.GlmWithInit import GlmWithInitMixin
 
 from ya_glm.pen_max.lasso import get_pen_max
@@ -16,7 +16,7 @@ from ya_glm.processing import process_init_data
 # this destroy any attributed derived from the original data
 
 
-class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
+class GlmAdaptiveLassoBase(GlmWithInitMixin, PenGlm):
 
     def fit(self, X, y, sample_weight=None):
 
@@ -138,17 +138,7 @@ class GlmAdaptiveLassoBase(GlmWithInitMixin, Glm):
 
         keys = ['fit_intercept', 'standardize', 'opt_kws',
                 'ridge_weights', 'tikhonov',
-                'groups']
-
-        if hasattr(self, 'multi_task'):
-            keys.append('multi_task')
-
-        if hasattr(self, 'nuc'):
-            keys.append('nuc')
-
-        if c is not None:
-            keys = keep_agreeable(keys, func=c.__init__)
-
+                'groups', 'multi_task', 'nuc']
         return {k: self.__dict__[k] for k in keys}
 
 

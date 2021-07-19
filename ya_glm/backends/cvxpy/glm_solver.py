@@ -18,7 +18,7 @@ def solve_glm(X, y,
               lasso_pen=None,
               lasso_weights=None,
               groups=None,
-              L1to2=False,
+              multi_task=False,
               nuc=False,
               ridge_pen=None,
               ridge_weights=None,
@@ -45,7 +45,7 @@ def solve_glm(X, y,
                       lasso_pen=lasso_pen,
                       lasso_weights=lasso_weights,
                       groups=groups,
-                      L1to2=L1to2,
+                      multi_task=multi_task,
                       nuc=nuc,
                       ridge_pen=ridge_pen,
                       ridge_weights=ridge_weights,
@@ -140,7 +140,7 @@ def setup_problem(X, y,
                   lasso_pen=None,
                   lasso_weights=None,
                   groups=None,
-                  L1to2=False,
+                  multi_task=False,
                   nuc=False,
                   ridge_pen=None,
                   ridge_weights=None,
@@ -193,7 +193,7 @@ def setup_problem(X, y,
             objective += lasso_pen * \
                 group_lasso_penalty(coef, groups=groups, weights=lasso_weights)
 
-        elif L1to2:
+        elif multi_task:
             objective += lasso_pen * \
                 multi_task_lasso_penalty(coef, weights=lasso_weights)
 
