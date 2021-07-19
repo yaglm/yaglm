@@ -5,11 +5,17 @@ from sklearn.utils.validation import check_is_fitted
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.utils.validation import check_array
 from sklearn.utils.extmath import softmax
+from textwrap import dedent
 
 
 class MultinomialMixin(LinearClassifierMixin):
 
     is_multi_resp = True
+
+    _loss_descr = dedent("""
+    Multinomial regression with loss function L(y, z) = - sum_{k=1}^{n_classes} y_k log(soft(z)_k) where
+    soft(z)_k = e^{z_k} / sum_{j=1}^{n_classes} e^{z_j}
+    """)
 
     def get_loss_info(self):
         loss_type = 'multinomial'

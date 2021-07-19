@@ -8,15 +8,14 @@ from textwrap import dedent
 
 from ya_glm.autoassign import autoassign
 from ya_glm.init_signature import add_from_classes
+from ya_glm.make_docs import merge_param_docs
 from ya_glm.pen_seq import get_pen_val_seq, get_enet_pen_val_seq, \
     get_enet_ratio_seq
-
 from ya_glm.cv.cv_select import CVSlectMixin  # select_best_cv_tune_param
 
 
 # TODO: move estimator descripting to subclasses
-_cv_params = dedent(
-"""
+_cv_params = dedent("""
 estimator: estimator object
     The base estimator to be cross-validated.
 
@@ -38,11 +37,38 @@ cv_verbose: int
 
 cv_pre_dispatch: int, or str, default=n_jobs
     Controls the number of jobs that get dispatched during parallel execution
-"""
-)
+""")
 
 
 class GlmCV(CVSlectMixin, BaseEstimator):
+    """
+    Base class for generalized linear models tuned with cross-validation.
+    """
+
+    # subclass may implement the following
+
+    # description
+    _descr = None
+
+    # penalty parameter description
+    _params_descr = _cv_params
+
+    _attr_descr = dedent("""
+        best_estimator_:
+            The fit estimator with the parameters selected via cross-validation.
+
+        cv_results_: dict
+            The cross-validation results.
+
+        best_tune_idx_: int
+            Index of the best tuning parameter. Indexes the list returned by get_tuning_sequence().
+
+        best_tune_params_: dict
+            The best tuning parameters.
+
+        cv_data_: dict
+            Additional data about the CV fit e.g. the runtime.
+        """)
 
     @autoassign
     def __init__(self,
@@ -159,20 +185,14 @@ class GlmCV(CVSlectMixin, BaseEstimator):
         # subclass should overwrite
         raise NotImplementedError
 
-
-GlmCV.__doc__ = dedent(
-    """
-    Base class for generalized linear models tuned with cross-validation.
-
-    Parameters
-    ----------
-    {}
-    """.format(_cv_params)
-)
+    def get_tuning_sequence(self):
+        """
+        Returns the tuning parameters in a sequence.
+        """
+        raise NotImplementedError
 
 
 _pen_seq_params = dedent("""
-
 n_pen_vals: int
     Number of penalty values to try for automatically generated tuning parameter sequence.
 
@@ -189,6 +209,12 @@ pen_spacing: str
 
 
 class GlmCVSinglePen(GlmCV):
+    """
+    Base class for tuning a GLM with a single penaly parameter with cross-validation.
+    """
+
+    _param_descr = merge_param_docs(GlmCV._params_descr,
+                                    _pen_seq_params)
 
     @add_from_classes(GlmCV, add_first=False)
     def __init__(self,
@@ -238,19 +264,6 @@ class GlmCVSinglePen(GlmCV):
         return {'pen_val': self.pen_val_seq_}
 
 
-GlmCVSinglePen.__doc__ = dedent(
-    """
-    Base class for penalized generalized linear model tuned with cross-validation.
-
-    Parameters
-    ----------
-    {}
-
-    {}
-    """.format(_cv_params, _pen_seq_params)
-)
-
-
 _enet_cv_params = dedent("""
 l1_ratio: float, str, list
     The l1_ratio value to use. If a float is provided then this parameter is fixed and not tuned over. If l1_ratio='tune' then the l1_ratio is tuned over using an automatically generated tuning parameter sequence. Alternatively, the user may provide a list of l1_ratio values to tune over.
@@ -264,6 +277,11 @@ l1_ratio_min:
 
 
 class GlmCVENet(GlmCVSinglePen):
+    """
+    Base class for Elastic Net penalized GLMs tuned with cross-validation.
+    """
+    _param_descr = merge_param_docs(GlmCVSinglePen._params_descr,
+                                    _pen_seq_params)
 
     @add_from_classes(GlmCVSinglePen, add_first=False)
     def __init__(self,
@@ -313,9 +331,15 @@ class GlmCVENet(GlmCVSinglePen):
 
     def _set_tune_from_lasso_max(self, X, y, lasso_pen_max=None):
         """
+        Sets the ElasticNet tuning sequence given the largest reasonable lasso penalty value.
 
         Parameters
         ----------
+        X: array-like, shape (n_samples, n_features)
+            The training covariate data.
+
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The training response data.
 
         lasso_pen_max: float
             The lasso penalty max value
@@ -399,18 +423,3 @@ class GlmCVENet(GlmCVSinglePen):
         elif self._tune_pen_val():
             param_grid = {'pen_val': self.pen_val_seq_}
             return list(ParameterGrid(param_grid))
-
-
-GlmCVENet.__doc__ = dedent(
-    """
-    Elastic Net penalized generalized linear model tuned with cross-validation.
-
-    Parameters
-    ----------
-    {}
-
-    {}
-
-    {}
-    """.format(_cv_params, _pen_seq_params, _enet_cv_params)
-)

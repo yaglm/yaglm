@@ -49,35 +49,40 @@ from ya_glm.backends.cvxpy.glm_solver import solve_glm_path \
 
 # other
 from ya_glm.init_signature import add_from_classes, add_multi_resp_params
+from ya_glm.make_docs import make_est_docs, make_cv_docs
 from ya_glm.info import _MULTI_RESP_LOSSES, _MULTI_RESP_PENS
 from ya_glm.lla.WeightedLassoSolver import WL1SolverGlm
 
 
-_LOSS_MIXIN_STR2CLS = {'lin_reg': LinRegMixin,
-                       'lin_reg_mr': LinRegMultiRespMixin,
+_LOSS_STR2CLS = {'lin_reg': LinRegMixin,
+                 'lin_reg_mr': LinRegMultiRespMixin,
 
-                       'log_reg': LogRegMixin,
-                       'multinomial': MultinomialMixin,
+                 'log_reg': LogRegMixin,
+                 'multinomial': MultinomialMixin,
 
-                       'poisson': PoissonRegMixin,
-                       'poisson_mr': PoissonRegMultiRespMixin,
+                 'poisson': PoissonRegMixin,
+                 'poisson_mr': PoissonRegMultiRespMixin,
 
-                       'huber': HuberRegMixin,
-                       'huber_mr': HuberRegMultiRespMixin,
+                 'huber': HuberRegMixin,
+                 'huber_mr': HuberRegMultiRespMixin,
 
-                       'quantile': QuantileRegMixin,
-                       'quantile_mr': QuantileRegMultiRespMixin
-                       }
+                 'quantile': QuantileRegMixin,
+                 'quantile_mr': QuantileRegMultiRespMixin
+                 }
+
+avail_loss_funcs = list(_LOSS_STR2CLS.keys())
+
+avail_penalties = ['vanilla', 'ridge', 'lasso', 'enet', 'adpt_lasso',
+                   'adpt_enet', 'fcp_lla']
 
 
 def get_loss_mixin(loss_func='lin_reg'):
 
-    if loss_func in _LOSS_MIXIN_STR2CLS.keys():
-        return _LOSS_MIXIN_STR2CLS[loss_func]
+    if loss_func in _LOSS_STR2CLS.keys():
+        return _LOSS_STR2CLS[loss_func]
     else:
         raise NotImplementedError("{} not supported, must be one of"
-                                  "{}".format(loss_func,
-                                              list(_LOSS_MIXIN_STR2CLS.keys())))
+                                  "{}".format(loss_func, avail_loss_funcs))
 
 
 def get_penalty(penalty='lasso', has_path_algo=True):
@@ -88,7 +93,7 @@ def get_penalty(penalty='lasso', has_path_algo=True):
         Name of penalty
 
     has_path_algo: bool
-        If the GLM has a path algorithm.
+        If the PEN has a path algorithm.
 
     Output
     ------
@@ -143,8 +148,8 @@ def get_penalty(penalty='lasso', has_path_algo=True):
         EstCV = GlmFcpLLACV
 
     else:
-        raise ValueError("Bad input for penalty: {}".format(penalty))
-
+        raise NotImplementedError("{} not supported, must be one of"
+                                  "{}".format(penalty, avail_penalties))
     return Est, EstCV
 
 
@@ -159,10 +164,10 @@ def get_solver(backend='fista'):
     solve_glm, solve_glm_path, WL1Solver
 
     solve_glm: callable
-        A function that solves a single penalized GLM problem.
+        A function that solves a single penalized PEN problem.
 
     solve_glm_path: None, callable
-        (Optional) A function that solves a penalized GLM path.
+        (Optional) A function that solves a penalized PEN path.
 
     WL1Solver: class
         An weighted L1 solver class for the LLA algorithm.
@@ -184,6 +189,11 @@ def get_solver(backend='fista'):
         elif backend == 'cvxpy':
             solve_glm = solve_glm_cvxpy
             solve_glm_path = solve_glm_path_cvxpy
+
+        else:
+            NotImplementedError("{} not supported, must be a dict or one of"
+                                "{}".format(backend, ['fista', 'andersoncd',
+                                                      'cvxpy']))
 
     else:
         solve_glm = backend.get('solve_glm', None)
@@ -207,8 +217,8 @@ def get_pen_glm(loss_func='lin_reg',
         assert loss_func in _MULTI_RESP_LOSSES
 
     solve_glm, solve_glm_path, WL1Solver = get_solver(backend=backend)
-    LOSS_MIXIN = get_loss_mixin(loss_func=loss_func)
-    GLM, GLM_CV = get_penalty(penalty=penalty,
+    LOSS = get_loss_mixin(loss_func=loss_func)
+    PEN, PEN_CV = get_penalty(penalty=penalty,
                               has_path_algo=solve_glm_path is not None)
 
     if penalty == 'fcp_lla':
@@ -240,12 +250,12 @@ def get_pen_glm(loss_func='lin_reg',
 
     if penalty == 'fcp_lla':
 
-        class Estimator(LOSS_MIXIN, GLM):
+        class Estimator(LOSS, PEN):
             solve_glm = temp['solve_glm']  # TODO-HACK: see above
             WL1Solver = temp['WL1Solver']  # TODO-HACK: see above
 
-            @add_multi_resp_params(add=LOSS_MIXIN.is_multi_resp)
-            @add_from_classes(GLM, LOSS_MIXIN)
+            @add_multi_resp_params(add=LOSS.is_multi_resp)
+            @add_from_classes(PEN, LOSS)
             def __init__(self): pass
 
             # TODO: make safe
@@ -255,11 +265,11 @@ def get_pen_glm(loss_func='lin_reg',
 
     elif penalty in ['adpt_lasso', 'adpt_enet']:
 
-        class Estimator(LOSS_MIXIN, GLM):
+        class Estimator(LOSS, PEN):
             solve_glm = temp['solve_glm']  # TODO-HACK: see above
 
-            @add_multi_resp_params(add=LOSS_MIXIN.is_multi_resp)
-            @add_from_classes(GLM, LOSS_MIXIN)
+            @add_multi_resp_params(add=LOSS.is_multi_resp)
+            @add_from_classes(PEN, LOSS)
             def __init__(self): pass
 
             # TODO: make safe
@@ -269,24 +279,31 @@ def get_pen_glm(loss_func='lin_reg',
 
     else:
 
-        class Estimator(LOSS_MIXIN, GLM):
+        class Estimator(LOSS, PEN):
             solve_glm = temp['solve_glm']  # TODO-HACK: see above
 
-            @add_multi_resp_params(add=LOSS_MIXIN.is_multi_resp)
-            @add_from_classes(GLM, LOSS_MIXIN)
+            @add_multi_resp_params(add=LOSS.is_multi_resp)
+            @add_from_classes(PEN, LOSS)
             def __init__(self): pass
+
+    make_est_docs(C=Estimator, PEN=PEN, LOSS=LOSS)
 
     ####################################
     # setup cross-validation estimator #
     ####################################
-    if GLM_CV is not None:
+    if PEN_CV is not None:
 
-        class EstimatorCV(GLM_CV):
+        class EstimatorCV(PEN_CV):
             # solve_glm_path = solve_glm_path
             solve_glm_path = temp['solve_glm_path']  # TODO-HACK: see above
 
-            @add_from_classes(GLM_CV)
+            @add_from_classes(PEN_CV)
             def __init__(self, estimator=Estimator()): pass
+
+        make_cv_docs(C=EstimatorCV,
+                     PEN_CV=PEN_CV,
+                     PEN=PEN,
+                     LOSS=LOSS)
 
     else:
         EstimatorCV = None

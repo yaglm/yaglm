@@ -1,12 +1,27 @@
 from sklearn.utils.validation import check_array, column_or_1d
+from textwrap import dedent
 
 from ya_glm.glm_loss.linear_regression import LinRegMixin
 from ya_glm.autoassign import autoassign
+
+_quant_reg_params = dedent("""
+    quantile: float
+        The loss function quantile.
+    """)
 
 
 class QuantileRegMixin(LinRegMixin):
 
     is_multi_resp = False
+
+    _loss_descr = dedent("""
+    Quantile regression with loss function L(z, y) = rho_{q}(z - y) where the tilted L1 loss is given by
+
+    rho_q(r) = q if r <= 0
+    rho_q(r) = 1 - q if r > 0
+    """)
+
+    _params_descr = _quant_reg_params
 
     @autoassign
     def __init__(self, quantile=0.5): pass
@@ -27,6 +42,15 @@ class QuantileRegMixin(LinRegMixin):
 class QuantileRegMultiRespMixin(LinRegMixin):
 
     is_multi_resp = True
+
+    _loss_descr = dedent("""
+    Multiple response quantile regression with loss function L(z, y) = sum_{j=1}^{n_responses} rho_{q}(z_j - y_j) where the tilted L1 loss is given by
+
+    rho_q(r) = q if r <= 0
+    rho_q(r) = 1 - q if r > 0
+    """)
+
+    _params_descr = _quant_reg_params
 
     @autoassign
     def __init__(self, quantile=0.5): pass

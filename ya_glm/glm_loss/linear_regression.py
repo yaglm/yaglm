@@ -1,7 +1,7 @@
 from sklearn.utils.validation import check_array, column_or_1d
 from sklearn.metrics import r2_score, median_absolute_error
 from sklearn.base import RegressorMixin
-
+from textwrap import dedent
 import numpy as np
 
 from ya_glm.cv.scoring import get_n_nonzero, Scorer
@@ -10,6 +10,10 @@ from ya_glm.cv.scoring import get_n_nonzero, Scorer
 class LinRegMixin(RegressorMixin):
 
     is_multi_resp = False
+
+    _loss_descr = dedent("""
+    Linear regression with the least squares loss L(z, y) = 0.5 (z - y)^2
+    """)
 
     def get_loss_info(self):
         loss_type = 'lin_reg'

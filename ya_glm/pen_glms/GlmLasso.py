@@ -11,9 +11,10 @@ from ya_glm.pen_max.lasso import get_pen_max
 from ya_glm.init_signature import add_from_classes
 from ya_glm.utils import maybe_add, lasso_and_ridge_from_enet
 from ya_glm.processing import check_estimator_type
+from ya_glm.make_docs import merge_param_docs
 
 
-_glm_lasso_params = dedent("""
+_lasso_params = dedent("""
 pen_val: float
     The penalty value.
 
@@ -36,13 +37,15 @@ tikhonov: None, array-like (K, n_features)
 
 class GlmLasso(Glm):
 
-    descr = dedent("""
+    _pen_descr = dedent("""
         Lasso or group lasso penalty with an optional ridge penalty.
         """)
 
-    descr_mr = dedent("""
+    _pen_descr_mr = dedent("""
         Lasso, group lasso, multi-task lasso or nuclear norm penalty with an optional ridge penalty.
         """)
+
+    _params_descr = merge_param_docs(_lasso_params, Glm._params_descr)
 
     @add_from_classes(Glm)
     def __init__(self, pen_val=1, lasso_weights=None, groups=None,
@@ -120,7 +123,7 @@ class GlmLasso(Glm):
 
 class GlmLassoCVPath(CVPathMixin, GlmCVSinglePen):
 
-    desrc = dedent("""
+    _cv_descr = dedent("""
         Tunes the lasso penalty parameter via cross-validation using a path algorithm.
         """)
 
@@ -138,7 +141,7 @@ class GlmLassoCVPath(CVPathMixin, GlmCVSinglePen):
 
 
 class GlmLassoCVGridSearch(CVGridSearchMixin, GlmCVSinglePen):
-    desrc = dedent("""
+    _cv_descr = dedent("""
     Tunes the lasso penalty parameter via cross-validation.
     """)
 
@@ -146,9 +149,9 @@ class GlmLassoCVGridSearch(CVGridSearchMixin, GlmCVSinglePen):
         check_estimator_type(estimator, GlmLasso)
 
 
-_glm_lasso_params = dedent("""
+_enet_params = dedent("""
 pen_val: float
-    The penalty strength (corresponds to lambda in glmnet)
+    The penalty strength (corresponds to lambda in glmnet).
 
 l1_ratio: float
     The ElasticNet mixing parameter, with ``0 <= l1_ratio <= 1``. For
@@ -169,7 +172,7 @@ tikhonov: None, array-like (K, n_features)
 
 class GlmENet(Glm):
 
-    descr = dedent("""
+    _pen_descr = dedent("""
         Elastic net penalty
 
         pen_val * (l1_ratio) Lasso(coef) + pen_val * (1 - l1_ratio) * Ridge(coef)
@@ -177,13 +180,15 @@ class GlmENet(Glm):
         where Lasso(coef) is either the Lasso or group Lasso penalty.
         """)
 
-    descr_mr = dedent("""
+    _pen_descr_mr = dedent("""
         Elastic net penalty
 
         pen_val * (l1_ratio) Lasso(coef) + pen_val * (1 - l1_ratio) * Ridge(coef)
 
         where Lasso(coef) is either the Lasso, group Lasso, multi-task Lasso or nuclear norm.
         """)
+
+    _params_descr = merge_param_docs(_enet_params, Glm._params_descr)
 
     @add_from_classes(Glm)
     def __init__(self, pen_val=1, l1_ratio=0.5,
@@ -268,7 +273,7 @@ class GlmENet(Glm):
 class GlmENetCVPath(ENetCVPathMixin, GlmCVENet):
     solve_glm_path = None
 
-    desrc = dedent("""
+    _cv_descr = dedent("""
         Tunes the ElasticNet penalty parameter and or the l1_ratio via cross-validation. Makes use of a path algorithm for computing the penalty value tuning path.
         """)
 
@@ -284,7 +289,7 @@ class GlmENetCVPath(ENetCVPathMixin, GlmCVENet):
 
 class GlmENetCVGridSearch(CVGridSearchMixin, GlmCVSinglePen):
 
-    desrc = dedent("""
+    _cv_descr = dedent("""
         Tunes the ElasticNet penalty parameter and or the l1_ratio via cross-validation.
         """)
 

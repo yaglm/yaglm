@@ -3,11 +3,10 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.utils.validation import check_array, column_or_1d
-# from sklearn.utils import check_array
-# from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.metrics import log_loss
 from scipy.special import expit
 import numpy as np
+from textwrap import dedent
 
 from ya_glm.cv.scoring import get_n_nonzero, score_binary_clf, Scorer
 
@@ -15,6 +14,12 @@ from ya_glm.cv.scoring import get_n_nonzero, score_binary_clf, Scorer
 class LogRegMixin(LinearClassifierMixin):
 
     is_multi_resp = False
+
+    _loss_descr = dedent("""
+    Logistic regression with loss function L(z, y) = y log(sig(z)) + (1 - y) log(1 - sig(z))
+
+    where the sigmoid function is sig(z) = 1 / (1 + e^{-z})
+    """)
 
     def get_loss_info(self):
         loss_type = 'log_reg'

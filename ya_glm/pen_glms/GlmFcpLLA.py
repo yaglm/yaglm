@@ -12,9 +12,9 @@ from ya_glm.opt.penalty.concave_penalty import get_penalty_func
 from ya_glm.init_signature import add_from_classes, keep_agreeable
 from ya_glm.utils import maybe_add
 from ya_glm.processing import check_estimator_type, process_init_data
+from ya_glm.make_docs import merge_param_docs
 
-
-_glm_fcp_lla__params = dedent("""
+_fcp_lla__params = dedent("""
 pen_val: float
     The penalty value for the concave penalty.
 
@@ -56,9 +56,11 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
     solve_glm = None
     WL1Solver = None  # base class for WL1 solver
 
-    descr = dedent("""
+    _pen_descr = dedent("""
     Folded concave penalty fit by applying the local linear approximation (LLA) algorithm to a good initializer.
     """)
+
+    _params_descr = merge_param_docs(_fcp_lla__params, Glm._params_descr)
 
     @add_from_classes(Glm)
     def __init__(self,
@@ -223,7 +225,7 @@ class GlmFcpLLA(GlmWithInitMixin, Glm):
 
 class GlmFcpLLACV(CVGridSearchMixin, GlmCVWithInitSinglePen):
 
-    descr = dedent("""
+    _cv_descr = dedent("""
     Tunes the penalty parameter of a concave penalty function fit with the LLA algorithm via cross-validation.
     """)
 

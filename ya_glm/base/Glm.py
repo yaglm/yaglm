@@ -13,7 +13,24 @@ from ya_glm.processing import process_X, deprocess_fit
 from ya_glm.opt.utils import euclid_norm
 
 
-_glm_base_params = dedent("""
+class Glm(BaseEstimator):
+    """
+    Base class for a penalized generalized linear model.
+    """
+
+    # subclass may implement the following
+
+    # function that solves the penalized GLM optimizaiton problem.
+    solve_glm = None
+
+    # description of the GLM penalty
+    _pen_descr = None
+
+    # description of the GLM penalty for multiple response loss GLMs
+    _pen_descr_mr = None
+
+    # description of the parameters
+    _params_descr = dedent("""
     fit_intercept: bool
         Whether or not to fit an intercept. The intercept will not be penalized.
 
@@ -24,11 +41,27 @@ _glm_base_params = dedent("""
         Additional keyword arguments for solve_glm.
     """)
 
+    _attr_descr = dedent("""
+    coef_: array-like, (n_features, )
+        The estimated coefficient vector.
 
-class Glm(BaseEstimator):
+    intercept_: float
+        The estimated intercept.
 
-    # subclass should implement
-    solve_glm = None
+    opt_data_: dict
+        Output from the optimization algorithm.
+        """)
+
+    _attr_descr_mr = dedent("""
+    coef_: array-like, (n_features, n_responses)
+        The estimated coefficient matrix.
+
+    intercept_: array-like, (n_responses, )
+        The estimated intercept.
+
+    opt_data_: dict
+        Output from the optimization algorithm.
+        """)
 
     @autoassign
     def __init__(self, fit_intercept=True, standardize=False, opt_kws={}):
@@ -349,14 +382,3 @@ class Glm(BaseEstimator):
             Keyword arguments for the loss function.
         """
         raise NotImplementedError
-
-
-Glm.__doc__ = dedent(
-    """
-    Base class for Lasso generalized linear model.
-
-    Parameters
-    ----------
-    {}
-    """.format(_glm_base_params)
-)

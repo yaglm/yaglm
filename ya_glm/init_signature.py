@@ -1,5 +1,6 @@
 from ya_glm.autoassign import autoassign
 from inspect import Signature, signature, Parameter
+from textwrap import dedent
 
 from makefun import wraps, add_signature_parameters
 
@@ -129,3 +130,12 @@ def add_multi_resp_params(add=False):
         def same(init):
             return init
         return same
+
+
+_multi_resp_pen_params = dedent("""
+    multi_task: bool
+        Use multi-task lasso.
+
+    nuc: bool
+        Use nuclear norm penalty.
+    """)

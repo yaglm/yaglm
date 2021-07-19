@@ -1,7 +1,13 @@
+from textwrap import dedent
+
 from ya_glm.base.Glm import Glm
 
 
 class GlmVanilla(Glm):
+
+    _pen_descr = dedent("""
+    Unpenalized GLM.
+    """)
 
     def _get_solve_kws(self):
         loss_func, loss_kws = self.get_loss_info()

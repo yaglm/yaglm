@@ -1,5 +1,6 @@
 from sklearn.utils.validation import check_array
 import numpy as np
+from textwrap import dedent
 
 from ya_glm.glm_loss.linear_regression import LinRegMixin
 
@@ -7,6 +8,10 @@ from ya_glm.glm_loss.linear_regression import LinRegMixin
 class LinRegMultiRespMixin(LinRegMixin):
 
     is_multi_resp = True
+
+    _loss_descr = dedent("""
+    Multiple response linear regression with the least squares loss L(z, y) = 0.5 ||z - y||_2^2
+    """)
 
     def get_loss_info(self):
         loss_type = 'lin_reg_mr'

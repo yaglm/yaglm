@@ -9,9 +9,9 @@ from ya_glm.pen_max.ridge import get_pen_max
 from ya_glm.init_signature import add_from_classes
 from ya_glm.utils import maybe_add
 from ya_glm.processing import check_estimator_type
+from ya_glm.make_docs import merge_param_docs
 
-
-_glm_ridge_params = dedent("""
+_ridge_params = dedent("""
 pen_val: float
     The penalty value.
 
@@ -25,9 +25,11 @@ tikhonov: None, array-like (K, n_features)
 
 class GlmRidge(Glm):
 
-    descr = dedent("""
+    _pen_descr = dedent("""
     Ridge penalty.
     """)
+
+    _params_descr = merge_param_docs(_ridge_params, Glm._params_descr)
 
     @add_from_classes(Glm)
     def __init__(self, pen_val=1, weights=None, tikhonov=None): pass
@@ -77,7 +79,7 @@ class GlmRidge(Glm):
 
 class GlmRidgeCVPath(CVPathMixin, GlmCVSinglePen):
 
-    descr = dedent("""
+    _cv_descr = dedent("""
     Tunes the ridge penalty parameter via cross-validation using a path algorithm.
     """)
 
@@ -96,7 +98,7 @@ class GlmRidgeCVPath(CVPathMixin, GlmCVSinglePen):
 
 class GlmRidgeCVGridSearch(CVGridSearchMixin, GlmCVSinglePen):
 
-    descr = dedent("""
+    _cv_descr = dedent("""
     Tunes the ridge penalty parameter via cross-validation.
     """)
 

@@ -2,12 +2,17 @@ from sklearn.base import RegressorMixin
 from sklearn._loss.glm_distribution import PoissonDistribution
 from sklearn.utils.validation import _check_sample_weight
 from sklearn.utils.validation import check_array, column_or_1d
+from textwrap import dedent
 
 import numpy as np
 
 
 class PoissonRegMixin(RegressorMixin):
     is_multi_resp = False
+
+    _loss_descr = dedent("""
+    Poisson regression with loss function L(z, y) = exp(z) - y z
+    """)
 
     def get_loss_info(self):
         loss_type = 'poisson'
@@ -44,6 +49,10 @@ class PoissonRegMixin(RegressorMixin):
 class PoissonRegMultiRespMixin(RegressorMixin):
 
     is_multi_resp = True
+
+    _loss_descr = dedent("""
+    Multiple response poisson regression with loss function L(z, y) = sum_{j=1}^{n_responses} exp(z_j) - y_j z_j
+    """)
 
     def get_loss_info(self):
         loss_type = 'poisson_mr'
