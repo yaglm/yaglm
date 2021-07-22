@@ -10,7 +10,8 @@ from setuptools import setup, find_packages
 install_requires = ['numpy',
                     'pandas',
                     'scikit-learn',
-                    'scipy'
+                    'scipy',
+                    'makefun'
                     ]
 
 

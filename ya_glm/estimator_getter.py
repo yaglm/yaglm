@@ -35,18 +35,6 @@ from ya_glm.backends.fista.glm_solver import solve_glm_path \
 from ya_glm.backends.fista.WL1SolverGlm import WL1SolverGlm as WL1SolverGlmFista
 
 
-# andersoncd solvers
-from ya_glm.backends.andersoncd.glm_solver import solve_glm as \
-    solve_glm_andersoncd
-from ya_glm.backends.andersoncd.glm_solver import solve_glm_path \
-    as solve_glm_path_andersoncd
-
-# cvxpy solvers
-from ya_glm.backends.cvxpy.glm_solver import solve_glm as solve_glm_cvxpy
-from ya_glm.backends.cvxpy.glm_solver import solve_glm_path \
-    as solve_glm_path_cvxpy
-
-
 # other
 from ya_glm.init_signature import add_from_classes, add_multi_resp_params
 from ya_glm.make_docs import make_est_docs, make_cv_docs
@@ -183,10 +171,23 @@ def get_solver(backend='fista'):
             wl1_solver = WL1SolverGlmFista
 
         elif backend == 'andersoncd':
+
+            # load andersoncd solvers
+            from ya_glm.backends.andersoncd.glm_solver import solve_glm as \
+                solve_glm_andersoncd
+            from ya_glm.backends.andersoncd.glm_solver import solve_glm_path \
+                as solve_glm_path_andersoncd
+
             solve_glm = solve_glm_andersoncd
             solve_glm_path = solve_glm_path_andersoncd
 
         elif backend == 'cvxpy':
+
+            # load cvxpy solvers
+            from ya_glm.backends.cvxpy.glm_solver import solve_glm as solve_glm_cvxpy
+            from ya_glm.backends.cvxpy.glm_solver import solve_glm_path \
+                as solve_glm_path_cvxpy
+
             solve_glm = solve_glm_cvxpy
             solve_glm_path = solve_glm_path_cvxpy
 
