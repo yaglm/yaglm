@@ -4,8 +4,6 @@ from setuptools import setup, find_packages
 #     with open('README.rst') as f:
 #            return f.read()
 
-# time, abc, numbers, copy, textwrap
-# os, json, argparase, re
 
 install_requires = ['numpy',
                     'pandas',

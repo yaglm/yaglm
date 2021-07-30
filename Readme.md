@@ -93,7 +93,7 @@ from ya_glm.toy_data import sample_sparse_lin_reg
 X, y = sample_sparse_multinomial(n_samples=100, n_features=10)[0:2]
 
 
-# you can use group lasso with user specifed gruops
+# you can use group lasso with user specified groups
 groups = [range(5), range(5, 10)]
 ENet(groups=groups).fit(X, y) # group elastic net
 ```
@@ -110,7 +110,7 @@ ENet(loss='lin_reg', # 'huber', 'quantile'
 # Some loss functions have additional parameters that can be specified
 # with config objects
 from ya_glm.loss.LossConfig import Quantile, Huber
-ENet(loss=Quantile(quantile=0.75), # Huber(knot=1.35)
+ENet(loss=Quantile(quantile=0.75),
      ).fit(X, y)
 ```
 
@@ -120,12 +120,12 @@ Concave penalties
 # from ya_glm.models.AdptENet import AdptENet, AdptENetCV
 from ya_glm.models.FcpLLA import FcpLLA, FcpLLACV
 
-# concave penalites require an initial estimator
+# concave penalties require an initial estimator
 FcpLLA(pen_func='scad',
        init='default',  # default init = LassoCV
        ).fit(X, y)
 
-# you can provide your favoriate initilalizer object
+# you can provide your favorite initializer object
 FcpLLA(init=ENetCV() ).fit(X, y)
 
 # or specify the initialization yourself
@@ -133,7 +133,7 @@ import numpy as np
 FcpLLA(init={'coef': np.zeros(X.shape[1])}).fit(X, y)
 
 
-# The CV object knows to fit the initailizer object
+# The CV object knows to fit the initializer object
 # before running cross-validation
 FcpLLACV().fit(X, y)
 ```
@@ -143,8 +143,8 @@ Custom solvers
 # you can customize the solver using a solver config class
 from ya_glm.solver.FistaSolver import FistaSolver
 ENet(solver=FistaSolver(rtol=1e-4))
-# you can also provide your favoriate solver 
-# by wrappping in a solver config class
+# you can also provide your favorite solver 
+# by wrapping in a solver config class
 ```
 
 
