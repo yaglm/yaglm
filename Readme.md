@@ -138,7 +138,7 @@ FcpLLA(init={'coef': np.zeros(X.shape[1])}).fit(X, y)
 FcpLLACV().fit(X, y)
 ```
 
-custom solvers
+Custom solvers
 ```python
 # you can customize the solver using a solver config class
 from ya_glm.solver.FistaSolver import FistaSolver
