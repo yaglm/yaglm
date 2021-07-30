@@ -13,12 +13,9 @@ def process_X(X, fit_intercept=True,
               standardize=False, groups=None, sample_weight=None, copy=True,
               check_input=True, accept_sparse=True):
     """
-    Processes and possibly standardize the X feature matrix.
+    Processes and possibly standardize the X feature matrix. If standardize=True then the coulmns are scaled to be unit norm. If additionally fit_intercept=True, the columns of X are first mean centered before scaling.
 
-
-    If standardize=True, fit_intercept=True then we mean ceneter each column then scale by the standard deviation. Both the mean and std are computed using the sample_weight if they are provided.
-
-    If standardize=True, fit_intercept=False then we scale each column by its L2 norm.
+    If grouops is provided an additional scaling is applied that scales each variable by 1 / sqrt(group size).
 
     Parameters
     ----------
@@ -75,15 +72,19 @@ def process_X(X, fit_intercept=True,
         else:
             X = X.copy(order='K')
 
-    # compute column STDs
-    if standardize and not fit_intercept:
+    if standardize:
 
         if fit_intercept:
 
             # compute mean and standard deviations of each feature
+            # TODO: this computes a weighted STD so the columns will be be perfectly norm 1.
             X_offset, X_scale = weighted_mean_std(X,
                                                   sample_weight=sample_weight,
                                                   ddof=0)
+
+            # this way columns are normalized to unit norm
+            X_scale *= np.sqrt(X.shape[0])
+
         else:
             X_offset = None
 

@@ -4,7 +4,7 @@ from scipy.sparse import issparse
 import numpy as np
 
 
-def weighted_mean_std(X, sample_weight=None, ddof=0, norm_weights=True):
+def weighted_mean_std(X, sample_weight=None, ddof=0):
     """
     Computes possible weighted mean and standard deviations of each column of a data matrix. It is safe to call this function on either a sparse or dense matrix.
 
@@ -21,9 +21,6 @@ def weighted_mean_std(X, sample_weight=None, ddof=0, norm_weights=True):
         is ``TOT_WEIGHT - ddof``, where ``TOT_WEIGHT`` is the total weight.
         If sample_weight is None or norm_weight=True then TOT_WEIGHT = n_samples.
         Otherwise, TOT_WEIGHT = sample_weight.sum()
-
-    norm_weights: bool
-        Ensure the TOT_WEIGHT sums to n_samples.
 
     Output
     ------
@@ -43,10 +40,9 @@ def weighted_mean_std(X, sample_weight=None, ddof=0, norm_weights=True):
         _sample_weight = np.array(sample_weight).reshape(-1).astype(X.dtype)
         assert len(_sample_weight) == n_samples
 
-        # possibly normalize the weights
-        if norm_weights:
-            _sample_weight /= _sample_weight.sum()
-            _sample_weight *= n_samples
+        # normalize the weights
+        _sample_weight /= _sample_weight.sum()
+        _sample_weight *= n_samples
 
         TOT_WEIGHT = _sample_weight.sum()
 
@@ -57,6 +53,7 @@ def weighted_mean_std(X, sample_weight=None, ddof=0, norm_weights=True):
     # sklearn has this built in for sparse matrices
     # TODO: can we find this somewhere for dense?
     if issparse(X):
+
         # TODO: handle ddof
         MEAN, VAR, SUM_WEIGHTS = \
             mean_variance_axis(X=X, axis=0, weights=_sample_weight,

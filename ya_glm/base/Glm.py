@@ -223,9 +223,11 @@ class Glm(BaseEstimator):
 
     def preprocess(self, X, y, sample_weight=None, copy=True, check_input=True):
         """
-        Preprocesses the data for fitting. This method may transform the data e.g. centering and scaling X. If sample weights are provided then these are used for computing weighted means / standard deviations for standardization. For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size).
+        Preprocesses the data for fitting.
 
-        If fit_intercept=False, standardize=True, the X data is not centered and the scale is the L2 norm insead of the standard devlation (this ignores sample_weight).
+        If standardize=True then the coulmns are scaled to be unit norm. If additionally fit_intercept=True, the columns of X are first mean centered before scaling.
+
+        For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size).
 
         Parameters
         ----------
