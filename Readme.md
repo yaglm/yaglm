@@ -73,29 +73,29 @@ X, y = sample_sparse_multinomial(n_samples=100, n_features=10, n_classes=3)[0:2]
 
 # fit using the sklearn API you know and love!
 Lasso(loss='multinomial',  # specify loss function
-     multi_task=True
-     ).fit(X, y)
+      multi_task=True
+      ).fit(X, y)
 # Lasso().fit(X, y)  # entrywise Lasso
 # Lasso(nuc=True).fit(X, y)  # nuclear norm
 
 
-# tune the elastic net penalty with cross-validation
-# we use path algorithms to compute the tuning path faster!
+# tune the lasso penalty parameter with cross-validation
+# we use path algorithms to quickly compute the tuning path for each CV fold
 # we automatically generate the tuning sequence
 # for any loss + penalty combination (including concave ones!)
-LassoCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se rule
-       cv_n_jobs=-1 # parallelization over CV folds with joblib
-       ).fit(X, y)
+LassoCV(cv_select_rule='1se',  # here we select the penalty parameter with the 1se rule
+        cv_n_jobs=-1  # parallelization over CV folds with joblib
+        ).fit(X, y)
 
 
 # sample linear regression model with sparse coefficient
 from ya_glm.toy_data import sample_sparse_lin_reg
-X, y = sample_sparse_multinomial(n_samples=100, n_features=10)[0:2]
+X, y = sample_sparse_lin_reg(n_samples=100, n_features=10)[0:2]
 
 
 # you can use group lasso with user specified groups
 groups = [range(5), range(5, 10)]
-Lasso(groups=groups).fit(X, y) # group elastic net
+Lasso(groups=groups).fit(X, y)  # group elastic net
 ```
 
 Specifying the GLM loss
@@ -104,14 +104,14 @@ Specifying the GLM loss
 # specify the desired GLM loss function
 # 'lin_reg' is the default
 Lasso(loss='lin_reg', # 'huber', 'quantile'
-     ).fit(X, y)
+      ).fit(X, y)
 
 
 # Some loss functions have additional parameters that can be specified
 # with config objects
-from ya_glm.loss.LossConfig import Quantile, Huber
+from ya_glm.loss.LossConfig import Quantile
 Lasso(loss=Quantile(quantile=0.75),
-     ).fit(X, y)
+      ).fit(X, y)
 ```
 
 Concave penalties
@@ -127,7 +127,7 @@ FcpLLA(pen_func='scad',
        ).fit(X, y)
 
 # you can provide your favorite initializer object
-FcpLLA(init=LassoCV() ).fit(X, y)
+FcpLLA(init=LassoCV()).fit(X, y)
 
 # or specify the initialization yourself
 import numpy as np
@@ -144,8 +144,8 @@ Custom solvers
 ```python
 # you can customize the solver using a solver config class
 from ya_glm.solver.FistaSolver import FistaSolver
-ENet(solver=FistaSolver(rtol=1e-4))
-# you can also provide your favorite solver 
+Lasso(solver=FistaSolver(rtol=1e-4))
+# you can also provide your favorite solver
 # by wrapping in a solver config class
 ```
 
