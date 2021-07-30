@@ -73,7 +73,7 @@ X, y = sample_sparse_multinomial(n_samples=100, n_features=10, n_classes=3)[0:2]
 
 # fit using the sklearn API you know and love!
 Lasso(loss='multinomial',  # specify loss function
-      multi_task=True
+      multi_task=True  # L1 to L2 norm i.e. group Lasso on the rows
       ).fit(X, y)
 # Lasso().fit(X, y)  # entrywise Lasso
 # Lasso(nuc=True).fit(X, y)  # nuclear norm
