@@ -28,6 +28,7 @@ and the following more sophisticated penalties
 - [Adaptive Lasso](http://users.stat.umn.edu/~zouxx019/Papers/adalasso.pdf) versions of the above (including multi-task, group and nuclear norm)
 - Folded concave penalties (FCP) such as [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf) fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit ([Zou and Li, 2008](http://www.personal.psu.edu/ril4/research/AOS0316.pdf); [Fan et al, 2014](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/)). We also provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
 
+The adaptive Lasso and LLA algorithm come with strong statistical guarantees while their computational costs are not significantly worse than their convex cousins.
 
 The built in cross-validation functionality supports
 
@@ -57,74 +58,93 @@ To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) yo
 
 # Example
 
-
-There are two main objects Est and EstCV; the former fits a single penalized GLM (think [sklearn.linear_model.Lasso](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.Lasso.html)) and the latter tunes the penalized GLM using cross-validation while making use of a faster path algorithm if available (think [sklearn.linear_model.LassoCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html)). Both are sklearn compatible.
-
-Because there are many loss + penalty combinations we programmatically generate the Est and EstCV classes.
-
-
+Basic convex penalties
 ```python
-from ya_glm.estimator_getter import get_pen_glm
-from ya_glm.toy_data import sample_sparse_multinomial, sample_sparse_lin_reg
+# from ya_glm.models.Vanilla import Vanilla  # unpenalized GLMs
+# from ya_glm.models.Lasso import Lasso, LassoCV
+# from ya_glm.models.Ridge import Ridge, RidgeCV
+from ya_glm.models.ENet import ENet, ENetCV
 
-# multinomial regression model with a row sparse coefficient matrix
+
+# sample multinomial regression model with a row sparse coefficient matrix
+from ya_glm.toy_data import sample_sparse_multinomial
 X, y = sample_sparse_multinomial(n_samples=100, n_features=10, n_classes=3)[0:2]
-
-# programatically generate any loss + penalty combination
-Est, EstCV = get_pen_glm(loss_func='multinomial', # 'lin_reg', 'poisson', ...
-                         penalty='lasso' # 'enet', 'adpt_lasso', 'adpt_enet', 'fcp_lla'
-                        )
 
 
 # fit using the sklearn API you know and love!
-Est(multi_task=True).fit(X, y)
-# Est().fit(X, y)  # entrywise Lasso
-# Est(nuc=True).fit(X, y)  # nuclear norm
+ENet(loss='multinomial',  # specify loss function
+     multi_task=True
+     ).fit(X, y)
+# ENet().fit(X, y)  # entrywise Lasso
+# ENet(nuc=True).fit(X, y)  # nuclear norm
 
-# tune the lasso penalty with cross-validation
+
+# tune the elastic net penalty with cross-validation
+# we use path algorithms to compute the tuning path faster!
 # we automatically generate the tuning sequence
 # for any loss + penalty combination (including concave ones!)
-EstCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se rule
-      cv_n_jobs=-1 # parallelization over CV folds with joblib
+ENetCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se rule
+       cv_n_jobs=-1 # parallelization over CV folds with joblib
+       ).fit(X, y)
+
+
+# sample linear regression model with sparse coefficient
+from ya_glm.toy_data import sample_sparse_lin_reg
+X, y = sample_sparse_multinomial(n_samples=100, n_features=10)[0:2]
+
+
+# you can use group lasso with user specifed gruops
+groups = [range(5), range(5, 10)]
+ENet(groups=groups).fit(X, y) # group elastic net
+```
+
+Specifying the GLM loss
+
+```python
+# specify the desired GLM loss function
+# 'lin_reg' is the default
+ENet(loss='lin_reg', # 'huber', 'quantile'
      ).fit(X, y)
 
 
-# Lets try a concave penalty such as the adaptive Lasso
-# or a concave penalty fit with the LLA algorithm
-Est_concave, EstCV_concave =  get_pen_glm(loss_func='multinomial', 
-                                          penalty='adpt_lasso' # 'fcp_lla'
-                                          )
+# Some loss functions have additional parameters that can be specified
+# with config objects
+from ya_glm.loss.LossConfig import Quantile, Huber
+ENet(loss=Quantile(quantile=0.75), # Huber(knot=1.35)
+     ).fit(X, y)
+```
 
-# concave penalties require an initializer which is set via the 'init' argument
-# by default we initialize with a LassoCV
-est = Est_concave(init='default', multi_task=True).fit(X, y)
+Concave penalties
+```python
+# from ya_glm.models.AdptLasso import AdptLasso, AdptLassoCV
+# from ya_glm.models.AdptENet import AdptENet, AdptENetCV
+from ya_glm.models.FcpLLA import FcpLLA, FcpLLACV
 
-# but you can provide any init estimator you want
-init = EstCV(estimator=Est(multi_task=True), cv=10)
-est = Est_concave(init=init)
-est_cv = EstCV_concave(estimator=est)
+# concave penalites require an initial estimator
+FcpLLA(pen_func='scad',
+       init='default',  # default init = LassoCV
+       ).fit(X, y)
+
+# you can provide your favoriate initilalizer object
+FcpLLA(init=ENetCV() ).fit(X, y)
+
+# or specify the initialization yourself
+import numpy as np
+FcpLLA(init={'coef': np.zeros(X.shape[1])}).fit(X, y)
 
 
-# Here we use an Elastic Net version of the Adaptive Group Lasso
-# with user specified groups for a liner regression example
-Est, EstCV = get_pen_glm(loss_func='lin_reg', penalty='adpt_enet')
-X, y = sample_sparse_lin_reg(n_samples=100, n_features=10, n_nonzero=5)[0:2]
+# The CV object knows to fit the initailizer object
+# before running cross-validation
+FcpLLACV().fit(X, y)
+```
 
-groups = [range(5), range(5, 10)]
-est = Est(groups=groups)
-EstCV(estimator=est).fit(X, y)
-
-
-# Quantile regression with your favorite optimization algorithm
-# you can easily provide your own optimization algorithm to be the backend solver
-from ya_glm.backends.quantile_lp.glm_solver import solve_glm # Linear Program formulation
-
-Est, EstCV = get_pen_glm(loss_func='quantile',
-                         penalty='adpt_lasso',
-                         backend = {'solve_glm': solve_glm}
-                        )
-
-Est(quantile=0.5).fit(X, y)
+custom solvers
+```python
+# you can customize the solver using a solver config class
+from ya_glm.solver.FistaSolver import FistaSolver
+ENet(solver=FistaSolver(rtol=1e-4))
+# you can also provide your favoriate solver 
+# by wrappping in a solver config class
 ```
 
 
@@ -148,7 +168,6 @@ bug fixes, spelling errors, new features, etc.
 
 
 # References
-
 
 
 Zou, H., 2006. [The adaptive lasso and its oracle properties](http://users.stat.umn.edu/~zouxx019/Papers/adalasso.pdf). Journal of the American statistical association, 101(476), pp.1418-1429.
