@@ -100,6 +100,8 @@ class ConvexPenalty(PenaltyConfig):
         self.multi_task = multi_task
         self.nuc = nuc
 
+        self.tikhonov = tikhonov
+
         if (ridge_weights is not None or tikhonov is not None) \
                 and ridge_pen_val is None:
             ridge_pen_val = 1
@@ -279,6 +281,8 @@ class ConcavePenalty(PenaltyConfig):
         self.groups = groups
         self.multi_task = multi_task
         self.nuc = nuc
+
+        self.tikhonov = tikhonov
 
         if (ridge_weights is not None or tikhonov is not None) \
                 and ridge_pen_val is None:
