@@ -229,7 +229,7 @@ def setup_problem(X, y, loss,
 
 def get_glm_loss(loss):
 
-    loss_kws = loss.loss_kws
+    loss_kws = loss.get_loss_kws()
 
     if loss.name == 'lin_reg':
         loss = lin_reg_loss

@@ -5,9 +5,7 @@ class LossConfig:
     name = None
     _estimator_type = None
 
-    # TODO: should we rename this solve_kws()
-    @property
-    def loss_kws(self):
+    def get_loss_kws(self):
         return deepcopy(self.__dict__)
 
 
@@ -17,6 +15,7 @@ class LinReg(LossConfig):
     """
     name = 'lin_reg'
     _estimator_type = "regressor"
+    def __init__(self): pass
 
 
 class Huber(LossConfig):
@@ -83,8 +82,7 @@ class LogReg(LossConfig):
     def __init__(self, class_weight=None):
         self.class_weight = class_weight
 
-    @property
-    def loss_kws(self):
+    def get_loss_kws(self):
         return {}  # solvers do not need to know about class_weight
 
 
@@ -112,8 +110,7 @@ class Multinomial(LossConfig):
     def __init__(self, class_weight=None):
         self.class_weight = class_weight
 
-    @property
-    def loss_kws(self):
+    def get_loss_kws(self):
         return {}  # solvers do not need to know about class_weight
 
 

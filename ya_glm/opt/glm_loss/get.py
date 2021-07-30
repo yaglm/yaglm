@@ -72,7 +72,7 @@ def get_glm_loss(X, y, loss,
 
     kws = {'X': X, 'y': y,
            'fit_intercept': fit_intercept, 'sample_weight': sample_weight,
-           **loss.loss_kws}
+           **loss.get_loss_kws()}
 
     if sample_weight is not None:
         kws['sample_weight'] = sample_weight
