@@ -53,9 +53,6 @@ def solve(X, y, fit_intercept=True, quantile=0.5, lasso_pen_val=1,
     """
     start_time = time()
 
-    if lasso_weights is not None and lasso_pen_val is None:
-        lasso_pen_val = 1
-
     A_eq, b_eq, c, n_params = \
         get_lin_prog_data(X=X, y=y,
                           fit_intercept=fit_intercept,

@@ -17,6 +17,9 @@ def get_lin_prog_data(X, y, fit_intercept=True, quantile=0.5, lasso_pen_val=1,
 
     # TODO: perhaps filter zero sample weights as in https://github.com/scikit-learn/scikit-learn/blob/0d064cfd4eda6dd4f7c8711a4870d2f02fda52fb/sklearn/linear_model/_quantile.py#L195-L209
 
+    if lasso_pen_val is None:
+        lasso_pen_val = 0
+
     # format sample weights vec
     if sample_weight is None:
         sample_weight = np.ones(n_samples) / n_samples
@@ -84,9 +87,13 @@ def get_quad_mat(X, fit_intercept=True,
     if weights is not None:
         assert tikhonov is None
 
-    if tikhonov:
+    if tikhonov is not None:
         tik_tik = tikhonov.T @ tikhonov
-        params_mat = block_diag([tik_tik, tik_tik])
+
+        if fit_intercept:
+            params_mat = block_diag([[0], tik_tik, [0], tik_tik])
+        else:
+            params_mat = block_diag([tik_tik, tik_tik])
 
     else:
         if weights is not None:

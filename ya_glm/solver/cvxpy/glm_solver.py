@@ -236,8 +236,6 @@ def get_glm_loss(loss):
 
     elif loss.name == 'log_reg':
         loss = log_reg_loss
-        if loss.balence_classes:
-            raise NotImplementedError
         loss_kws = {}
 
     elif loss.name == 'quantile':

@@ -1,8 +1,7 @@
 from copy import deepcopy
-
 import numpy as np
 from scipy import sparse
-from numpy.linalg import norm
+from scipy.sparse import issparse
 from sklearn.utils import check_array
 
 from andersoncd.penalties import L1, WeightedL1, L1_plus_L2
@@ -12,6 +11,7 @@ from ya_glm.solver.utils import process_param_path
 from ya_glm.solver.fake_intercept import center_Xy, \
     fake_intercept_via_centering
 
+from ya_glm.sparse_utils import safe_norm
 from ya_glm.GlmSolver import GlmSolver
 from ya_glm.autoassign import autoassign
 
@@ -205,7 +205,7 @@ def solve_glm(X, y, loss,
         p0 = max((coef_init != 0.).sum(), p0)
         R = y - X @ coef_init
 
-    norms_X_col = norm(X, axis=0)
+    norms_X_col = safe_norm(X, axis=0)
 
     coef, obj_hist, kkt_max = solver(X=X, y=y,
                                      penalty=penalty,
@@ -270,6 +270,10 @@ def solve_glm_path(X, y, loss,
             pre_pro_out = {'X_offset': np.zeros(X.shape[0]),
                            'y_offset': 0}
         else:
+            if issparse(X):
+                raise NotImplementedError("safe_norm below will break"
+                                          "Due to the way we center."
+                                          "This should be fixable!")
             X, y, pre_pro_out = center_Xy(X=X, y=y, copy=True)
 
     param_path = process_param_path(lasso_pen_seq=lasso_pen_seq,
@@ -310,7 +314,7 @@ def solve_glm_path(X, y, loss,
         coef = coef_init.copy()
         R = y - X @ coef_init
 
-    norms_X_col = norm(X, axis=0)
+    norms_X_col = safe_norm(X, axis=0)
 
     solve_verbose = verbose >= 2
     n_params = len(param_path)
@@ -396,9 +400,6 @@ def check_args(X, y,
 
     if ridge_pen_val is not None and lasso_weights is not None:
         raise NotImplementedError("lasso_weights and ridge penalty not yet supported")
-
-    if sparse.issparse(X):
-        raise ValueError("Spare design matrices are not supported yet.")
 
 
 def get_penalty(lasso_pen_val=None, lasso_weights=None, ridge_pen_val=None):

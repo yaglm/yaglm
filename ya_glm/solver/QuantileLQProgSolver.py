@@ -83,6 +83,10 @@ class QuantileLQProgSolver(GlmSolver):
                         'lasso_weights': penalty.lasso_weights,
                         })
 
+            kws.pop('tikhonov', None)
+            kws.pop('ridge_pen_val', None)
+            kws.pop('ridge_weights', None)
+
             return solve_lin_prog(solver=self.scipy_lp_solver,
                                   **self.scipy_lp_kws,
                                   **kws)
