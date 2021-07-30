@@ -1,18 +1,38 @@
-import numpy as np
 from copy import deepcopy
 from time import time
-
-from textwrap import dedent
 
 from ya_glm.opt.stopping import check_decreasing_loss, check_no_change
 from ya_glm.lla.utils import safe_concat
 
-# TODO: add option for unpenalized variable
 # TODO: add option for initializing lasso from previous solution
+# TODO: add option for initializing the weighted lasso subproblem
+# from a different place that current for the first setp
 
 
-_lla_docs = dict(
-    opt_options=dedent("""
+def solve_lla(wlasso_solver, penalty_fcn, init,
+              init_upv=None, transform=abs,
+              n_steps=1, xtol=1e-4, atol=None, rtol=None,
+              tracking_level=1, verbosity=0):
+    """
+    Runs the local linear approximation algorithm. We only need the concave penalty function and a subroutine that solves the weighted Lasso-like subproblems.
+
+    Parameters
+    ----------
+    wlasso_solver: ya_glm.lla.WeightedLassoSolver
+        An object that can solve weighted lasso-type subproblems.
+
+    penalty_fcn: fclsp.penalty.FoldedPenalty
+        The penalty function.
+
+    init: array-like
+        The value at which to initalize the LLA algorithm.
+
+    init_upv: None, array-like
+        The value at which to initialize the (optional) unpenalized variable.
+
+    transform: callable
+        Transforms the penalized variable into the object whom we apply the concave penalty to.
+
     n_steps: int
         Number of LLA steps to take.
 
@@ -30,28 +50,9 @@ _lla_docs = dict(
 
     verbosity: int
         How much information to print out. Lower values means less print out.
-        """),
 
-
-    opt_prob=dedent("""
-    wl1_solver:
-        TODO
-
-    penalty_fcn: fclsp.penalty.FoldedPenalty
-        The penalty function.
-
-    init: array-like
-        The value at which to initalize the LLA algorithm.
-
-    init_upv: None, array-like
-        The value at which to initialize the (optional) unpenalized variable.
-
-    transform: callable
-        Transforms the penalized variable into the object whom we apply the concave penalty to.
-
-    """),
-
-    out=dedent("""
+    Output
+    ------
     solution: array-like
         The solution of the penalized variable.
 
@@ -60,23 +61,15 @@ _lla_docs = dict(
 
     opt_data: dict
         Data tracked during the optimization procedure e.g. the loss function.
-    """),
 
-    refs=dedent("""
+    References
+    ----------
     Fan, J., Xue, L. and Zou, H., 2014. Strong oracle optimality of folded concave penalized estimation. Annals of statistics, 42(3), p.819.
-
-        """)
-)
-
-
-def solve_lla(wl1_solver, penalty_fcn, init,
-              init_upv=None, transform=abs,
-              n_steps=1, xtol=1e-4, atol=None, rtol=None,
-              tracking_level=1, verbosity=0):
+    """
 
     def evaluate_obj(x, upv, T):
         # compute current objective function
-        base_loss = wl1_solver.loss(value=x, upv=upv)
+        base_loss = wlasso_solver.get_loss(value=x, upv=upv)
 
         T = transform(x)
         pen_loss = penalty_fcn.eval(T)
@@ -143,9 +136,9 @@ def solve_lla(wl1_solver, penalty_fcn, init,
 
         # solve weighted Lasso problem
         current, current_upv, other_data = \
-            wl1_solver.solve(L1_weights=L1_weights,
-                             opt_init=current,
-                             opt_init_upv=current_upv)
+            wlasso_solver.solve(L1_weights=L1_weights,
+                                opt_init=current,
+                                opt_init_upv=current_upv)
 
         ############################################
         # check stopping conditions and track data #

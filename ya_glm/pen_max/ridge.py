@@ -2,10 +2,9 @@ import numpy as np
 from ya_glm.linalg_utils import smallest_sval
 
 
-def get_pen_max(X, y, fit_intercept=True, sample_weight=None,
-                weights=None,
-                loss_func='lin_reg', loss_kws={},
-                targ_ubd=1, norm_by_dim=True):
+def get_ridge_pen_max(X, y, loss, penalty,
+                      fit_intercept=True, sample_weight=None,
+                      targ_ubd=1, norm_by_dim=True):
     """
     Returns a heuristic for the largest reasonable value for the ridge tuning parameter. See linear_regression_max_val documentation for a description.
 
@@ -18,17 +17,14 @@ def get_pen_max(X, y, fit_intercept=True, sample_weight=None,
     y: array-like, shape (n_samples, )
         The training response data.
 
+    loss:
+        A loss config object.
+
+    penalty:
+        A penalty config object.
+
     fit_intercept: bool
         Whether or not to fit an intercept.
-
-    weights: None, array-like
-        Optional L2 weights or Tikhinov regularization matrix.
-
-    loss_func: str
-        Which GLM loss function we are fitting.
-
-    loss_kws: dict
-        Keyword arguments for loss function.
 
     targ_ubd: float
         The targeted upper bound.
@@ -37,24 +33,24 @@ def get_pen_max(X, y, fit_intercept=True, sample_weight=None,
         Whether the targeted upper bound metric should be normalized by the dimension.
     """
 
-    if loss_func == 'lin_reg':
+    if loss.name == 'lin_reg':
         return lin_reg_ridge_max(X, y,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
                                  targ_ubd=targ_ubd,
-                                 weights=weights,
+                                 weights=penalty.ridge_weights,
                                  norm_by_dim=norm_by_dim)
 
-    elif loss_func == 'log_reg':
+    elif loss.name == 'log_reg':
         return log_reg_ridge_max(X, y,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
                                  targ_ubd=targ_ubd,
-                                 weights=weights,
+                                 weights=penalty.ridge_weights,
                                  norm_by_dim=norm_by_dim)
 
     else:
-        raise NotImplementedError('{} not supported'.format(loss_func))
+        raise NotImplementedError('{} not supported'.format(loss.name))
 
 
 def lin_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
@@ -118,6 +114,7 @@ def lin_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
         
     eval_min = smallest_sval(X) ** 2
 
+    # TODO: modify for case when y is a matrix
     if fit_intercept:
         scaled_prod = np.linalg.norm(X.T @ (y - y.mean())) / targ_ubd
     else:

@@ -18,11 +18,34 @@ class Glm(Func):
     compute_lip = None
 
     @autoassign
-    def __init__(self, X, y, loss_kws={},
-                 fit_intercept=True, sample_weight=None):
+    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+                 **loss_kws):
 
         self._set_shape_data()
-        self._set_lip_data()
+        self.loss_kws = loss_kws
+
+    @property
+    def grad_lip(self):
+        if hasattr(self, '_grad_lip'):
+            return self._grad_lip
+
+        elif self.compute_lip is not None:
+            return self.compute_lip(X=self.X,
+                                    fit_intercept=self.fit_intercept,
+                                    sample_weight=self.sample_weight,
+                                    **self.loss_kws)
+        else:
+            return None
+
+    def setup(self):
+        # sets up some precomputed data
+
+        if self.compute_lip is not None:
+            self._grad_lip = \
+                self.compute_lip(X=self.X,
+                                 fit_intercept=self.fit_intercept,
+                                 sample_weight=self.sample_weight,
+                                 **self.loss_kws)
 
     def _set_shape_data(self):
         # set coefficient shapes
@@ -42,15 +65,6 @@ class Glm(Func):
                 self.var_shape_ = (self.X.shape[1] + 1, self.y.shape[1])
             else:
                 self.var_shape_ = self.coef_shape_
-
-    def _set_lip_data(self):
-
-        if self.compute_lip is not None:
-            self._grad_lip = \
-                self.compute_lip(X=self.X,
-                                 fit_intercept=self.fit_intercept,
-                                 sample_weight=self.sample_weight,
-                                 **self.loss_kws)
 
     def get_z(self, x):
         return safe_data_mat_coef_dot(X=self.X, coef=x,

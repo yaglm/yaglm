@@ -74,6 +74,14 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
 
     tracking_level: int
         How much data to track.
+
+    Output
+    ------
+    value: array-like
+        The solution.
+
+    opt_data: dict
+        Additional optimization data e.g. loss history, etc.
     """
 
     start_time = time()
