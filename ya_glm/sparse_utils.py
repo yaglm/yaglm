@@ -1,6 +1,18 @@
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
 from scipy.sparse import diags, issparse
+from scipy.sparse.linalg import norm as norm_sparse
+from numpy.linalg import norm
+
 import numpy as np
+
+
+def safe_norm(X, ord=None, axis=0):
+    if is_sparse_or_lin_op(X):
+        # TODO: check how this works for  linear operator
+        return norm_sparse(X, ord=ord, axis=axis)
+
+    else:
+        return norm(X, ord=ord, axis=axis)
 
 
 def is_sparse_or_lin_op(a):
@@ -94,12 +106,18 @@ def center_scale_sparse(X, X_offset=None, X_scale=None):
     elif X_offset is not None:
         X_offset_scale = X_offset
 
+    else:
+        X_offset_scale = None
+
     if X_scale is not None:
         X_ = X @ diags(1 / X_scale)
     else:
         X_ = X
 
-    return centered_operator(X=X_, center=X_offset_scale)
+    if X_offset_scale is not None:
+        return centered_operator(X=X_, center=X_offset_scale)
+    else:
+        return X_
 
 
 def safe_row_scaled(mat, s):
@@ -113,7 +131,7 @@ def safe_col_scaled(mat, s):
     if is_sparse_or_lin_op(mat):
         return ColScaled(mat=mat, s=s)
     else:
-        return mat @diags(s)
+        return mat @ diags(s)
 
 
 class RowScaled(LinearOperator):

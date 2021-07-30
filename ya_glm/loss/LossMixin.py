@@ -25,6 +25,7 @@ class LossMixin:
         if loss_config.name in ['lin_reg', 'huber']:
             return process_y_lin_reg(X=X, y=y,
                                      standardize=self.standardize,
+                                     fit_intercept=self.fit_intercept,
                                      sample_weight=sample_weight,
                                      copy=copy, check_input=check_input)
 
@@ -184,16 +185,24 @@ def basic_y_formatting(X, y, copy=True, check_input=True, is_clf=False):
     return y
 
 
-def process_y_lin_reg(X, y, standardize=False,
+def process_y_lin_reg(X, y,
+                      fit_intercept=True,
+                      standardize=False,
                       sample_weight=None,
                       copy=True, check_input=True):
     """
-    Processes and possibly mean center the y data i.e. y - y.mean()
+    Processes and possibly mean center the y data i.e. y - y.mean().
+
+    If standardize=True, fit_intercept=True we mean center y.
+    If standardize=False, fit_intercept=False we do not mean center y
 
     Parameters
     ----------
     y: array-like, shape (n_samples, )
         The response data.
+
+    fit_intercept: bool
+        Whether or not we fit an intercept.
 
     standardize: bool
         Whether or not to apply standardization to y.
@@ -227,7 +236,7 @@ def process_y_lin_reg(X, y, standardize=False,
 
     # mean center y
     out = {}
-    if standardize:
+    if standardize and fit_intercept:
         out['y_offset'] = np.average(a=y, axis=0, weights=sample_weight)
         y -= out['y_offset']
 

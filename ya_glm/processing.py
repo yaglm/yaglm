@@ -5,24 +5,31 @@ from copy import deepcopy
 
 from ya_glm.utils import is_multi_response
 from ya_glm.extmath import weighted_mean_std
-from ya_glm.sparse_utils import center_scale_sparse, is_sparse_or_lin_op
+from ya_glm.sparse_utils import center_scale_sparse, is_sparse_or_lin_op, \
+    safe_norm
 
 
-def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
-              check_input=True, accept_sparse=True,
-              allow_const_cols=True):
+def process_X(X, fit_intercept=True,
+              standardize=False, groups=None, sample_weight=None, copy=True,
+              check_input=True, accept_sparse=True):
     """
     Processes and possibly standardize the X feature matrix.
-    Here standardization means mean centering then scaling by
-    the standard deviation for each column.
+
+
+    If standardize=True, fit_intercept=True then we mean ceneter each column then scale by the standard deviation. Both the mean and std are computed using the sample_weight if they are provided.
+
+    If standardize=True, fit_intercept=False then we scale each column by its L2 norm.
 
     Parameters
     ----------
     X: array-like, shape (n_samples, n_features)
         The covariate data.
 
+    fit_intercept: bool
+        Whether or not we fit an intercept. If fit_intercept=False, standardize=True then we replace the standard deviation with the L2 norms.
+
     standardize: bool
-        Whether or not to mean center then scale by the standard deviations.
+        Whether or not to mean center then scale the columns of X.
 
     groups: None, list of lists
         (Optional) list of feature groups. If groups is provided and we apply standardization this applies and additional 1 / sqrt(group_size) scaling to feature.
@@ -38,9 +45,6 @@ def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
 
     accept_sparse : str, bool or list/tuple of str
         See sklearn.utils.validation.check_array.
-
-    allow_const_cols: bool
-        Whether or not to allow constant columns.
 
     Output
     ------
@@ -71,19 +75,24 @@ def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
         else:
             X = X.copy(order='K')
 
-    if standardize:
-        X_offset, X_scale = weighted_mean_std(X,
-                                              sample_weight=sample_weight,
-                                              ddof=0)
-    elif not allow_const_cols:
-        X_scale = X.std(axis=0)  # need this for below
-
     # compute column STDs
-    if standardize or not allow_const_cols:
-        const_cols = X_scale <= np.finfo(float).eps
+    if standardize and not fit_intercept:
 
-        # for constant columns, put their scale as 1
-        X_scale[const_cols] = 1
+        if fit_intercept:
+
+            # compute mean and standard deviations of each feature
+            X_offset, X_scale = weighted_mean_std(X,
+                                                  sample_weight=sample_weight,
+                                                  ddof=0)
+        else:
+            X_offset = None
+
+            # L2 norms of columns
+            X_scale = safe_norm(X, axis=0)
+
+        # for columns with zero scale reset scale to 1
+        zero_scale_mask = X_scale <= np.finfo(float).eps
+        X_scale[zero_scale_mask] = 1
 
         # adjust scaling for groups
         if groups is not None:
@@ -97,23 +106,20 @@ def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
                 for feat_idx in grp_idxs:
                     X_scale[feat_idx] /= group_size_sqrts[g]
 
-    # check for constant columns
-    if not allow_const_cols:
-        if sum(const_cols) > 0:
-            raise ValueError("Constant column detected")
-
-    # center by feature means and scale by feature stds
-    if standardize:
-
+        # data to return
         out['X_scale'] = X_scale
-        out['X_offset'] = X_offset
+        if X_offset is not None:
+            out['X_offset'] = X_offset
 
+        # modify X
         if is_sparse_or_lin_op(X):
-            X = center_scale_sparse(X, X_offset, X_scale)
+            X = center_scale_sparse(X, X_offset=X_offset, X_scale=X_scale)
 
         else:
             # mean center then scale
-            X -= X_offset
+            if X_offset is not None:
+                X -= X_offset
+
             X = X @ diags(1.0 / X_scale)
 
     return X, out
