@@ -280,9 +280,22 @@ _pen_fuc_docs = dict(
 )
 
 
-def get_penalty_func(pen_func, pen_val, pen_func_kws={}):
+def get_penalty_func(pen_func, pen_val=1, pen_func_kws={}):
+    """
+    Returns a concave penalty function.
+
+    Parameteres
+    ----------
+    pen_func: str
+        Which penalty function. See ya_glm.opt.penalty.concave_penalty.avail_concave_pens.
+
+    pen_val: float
+        The penalty function value.
+
+    pen_func_kws:
+    """
     pen_func = pen_func.lower()
-    assert pen_func in ['scad', 'mcp', 'log', 'lq', 'lasso']
+    assert pen_func in avail_concave_pens
 
     if pen_func == 'scad':
         c = SCAD
@@ -298,6 +311,8 @@ def get_penalty_func(pen_func, pen_val, pen_func_kws={}):
 
     return c(pen_val=pen_val, **pen_func_kws)
 
+
+avail_concave_pens = ['scad', 'mcp', 'log', 'lq']
 
 get_penalty_func.__doc__ = dedent("""
 Gets a folded concave penalty function object.

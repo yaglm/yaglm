@@ -5,6 +5,7 @@ from scipy.sparse import diags
 from ya_glm.opt.glm_loss.base import GlmMultiResp
 from ya_glm.opt.utils import safe_entrywise_mult
 from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
+from ya_glm.class_weight import get_sample_weight_balanced_classes
 
 
 def sample_losses(z, y):
@@ -31,10 +32,29 @@ def compute_lip(X, fit_intercept=True, sample_weight=None):
     return (1 / X.shape[0]) * op_norm ** 2
 
 
+def combine_weights(y, sample_weight=None, class_weight=None):
+    if class_weight is not None:
+        raise NotImplementedError
+        # TODO: need to add this
+
+    return sample_weight
+
+
 class Multinomial(GlmMultiResp):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
     compute_lip = staticmethod(compute_lip)
+
+    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+                 balence_classes=False):
+
+        if balence_classes:
+            sample_weight = \
+                 get_sample_weight_balanced_classes(y=y,
+                                                    sample_weight=sample_weight)
+
+        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+                         sample_weight=sample_weight)
 
     def intercept_at_coef_eq0(self):
         # double check for weighted case

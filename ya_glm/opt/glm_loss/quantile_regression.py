@@ -93,10 +93,15 @@ def sample_grads(z, y, quantile=0.5):
     return tilted_L1_grad(z - y, quantile=quantile)
 
 
-class QuantileMixin:
-    @property
-    def quantile(self):
-        return self.loss_kws.get('quantile', 0.5)
+class QuantileReg(Glm):
+    sample_losses = staticmethod(sample_losses)
+    sample_grads = staticmethod(sample_grads)
+
+    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+                 quantile=0.5):
+
+        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+                         quantile=quantile)
 
     def intercept_at_coef_eq0(self):
         return weighted_quantile(values=self.y,
@@ -105,11 +110,18 @@ class QuantileMixin:
                                  q=self.quantile)
 
 
-class QuantileReg(QuantileMixin, Glm):
-    sample_losses = staticmethod(sample_losses)
-    sample_grads = staticmethod(sample_grads)
-
-
-class QuantileRegMultiResp(QuantileMixin, GlmMultiResp):
+class QuantileRegMultiResp(GlmMultiResp):
     sample_losses = staticmethod(sample_losses_multi_resp)
     sample_grads = staticmethod(sample_grads)
+
+    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+                 quantile=0.5):
+
+        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+                         quantile=quantile)
+
+    def intercept_at_coef_eq0(self):
+        return weighted_quantile(values=self.y,
+                                 axis=0,
+                                 sample_weight=self.sample_weight,
+                                 q=self.quantile)
