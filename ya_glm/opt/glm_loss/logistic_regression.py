@@ -2,6 +2,8 @@ import numpy as np
 from ya_glm.opt.glm_loss.base import Glm
 from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
+from ya_glm.class_weight import get_sample_weight_balanced_classes
+
 
 def logsig(x):
     """
@@ -51,6 +53,17 @@ class LogReg(Glm):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
     compute_lip = staticmethod(compute_lip)
+
+    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+                 balence_classes=False):
+
+        if balence_classes:
+            sample_weight = \
+                 get_sample_weight_balanced_classes(y=y,
+                                                    sample_weight=sample_weight)
+
+        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+                         sample_weight=sample_weight)
 
     def intercept_at_coef_eq0(self):
         # TODO: is this correct with the sample weights?

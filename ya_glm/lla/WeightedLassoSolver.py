@@ -1,14 +1,12 @@
+import numpy as np
+
 from ya_glm.lla.utils import safe_concat
 from ya_glm.opt.glm_loss.get import get_glm_loss
 
 
 class BaseWeightedLassoSolver(object):
     """
-    min_y loss(y) + ||y||_{w, 1}
-
-    or
-
-    min_{y, u} loss(y, u) + ||y||_{w, 1}
+    Based class for solving weighted Lasso-like subproblems for the LLA algorithm.
     """
 
     def solve(self, L1_weights, opt_init=None, opt_init_upv=None):
@@ -51,24 +49,53 @@ class BaseWeightedLassoSolver(object):
         raise NotImplementedError
 
 
-class WL1SolverGlm(BaseWeightedLassoSolver):
+class WeightedLassoGlmSolver(BaseWeightedLassoSolver):
+    """
+    Solver for GLMs with weighted Lasso-like penalites.
 
-    solve_glm = None
+    Parameters
+    ----------
+    X: array-like, shape (n_samples, n_features)
+        The covariate data.
 
-    def __init__(self, X, y, loss_func, loss_kws,
-                 fit_intercept, sample_weight=None, solver_kws={}):
+    y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+        The response data.
+
+    solver: ya_glm.GlmSolver
+        The solver to use for the penalized GLM subproblems.
+
+    loss: ya_glm.loss.LossConfig.LossConfig
+        A configuration object specifying the GLM loss.
+
+    base_penalty: ya_glm.PenaltyConfig.PenaltyConfig
+        A configuration object specifying GLM subproblem penalty (excluding the Lasso weights that will be provided).
+
+    fit_intercept: bool
+        Whether or not to fit intercept, which is not penalized.
+
+    sample_weight: None or array-like,  shape (n_samples,)
+        Individual weights for each sample.
+
+    """
+
+    def __init__(self, X, y, solver, loss, base_penalty, fit_intercept=True,
+                 sample_weight=None):
+
+        self.solver = solver
 
         self.X = X
         self.y = y
-        self.loss_func = loss_func
-        self.loss_kws = loss_kws
+        self.loss = loss
+
+        # base lasso subproblem penalty
+        self.base_penalty = base_penalty
+        self.base_penalty.lasso_pen_val = 1
+        self.base_penalty.lasso_weights = np.empty(0)
+
         self.fit_intercept = fit_intercept
         self.sample_weight = sample_weight
-        self.solver_kws = solver_kws
 
-        self.glm_loss = get_glm_loss(X=X, y=y,
-                                     loss_func=loss_func,
-                                     loss_kws=loss_kws,
+        self.glm_loss = get_glm_loss(X=X, y=y, loss=loss,
                                      fit_intercept=fit_intercept,
                                      sample_weight=sample_weight)
 
@@ -90,22 +117,19 @@ class WL1SolverGlm(BaseWeightedLassoSolver):
         solution, upv_solution, other_data
         """
 
-        coef, intercept, opt_data = \
-            self.solve_glm(X=self.X,
-                           y=self.y,
-                           loss_func=self.loss_func,
-                           loss_kws=self.loss_kws,
-                           fit_intercept=self.fit_intercept,
-                           sample_weight=self.sample_weight,
-                           lasso_pen=1,
-                           lasso_weights=L1_weights,
-                           coef_init=opt_init,
-                           intercept_init=opt_init_upv,
-                           **self.solver_kws)
+        self.base_penalty.lasso_weights = L1_weights
 
-        return coef, intercept, opt_data
+        return self.solver.solve(X=self.X,
+                                 y=self.y,
+                                 loss=self.loss,
+                                 penalty=self.base_penalty,
+                                 fit_intercept=self.fit_intercept,
+                                 sample_weight=self.sample_weight,
+                                 coef_init=opt_init,
+                                 intercept_init=opt_init_upv
+                                 )
 
-    def loss(self, value, upv=None):
+    def get_loss(self, value, upv=None):
         """
         Returns the loss function
 

@@ -53,27 +53,6 @@ def get_sequence_decr_max(max_val=1, min_val_mult=1e-3, num=20,
     return seq
 
 
-def get_pen_val_seq(pen_val_max,
-                    n_pen_vals=100,
-                    pen_vals=None,
-                    pen_min_mult=1e-3,
-                    pen_spacing='log'):
-    """
-    Gets the penalty value seqence and makes sure it is in decreasing order.
-    """
-    if pen_vals is None:
-        pen_val_seq = get_sequence_decr_max(max_val=pen_val_max,
-                                            min_val_mult=pen_min_mult,
-                                            num=n_pen_vals,
-                                            spacing=pen_spacing)
-    else:
-        pen_val_seq = np.array(pen_vals)
-
-    pen_val_seq = np.sort(pen_val_seq)[::-1]  # ensure decreasing
-
-    return pen_val_seq
-
-
 def get_enet_pen_val_seq(lasso_pen_val_max,
                          pen_vals=None, n_pen_vals=100,
                          pen_min_mult=1e-3, pen_spacing='log',

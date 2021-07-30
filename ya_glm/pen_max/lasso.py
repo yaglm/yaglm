@@ -3,29 +3,36 @@ import numpy as np
 from ya_glm.linalg_utils import leading_sval
 from ya_glm.opt.glm_loss.get import get_glm_loss
 
-def get_pen_max(pen_kind, **kws):
+
+def get_pen_max(X, y, loss,
+                penalty, fit_intercept, sample_weight=None):
+
+    # compute the gradient of the loss function when
+    #  the coefficeint is zero
+    loss_func = get_glm_loss(X=X, y=y, loss=loss,
+                             fit_intercept=fit_intercept,
+                             sample_weight=sample_weight)
+
+    grad = loss_func.grad_at_coef_eq0()
+
+    weights = penalty.lasso_weights
+
+    pen_kind = penalty.get_penalty_kind()
+
     if pen_kind == 'entrywise':
-        return lasso_max(**kws)
+        return lasso_max(grad, weights=weights)
 
     elif pen_kind == 'multi_task':
-        return get_L1toL2_max(**kws)
+        return mult_task_lasso_max(grad, weights=weights)
 
     elif pen_kind == 'group':
-        return group_lasso_max(**kws)
+        return group_lasso_max(grad, groups=penalty.groups, weights=weights)
 
     elif pen_kind == 'nuc':
-        return nuclear_norm_max(**kws)
-
-    else:
-        raise ValueError("Bad input for pen_kind: {}".format(pen_kind))
+        return nuclear_norm_max(grad, weights=weights)
 
 
-def lasso_max(X, y, fit_intercept, loss_func,
-              loss_kws={}, weights=None, sample_weight=None):
-
-    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
-                        sample_weight=sample_weight,
-                        loss_func=loss_func, loss_kws=loss_kws)
+def lasso_max(grad, weights=None):
 
     if weights is not None:
         penalized_mask = get_is_pen_mask(weights)
@@ -36,12 +43,7 @@ def lasso_max(X, y, fit_intercept, loss_func,
     return abs(grad.ravel()).max()
 
 
-def get_L1toL2_max(X, y, fit_intercept, loss_func, loss_kws={},
-                   weights=None, sample_weight=None):
-
-    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
-                        sample_weight=sample_weight,
-                        loss_func=loss_func, loss_kws=loss_kws)
+def mult_task_lasso_max(grad, weights=None):
 
     row_norms = np.linalg.norm(grad, axis=1)
 
@@ -53,12 +55,7 @@ def get_L1toL2_max(X, y, fit_intercept, loss_func, loss_kws={},
     return max(row_norms)
 
 
-def group_lasso_max(X, y, groups, fit_intercept, loss_func,
-                    loss_kws={}, weights=None, sample_weight=None):
-
-    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
-                        sample_weight=sample_weight,
-                        loss_func=loss_func, loss_kws=loss_kws)
+def group_lasso_max(grad, groups, weights=None):
 
     group_norms = np.array([np.linalg.norm(grad[grp_idxs])
                             for grp_idxs in groups])
@@ -72,13 +69,7 @@ def group_lasso_max(X, y, groups, fit_intercept, loss_func,
     return group_norms.max()
 
 
-def nuclear_norm_max(X, y, fit_intercept, loss_func,
-                     loss_kws={}, weights=None, sample_weight=None):
-
-    # TODO: double check this is right
-    grad = grad_at_zero(X=X, y=y, fit_intercept=fit_intercept,
-                        sample_weight=sample_weight,
-                        loss_func=loss_func, loss_kws=loss_kws)
+def nuclear_norm_max(grad, weights=None):
 
     sval_max = leading_sval(grad)
 
@@ -91,17 +82,6 @@ def nuclear_norm_max(X, y, fit_intercept, loss_func,
         penalized_mask = get_is_pen_mask(weights)
         smallest_weight = weights[penalized_mask].min()
         return sval_max / smallest_weight
-
-
-def grad_at_zero(X, y, fit_intercept, loss_func, loss_kws={},
-                 sample_weight=None):
-
-    func = get_glm_loss(X=X, y=y,
-                        loss_func=loss_func, loss_kws=loss_kws,
-                        fit_intercept=fit_intercept,
-                        sample_weight=sample_weight)
-
-    return func.grad_at_coef_eq0()
 
 
 def is_nonzero_weight(w):

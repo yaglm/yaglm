@@ -3,6 +3,7 @@ from joblib import Parallel, delayed
 from itertools import product
 from sklearn.utils.validation import _check_fit_params
 from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import get_scorer
 
 from ya_glm.cv.cv_select import add_se
 
@@ -43,7 +44,7 @@ def run_cv_grid(X, y, estimator, param_grid, cv,
 
 
 def run_cv_path(X, y, fold_iter, fit_and_score_path,
-                kws={}, fit_params={},
+                solve_path_kws={}, fit_params={},
                 include_spilt_vals=True, add_params=True,
                 n_jobs=None, verbose=0, pre_dispatch='2*n_jobs'):
     """
@@ -71,8 +72,8 @@ def run_cv_path(X, y, fold_iter, fit_and_score_path,
             path_results['param_seq']: list of dicts
                 The path parameter values.
 
-    kws: dict
-        Key word arguments to fit_and_score_path.
+    solve_path_kws: dict
+        Keyword arguments the solve_path function.
 
     n_jobs: None, int
         Number of jobs for parallelizing over the folds.
@@ -92,7 +93,7 @@ def run_cv_path(X, y, fold_iter, fit_and_score_path,
     fold_path_results = \
         parallel(delayed(fit_and_score_path)
                  (X=X, y=y, train=train, test=test,
-                  kws=kws, fit_params=fit_params)
+                  solve_path_kws=solve_path_kws, fit_params=fit_params)
                  for (train, test) in fold_iter)
 
     # TODO: maybe remove std
@@ -108,7 +109,7 @@ def run_cv_path(X, y, fold_iter, fit_and_score_path,
 
 def score_from_fit_path(X, y, train, test,
                         solve_path, est_from_fit, scorer=None,
-                        kws={}, fit_params=None,
+                        solve_path_kws={}, fit_params=None,
                         preprocess=None):
     """
 
@@ -138,8 +139,8 @@ def score_from_fit_path(X, y, train, test,
     scorer: None, callable(est, X, y) -> dict or float
         Scores a single fit estimator. Shoule return either a float (which will be renamed 'score') or a dict. If None, will use est.score(X, y)
 
-    kws: dict
-        Key word arguments for fit_path
+    solve_path_kws: dict
+        Keyword arguments for solve_path
 
     fit_params : dict
         Parameters to pass to the fit method of the estimator.
@@ -204,7 +205,14 @@ def score_from_fit_path(X, y, train, test,
 
     # Solve the path!!
     solution_path = solve_path(X=X_train_pro, y=y_train_pro,
-                               **fit_params_tr, **kws)
+                               **solve_path_kws,
+                               **fit_params_tr)
+
+    # if a str is provided then turn this into a proper scorer
+    # TODO: perhaps add more functionality e.g. make this work
+    # like GridsearchCV
+    if isinstance(scorer, str):
+        scorer = get_scorer(scorer)
 
     for fit_out, param in solution_path:
 
@@ -216,6 +224,7 @@ def score_from_fit_path(X, y, train, test,
             tr = est.score(X=X_train, y=y_train)
 
         else:
+
             # custom scorer
             tst = scorer(est, X=X_test, y=y_test)
             tr = scorer(est, X=X_train, y=y_train)

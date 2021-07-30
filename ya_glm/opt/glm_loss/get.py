@@ -7,11 +7,9 @@ from ya_glm.opt.glm_loss.poisson_regression import PoissonReg, \
 from ya_glm.opt.glm_loss.quantile_regression import QuantileReg, QuantileRegMultiResp
 from ya_glm.opt.glm_loss.logistic_regression import LogReg
 
-from ya_glm.opt.base import Func
-
 _LOSS_CLS_VEC = {'lin_reg': LinReg,
 
-                 'huber_reg': HuberReg,
+                 'huber': HuberReg,
 
                  'log_reg': LogReg,
 
@@ -23,7 +21,7 @@ _LOSS_CLS_VEC = {'lin_reg': LinReg,
 _LOSS_CLS_MAT = {
                  'lin_reg': LinRegMultiResp,
 
-                 'huber_reg': HuberRegMultiResp,
+                 'huber': HuberRegMultiResp,
 
                  'multinomial': Multinomial,
 
@@ -36,8 +34,7 @@ _LOSS_FUNC_CLS2STR = {v: k for (k, v) in chain(_LOSS_CLS_VEC.items(),
                                                _LOSS_CLS_MAT.items())}
 
 
-def get_glm_loss(X, y,
-                 loss_func='lin_reg', loss_kws={},
+def get_glm_loss(X, y, loss,
                  fit_intercept=True,
                  sample_weight=None):
     """
@@ -51,19 +48,14 @@ def get_glm_loss(X, y,
     y: array-like, shape (n_samples, )
         The training response data.
 
+    loss:
+        A loss config objecet
+
     fit_intercept: bool
         Whether or not to fit an intercept.
 
     sample_weight: None or array-like,  shape (n_samples,)
         Individual weights for each sample.
-
-    loss_func: str
-        Which GLM loss function to use.
-        Must be one of ['linear_regression', 'logistic_regression'].
-        This may also be an instance of ya_glm.opt.base.Func.
-
-    precomp_lip: None, float
-        (Optional) Precomputed Lipchitz constant
 
     Output
     ------
@@ -71,16 +63,16 @@ def get_glm_loss(X, y,
         The GLM loss function object.
     """
 
-    if isinstance(loss_func, Func):
-        return loss_func
-
     if y.ndim == 1 or y.shape[1] == 1:
-        CLS = _LOSS_CLS_VEC[loss_func]
+        # 1d output
+        CLS = _LOSS_CLS_VEC[loss.name]
     else:
-        CLS = _LOSS_CLS_MAT[loss_func]
+        # multiple response output
+        CLS = _LOSS_CLS_MAT[loss.name]
 
-    kws = {'X': X, 'y': y, 'fit_intercept': fit_intercept,
-           'loss_kws': loss_kws}
+    kws = {'X': X, 'y': y,
+           'fit_intercept': fit_intercept, 'sample_weight': sample_weight,
+           **loss.loss_kws}
 
     if sample_weight is not None:
         kws['sample_weight'] = sample_weight

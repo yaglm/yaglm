@@ -112,10 +112,16 @@ def compute_lip(knot=1.35, **kws):
     return lin_reg_compute_lip(**kws)
 
 
-class HuberMixin:
-    @property
-    def knot(self):
-        return self.loss_kws.get('knot', 1.35)
+class HuberReg(Glm):
+    sample_losses = staticmethod(sample_losses)
+    sample_grads = staticmethod(sample_grads)
+    compute_lip = staticmethod(compute_lip)
+
+    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+                 knot=1.35):
+
+        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+                         sample_weight=sample_weight, knot=knot)
 
     def intercept_at_coef_eq0(self):
         return huberized_mean(values=self.y,
@@ -124,13 +130,19 @@ class HuberMixin:
                               knot=self.knot)
 
 
-class HuberReg(HuberMixin, Glm):
-    sample_losses = staticmethod(sample_losses)
-    sample_grads = staticmethod(sample_grads)
-    compute_lip = staticmethod(compute_lip)
-
-
-class HuberRegMultiResp(HuberMixin, GlmMultiResp):
+class HuberRegMultiResp(GlmMultiResp):
     sample_losses = staticmethod(sample_losses_multi_resp)
     sample_grads = staticmethod(sample_grads)
     compute_lip = staticmethod(compute_lip)
+
+    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+                 knot=1.35):
+
+        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+                         sample_weight=sample_weight, knot=knot)
+
+    def intercept_at_coef_eq0(self):
+        return huberized_mean(values=self.y,
+                              axis=0,
+                              sample_weight=self.sample_weight,
+                              knot=self.knot)

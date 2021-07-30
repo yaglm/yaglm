@@ -1,60 +1,26 @@
 from ya_glm.pen_max.lasso import get_pen_max as get_pen_max_lasso
+from ya_glm.PenaltyConfig import get_convex_base_from_concave
 
 
-def get_pen_max(X, y, init_data, pen_func, pen_func_kws,
-                loss_func, loss_kws={},
-                groups=None,
-                fit_intercept=True,
-                sample_weight=None,
-                pen_kind='entrywise'):
-    """
-    Returns the largest reasonable tuning parameter value for fitting a
-    folded concave penalty with the LLA algorithm. Larger penalty values
-    will result in the LLA algorithm converging to zero.
+def get_pen_max(X, y,
+                loss, penalty,
+                fit_intercept, sample_weight=None):
 
-    Parameters
-    ----------
-    X
+    if not hasattr(penalty, 'coef_init'):
+        raise ValueError("Penalty config must have a .coef_init attribute")
 
-    y
+    coef_init = penalty.coef_init
+    cvx_penalty = get_convex_base_from_concave(penalty)
+    lasso_max_val = get_pen_max_lasso(X=X, y=y, loss=loss,
+                                      penalty=cvx_penalty,
+                                      fit_intercept=fit_intercept,
+                                      sample_weight=sample_weight)
 
-    init_data
-
-    pen_func
-
-    pen_func_kws:
-
-    loss_func:
-
-    loss_kws:
-
-    groups:
-
-    fit_intercept:
-
-    sample_weight:
-
-    pen_kind:
-
-    """
-
-    kws = {'X': X,
-           'y': y,
-           'fit_intercept': fit_intercept,
-           'sample_weight': sample_weight,
-           'loss_func': loss_func,
-           'loss_kws': loss_kws}
-
-    if pen_kind == 'group':
-        kws['groups'] = groups
-
-    lasso_max_val = get_pen_max_lasso(pen_kind=pen_kind, **kws)
-
-    if pen_func == 'scad':
+    if penalty.pen_func == 'scad':
         # TODO: allow this to depend on the penalty function
         # pushing the largest init elemnt under the pen param
         # forces all LLA weights to be equal to the pen param
-        init_max = abs(init_data['coef']).max()
+        init_max = abs(coef_init).max()
 
         return max(init_max, lasso_max_val)
 
