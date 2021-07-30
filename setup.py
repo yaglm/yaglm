@@ -15,15 +15,7 @@ install_requires = ['numpy',
 
 
 setup(name='ya_glm',
-<<<<<<< HEAD
       version='0.2.0',
-=======
-<<<<<<< HEAD
-      version='0.2.0',
-=======
-      version='0.1.3',
->>>>>>> main
->>>>>>> a1543a44997db5cf2f9efd8fdee2cf2f6115b60b
       description='A flexible package for fitting penalized generalized linear models.',
       author='Iain Carmichael',
       author_email='idc9@cornell.edu',
