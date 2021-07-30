@@ -2,6 +2,7 @@ import numpy as np
 from time import time
 from sklearn.base import BaseEstimator, clone
 from sklearn.utils.validation import check_is_fitted
+from sklearn.model_selection import ParameterGrid
 
 from ya_glm.cv.cv_select import CVSlectMixin
 from ya_glm.pen_seq import get_sequence_decr_max
@@ -313,9 +314,9 @@ class SinglePenSeqSetterMixin:
 
         Output
         ------
-        pen_val_seq_: list
+        param_seq: list of dicts
         """
-        return self.self.pen_val_seq_
+        return list(ParameterGrid(self.get_tuning_param_grid()))
 
     def get_tuning_param_grid(self):
         """
