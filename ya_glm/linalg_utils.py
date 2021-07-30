@@ -1,4 +1,5 @@
 from scipy.sparse.linalg import svds
+import numpy as np
 
 
 def smallest_sval(X, solver='lobpcg', **kws):
@@ -21,6 +22,11 @@ def smallest_sval(X, solver='lobpcg', **kws):
     smallest_sval: float
         The smallest singular value of X
     """
+
+    # for 1d arrays return the frobenius norm
+    if min(X.shape) == 1:
+        return np.sqrt((X.reshape(-1) ** 2).sum())
+
     return svds(X, k=1, which='SM', solver=solver, **kws)[1].item()
 
 
@@ -44,4 +50,8 @@ def leading_sval(X, solver='lobpcg', **kws):
     largest_sval: float
         The largest singular value of X
     """
+    # for 1d arrays return the frobenius norm
+    if min(X.shape) == 1:
+        return np.sqrt((X.reshape(-1) ** 2).sum())
+
     return svds(X, k=1, which='LM', solver=solver, **kws)[1].item()
