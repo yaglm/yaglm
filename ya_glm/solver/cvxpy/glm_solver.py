@@ -10,11 +10,10 @@ from ya_glm.solver.cvxpy.loss_functions import lin_reg_loss, log_reg_loss,\
 from ya_glm.solver.utils import process_param_path
 
 
-def solve_glm(X, y,
-              loss_func='lin_reg',
-              loss_kws={},
+def solve_glm(X, y, loss,
               fit_intercept=True,
               sample_weight=None,
+
               lasso_pen_val=None,
               lasso_weights=None,
               groups=None,
@@ -23,14 +22,27 @@ def solve_glm(X, y,
               ridge_pen_val=None,
               ridge_weights=None,
               tikhonov=None,
+
               coef_init=None,
               intercept_init=None,
+
               zero_tol=1e-8,
               solver=None,
               cp_kws={}):
+    """
+    Solves a penalized GLM problem using cvxpy.
 
-    if sample_weight is not None:
-        raise NotImplementedError("need to add")
+    Parameters
+    ---------
+    zero_tol: float
+        Values of the solution smaller than this are set to exactly zero.
+
+    solver: None, str
+        Which cvxpy solver to use. See cvxpy docs.
+
+    cp_kws: dict
+        Keyword arguments to the call to problem.solve(). See cvxpy docs.
+    """
 
     start_time = time()
     ######################
@@ -38,10 +50,9 @@ def solve_glm(X, y,
     ######################
 
     problem, coef, intercept, _, __ =  \
-        setup_problem(X=X, y=y,
-                      loss_func=loss_func,
-                      loss_kws=loss_kws,
+        setup_problem(X=X, y=y, loss=loss,
                       fit_intercept=fit_intercept,
+                      sample_weight=sample_weight,
                       lasso_pen_val=lasso_pen_val,
                       lasso_weights=lasso_weights,
                       groups=groups,
@@ -83,7 +94,8 @@ def solve_glm_path(fit_intercept=True, solver=None, cp_kws={}, zero_tol=1e-8,
         kws['ridge_pen_val'] = param_path[0]['ridge_pen_val']
 
     start_time = time()
-    problem, coef, intercept, lasso_pen_val, ridge_pen_val = setup_problem(**kws)
+    problem, coef, intercept, lasso_pen_val, ridge_pen_val = \
+        setup_problem(**kws)
     pre_setup_runtime = start_time - time()
 
     for params in param_path:
@@ -133,10 +145,9 @@ def process_output(problem, coef, intercept, fit_intercept, zero_tol):
     return coef_sol, intercept_sol, opt_data
 
 
-def setup_problem(X, y,
-                  loss_func='lin_reg',
-                  loss_kws={},
+def setup_problem(X, y, loss,
                   fit_intercept=True,
+                  sample_weight=None,
                   lasso_pen_val=None,
                   lasso_weights=None,
                   groups=None,
@@ -154,10 +165,13 @@ def setup_problem(X, y,
     problem, coef, intercept, lasso_pen_val, ridge_pen_val
 
     """
-    glm_loss = get_glm_loss(loss_func)
+    glm_loss = get_glm_loss(loss)
 
     if nuc:
         raise NotImplementedError
+
+    if sample_weight is not None:
+        raise NotImplementedError("need to add")
 
     if lasso_pen_val is None and lasso_weights is not None:
         lasso_pen_val = 1
@@ -213,15 +227,20 @@ def setup_problem(X, y,
     return problem, coef, intercept, lasso_pen_val, ridge_pen_val
 
 
-def get_glm_loss(loss_func, loss_kws={}):
+def get_glm_loss(loss):
 
-    if loss_func == 'lin_reg':
+    loss_kws = loss.loss_kws
+
+    if loss.name == 'lin_reg':
         loss = lin_reg_loss
 
-    elif loss_func == 'log_reg':
+    elif loss.name == 'log_reg':
         loss = log_reg_loss
+        if loss.balence_classes:
+            raise NotImplementedError
+        loss_kws = {}
 
-    elif loss_func == 'quantile':
+    elif loss.name == 'quantile':
         loss = quantile_reg_loss
 
     if len(loss_kws) > 0:
