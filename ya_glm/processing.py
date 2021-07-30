@@ -5,7 +5,7 @@ from copy import deepcopy
 
 from ya_glm.utils import is_multi_response
 from ya_glm.extmath import weighted_mean_std
-from ya_glm.sparse_utils import center_scale_sparse
+from ya_glm.sparse_utils import center_scale_sparse, is_sparse_or_lin_op
 
 
 def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
@@ -108,7 +108,7 @@ def process_X(X, standardize=False, groups=None, sample_weight=None, copy=True,
         out['X_scale'] = X_scale
         out['X_offset'] = X_offset
 
-        if issparse(X):
+        if is_sparse_or_lin_op(X):
             X = center_scale_sparse(X, X_offset, X_scale)
 
         else:
