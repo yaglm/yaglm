@@ -153,11 +153,6 @@ class RunCVGridOrPathMixin:
             est._set_fit(fit_out=fit_out, pre_pro_out=pre_pro_out)
             return est
 
-        # if hasattr(est, 'preprocess'):
-        #     preprocess = est.preprocess
-        # else:
-        #     preprocess = None
-
         # get solve path from the estimator
         solve_path = est._get_solver().solve_path
 

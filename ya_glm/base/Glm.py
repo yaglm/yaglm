@@ -116,7 +116,7 @@ class Glm(BaseEstimator):
                                                   sample_weight=sample_weight)
 
         # run prefitting procedures including preprocessing the X, y data
-        X_pro, y_pro, pre_pro_out, penalty_data =\
+        X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data =\
             self.prefit(X=X, y=y, sample_weight=sample_weight)
 
         # get the loss, penalty and solver config
@@ -135,7 +135,7 @@ class Glm(BaseEstimator):
                          loss=loss,
                          penalty=penalty,
                          fit_intercept=self.fit_intercept,
-                         sample_weight=sample_weight)
+                         sample_weight=sample_weight_pro)
 
         # set the fit coefficient e.g. undo preprocessing scaling
         self._set_fit(fit_out={'coef': coef,
@@ -162,11 +162,16 @@ class Glm(BaseEstimator):
 
         Output
         ------
+        X_pro, y_pro, sample_weight_pro, pro_pro_out, penalty_data
+
         X_pro: array-like, shape (n_samples, n_features)
             The processed covariate data.
 
         y_pro: array-like, shape (n_samples, )
             The processed response data.
+
+        sample_weight_pro: None or array-like,  shape (n_samples,)
+            The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
 
         pro_pro_out: dict
             Data from preprocessing e.g. X_center, X_scale.
@@ -175,13 +180,13 @@ class Glm(BaseEstimator):
             Additional data that the penalty needs to know about.
         """
         # preproceess X, y
-        X_pro, y_pro, pre_pro_out = \
+        X_pro, y_pro, sample_weight_pro, pre_pro_out = \
             self.preprocess(X=X, y=y, sample_weight=sample_weight, copy=True)
 
         # by default we dont do any thing here
         penalty_data = None
 
-        return X_pro, y_pro, pre_pro_out, penalty_data
+        return X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data
 
     def _validate_data(self, X, y, sample_weight=None, accept_sparse=True):
         """
@@ -244,11 +249,19 @@ class Glm(BaseEstimator):
         y_pro: array-like, shape (n_samples, )
             The possibly transformed response data.
 
+        sample_weight_pro: None or array-like,  shape (n_samples,)
+            The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
+
         pro_pro_out: dict
             Data from preprocessing e.g. X_center, X_scale.
         """
         groups = self.groups if hasattr(self, 'groups') else None
 
+        if sample_weight is not None:
+            if copy:
+                sample_weight = sample_weight.copy()
+
+        # possibly standarize X
         X, out = process_X(X,
                            standardize=self.standardize,
                            groups=groups,
@@ -259,12 +272,19 @@ class Glm(BaseEstimator):
                            allow_const_cols=not self.fit_intercept)
 
         # subclass should implement this
-        y, y_out = self._process_y(X=X, y=y,
-                                   sample_weight=sample_weight,
-                                   copy=copy)
+        # possibly process y
+        y, sample_weight, y_out = \
+            self._process_y(X=X, y=y,
+                            sample_weight=sample_weight,
+                            copy=copy)
+
+        # ensure sum(sample_weight) = n_samples
+        if sample_weight is not None:
+            sample_weight *= len(sample_weight) / sample_weight.sum()
+
         out.update(y_out)
 
-        return X, y, out
+        return X, y, sample_weight, out
 
     def _set_fit(self, fit_out, pre_pro_out):
         """

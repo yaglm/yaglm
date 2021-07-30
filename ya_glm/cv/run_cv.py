@@ -186,10 +186,14 @@ def score_from_fit_path(X, y, train, test,
         else:
             sample_weight_tr = None
 
-        X_train_pro, y_train_pro, pre_pro_out = \
+        X_train_pro, y_train_pro, sample_weight_tr_pro, pre_pro_out = \
             preprocess(X=X_train, y=y_train,
                        sample_weight=sample_weight_tr,
                        copy=True)
+
+        if 'sample_weight' in fit_params_tr:
+            fit_params_tr['sample_weight'] = sample_weight_tr_pro
+
     else:
         X_train_pro = X_train
         y_train_pro = y_train

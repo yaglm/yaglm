@@ -6,6 +6,7 @@ from sklearn.utils.extmath import softmax
 from sklearn.utils.validation import check_array
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder
+from sklearn.utils.class_weight import compute_class_weight
 
 from scipy.special import expit
 
@@ -30,20 +31,26 @@ class LossMixin:
         elif loss_config.name == 'quantile':
             return process_y_lin_reg(X=X, y=y,
                                      # never center y for quantile!
+                                     sample_weight=sample_weight,
                                      standardize=False,
-                                     copy=copy, check_input=check_input)
-
-        elif loss_config.name == 'poisson':
-            return process_y_poisson(X=X, y=y,
-                                     copy=copy, check_input=check_input)
-
-        elif loss_config.name == 'log_reg':
-            return process_y_log_reg(X=X, y=y,
                                      copy=copy,
                                      check_input=check_input)
 
+        elif loss_config.name == 'poisson':
+            return process_y_poisson(X=X, y=y, sample_weight=sample_weight,
+                                     copy=copy,
+                                     check_input=check_input)
+
+        elif loss_config.name == 'log_reg':
+            return process_y_log_reg(X=X, y=y, sample_weight=sample_weight,
+                                     class_weight=loss_config.class_weight,
+                                     copy=copy,
+                                     check_input=check_input
+                                     )
+
         elif loss_config.name == 'multinomial':
-            return process_y_multinomial(X=X, y=y,
+            return process_y_multinomial(X=X, y=y, sample_weight=sample_weight,
+                                         class_weight=loss_config.class_weight,
                                          copy=copy,
                                          check_input=check_input)
 
@@ -202,10 +209,13 @@ def process_y_lin_reg(X, y, standardize=False,
 
     Output
     ------
-    y, out
+    y, sample_weight, out
 
     y: array-like, shape (n_samples, )
         The possibly mean centered responses.
+
+    sample_weight: None or array-like,  shape (n_samples,)
+        The original sample weights.
 
     out: dict
         The pre-processesing output data. If standardize=True this contains
@@ -221,10 +231,11 @@ def process_y_lin_reg(X, y, standardize=False,
         out['y_offset'] = np.average(a=y, axis=0, weights=sample_weight)
         y -= out['y_offset']
 
-    return y, out
+    return y, sample_weight, out
 
 
-def process_y_log_reg(X, y, copy=True, check_input=True):
+def process_y_log_reg(X, y, sample_weight=None, class_weight=None,
+                      copy=True, check_input=True):
     """
     Binarize the y labels.
 
@@ -232,6 +243,12 @@ def process_y_log_reg(X, y, copy=True, check_input=True):
     ----------
     y: array-like, shape (n_samples, )
         The response data.
+
+    sample_weight: None, array-like (n_samples, )
+        The sample weights.
+
+    class_weight: None, 'balanced', dict
+        The class weights.
 
     copy: bool
         Make sure y is copied and not modified in place.
@@ -241,10 +258,13 @@ def process_y_log_reg(X, y, copy=True, check_input=True):
 
     Output
     ------
-    y, out
+    y, sample_weight, out
 
     y: array-like, shape (n_samples, )
         The binary class labels
+
+    sample_weight: None or array-like,  shape (n_samples,)
+        The sample weights possibly adjusted by the class weights.
 
     out: dict
         The pre-processesing output data.
@@ -257,15 +277,30 @@ def process_y_log_reg(X, y, copy=True, check_input=True):
     enc = LabelEncoder()
     y_ind = enc.fit_transform(y)
 
+    # adjust sample weights by class weights
+    if class_weight is not None:
+
+        if sample_weight is None:
+            sample_weight = np.ones(len(y))
+
+        # compute class weights
+        class_weight_vect = compute_class_weight(class_weight=class_weight,
+                                                 classes=enc.classes_,
+                                                 y=y)
+
+        # multiply origianl sample weights by the class weights
+        sample_weight *= class_weight_vect[y_ind]
+
     if check_input:
         # this class is for binary logistic regression
         assert len(enc.classes_) == 2
 
     pre_pro_out = {'classes': enc.classes_}
-    return y_ind, pre_pro_out
+    return y_ind, sample_weight, pre_pro_out
 
 
-def process_y_multinomial(X, y, copy=True, check_input=True):
+def process_y_multinomial(X, y,  sample_weight=None, class_weight=None,
+                          copy=True, check_input=True):
     """
     Create dummy variables for the y labels.
 
@@ -273,6 +308,12 @@ def process_y_multinomial(X, y, copy=True, check_input=True):
     ----------
     y: array-like, shape (n_samples, )
         The response data.
+
+    sample_weight: None, array-like (n_samples, )
+        The sample weights.
+
+    class_weight: None, 'balanced', dict
+        The class weights.
 
     copy: bool
         Make sure y is copied and not modified in place.
@@ -282,10 +323,13 @@ def process_y_multinomial(X, y, copy=True, check_input=True):
 
     Output
     ------
-    y, out
+    y, sample_weight, out
 
     y: array-like, shape (n_samples, n_classes)
         The indicator variables.
+
+    sample_weight: None or array-like,  shape (n_samples,)
+        The sample weights possibly adjusted by the class weights.
 
     out: dict
         The pre-processesing output data.
@@ -299,14 +343,33 @@ def process_y_multinomial(X, y, copy=True, check_input=True):
         # make sure y is one dimensional
         assert y.ndim == 1
 
+    # convert y to dummy vectors
     lb = LabelBinarizer(sparse_output=True)
-    y_ind = lb.fit_transform(y)
+    y_dummy = lb.fit_transform(y)
+
+    # adjust sample weights by class weights
+    if class_weight is not None:
+
+        # get labels 0, ...., n_classes - 1
+        enc = LabelEncoder()
+        y_enc = enc.fit_transform(y)
+
+        if sample_weight is None:
+            sample_weight = np.ones(len(y))
+
+        # compute class weights
+        class_weight_vect = compute_class_weight(class_weight=class_weight,
+                                                 classes=enc.classes_,
+                                                 y=y)
+
+        # multiply origianl sample weights by the class weights
+        sample_weight *= class_weight_vect[y_enc]
 
     pre_pro_out = {'classes': lb.classes_}
-    return y_ind, pre_pro_out
+    return y_dummy, sample_weight, pre_pro_out
 
 
-def process_y_poisson(X, y, copy=True, check_input=True):
+def process_y_poisson(X, y, sample_weight=None, copy=True, check_input=True):
     """
     Ensures the y data are positive.
 
@@ -314,6 +377,9 @@ def process_y_poisson(X, y, copy=True, check_input=True):
     ----------
     y: array-like, shape (n_samples, )
         The response data.
+
+    sample_weight: None, array-like (n_samples, )
+        The sample weights.
 
     copy: bool
         Make sure y is copied and not modified in place.
@@ -323,13 +389,18 @@ def process_y_poisson(X, y, copy=True, check_input=True):
 
     Output
     ------
-    y, {}
+    y, sample_weight, {}
 
     y: array-like, shape (n_samples, )
         The y data
+
+    sample_weight: None, array-like (n_samples, )
+        The original sample weights.
+    sample_weight: None or array-like,  shape (n_samples,)
+        The original sample weights.
     """
     y = basic_y_formatting(X, y, copy=copy, check_input=check_input)
     if check_input:
         assert y.min() >= 0
 
-    return y, {}
+    return y, sample_weight, {}

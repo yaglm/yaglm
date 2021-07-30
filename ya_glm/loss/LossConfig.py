@@ -5,6 +5,7 @@ class LossConfig:
     name = None
     _estimator_type = None
 
+    # TODO: should we rename this solve_kws()
     @property
     def loss_kws(self):
         return deepcopy(self.__dict__)
@@ -64,14 +65,27 @@ class LogReg(LossConfig):
 
     Parameters
     ----------
-    balence_classes: bool
-        Whether or not we want to balance classes by class sizes.
+    class_weight : dict or 'balanced', default=None
+
+        Weights associated with classes in the form ``{class_label: weight}``.
+        If not given, all classes are supposed to have weight one.
+
+        The "balanced" mode uses the values of y to automatically adjust
+        weights inversely proportional to class frequencies in the input data
+        as ``n_samples / (n_classes * np.bincount(y))``.
+
+        Note that these weights will be multiplied with sample_weight (passed
+        through the fit method) if sample_weight is specified.
     """
     name = 'log_reg'
     _estimator_type = "classifier"
 
-    def __init__(self, balence_classes=False):
-        self.balence_classes = balence_classes
+    def __init__(self, class_weight=None):
+        self.class_weight = class_weight
+
+    @property
+    def loss_kws(self):
+        return {}  # solvers do not need to know about class_weight
 
 
 class Multinomial(LossConfig):
@@ -80,14 +94,27 @@ class Multinomial(LossConfig):
 
     Parameters
     ----------
-    balence_classes: bool
-        Whether or not we want to balance classes by class sizes.
+    class_weight : dict or 'balanced', default=None
+
+        Weights associated with classes in the form ``{class_label: weight}``.
+        If not given, all classes are supposed to have weight one.
+
+        The "balanced" mode uses the values of y to automatically adjust
+        weights inversely proportional to class frequencies in the input data
+        as ``n_samples / (n_classes * np.bincount(y))``.
+
+        Note that these weights will be multiplied with sample_weight (passed
+        through the fit method) if sample_weight is specified.
     """
     name = 'multinomial'
     _estimator_type = "classifier"
 
-    def __init__(self, balence_classes=False):  # TODO: doc from sklearn
-        self.balence_classes = balence_classes
+    def __init__(self, class_weight=None):
+        self.class_weight = class_weight
+
+    @property
+    def loss_kws(self):
+        return {}  # solvers do not need to know about class_weight
 
 
 def get_loss_config(loss):

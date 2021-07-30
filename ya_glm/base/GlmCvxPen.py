@@ -28,15 +28,14 @@ class GlmCvxPen(Glm):
         pen_val_max: float
             Largest reasonable tuning parameter value.
         """
-        X_pro, y_pro, _ = self.preprocess(X, y,
-                                          sample_weight=sample_weight,
-                                          copy=True)
+        X_pro, y_pro, sample_weight_pro, _ = \
+            self.preprocess(X, y, sample_weight=sample_weight, copy=True)
 
         if self._primary_penalty_type == 'lasso':
 
             return get_pen_max(X=X_pro, y=y_pro,
                                fit_intercept=self.fit_intercept,
-                               sample_weight=sample_weight,
+                               sample_weight=sample_weight_pro,
                                loss=self._get_loss_config(),
                                penalty=self._get_penalty_config()
                                )
@@ -44,7 +43,7 @@ class GlmCvxPen(Glm):
         elif self._primary_penalty_type == 'ridge':
             return get_ridge_pen_max(X=X_pro, y=y_pro,
                                      fit_intercept=self.fit_intercept,
-                                     sample_weight=sample_weight,
+                                     sample_weight=sample_weight_pro,
                                      loss=self._get_loss_config(),
                                      penalty=self._get_penalty_config()
                                      )

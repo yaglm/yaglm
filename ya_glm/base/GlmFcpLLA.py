@@ -79,11 +79,16 @@ class GlmFcpLLA(InitFitMixin, Glm):
 
         Output
         ------
+        X_pro, y_pro, sample_weight_pro, pro_pro_out, penalty_data
+
         X_pro: array-like, shape (n_samples, n_features)
             The processed covariate data.
 
         y_pro: array-like, shape (n_samples, )
             The processed response data.
+
+        sample_weight_pro: None or array-like,  shape (n_samples,)
+            The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
 
         pro_pro_out: dict
             Data from preprocessing e.g. X_center, X_scale.
@@ -102,7 +107,7 @@ class GlmFcpLLA(InitFitMixin, Glm):
             penalty_data['init_est'] = init_data['est']
 
         # preproceess X, y
-        X_pro, y_pro, pre_pro_out = \
+        X_pro, y_pro, sample_weight_pro, pre_pro_out = \
             self.preprocess(X=X, y=y, sample_weight=sample_weight, copy=True)
 
         # process init data
@@ -110,7 +115,7 @@ class GlmFcpLLA(InitFitMixin, Glm):
                                       pre_pro_out=pre_pro_out)
         penalty_data['coef_init'] = np.array(init_data['coef'])
 
-        return X_pro, y_pro, pre_pro_out, penalty_data
+        return X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data
 
     def get_pen_val_max(self, X, y, sample_weight=None):
         """
@@ -134,7 +139,7 @@ class GlmFcpLLA(InitFitMixin, Glm):
         """
 
         # get initial coefficient
-        X_pro, y_pro, _, penalty_data = \
+        X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data = \
             self.prefit(X=X, y=y, sample_weight=sample_weight)
 
         # tell the penalty config about the initial coefficient
@@ -143,7 +148,7 @@ class GlmFcpLLA(InitFitMixin, Glm):
 
         return get_pen_max(X=X, y=y,
                            fit_intercept=self.fit_intercept,
-                           sample_weight=sample_weight,
+                           sample_weight=sample_weight_pro,
                            loss=self._get_loss_config(),
                            penalty=penalty
                            )

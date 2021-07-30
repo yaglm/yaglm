@@ -1,8 +1,7 @@
 import numpy as np
+
 from ya_glm.opt.glm_loss.base import Glm
 from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
-
-from ya_glm.class_weight import get_sample_weight_balanced_classes
 
 
 def logsig(x):

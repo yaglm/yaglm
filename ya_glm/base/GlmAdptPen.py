@@ -45,11 +45,16 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
 
         Output
         ------
+        X_pro, y_pro, sample_weight_pro, pro_pro_out, penalty_data
+
         X_pro: array-like, shape (n_samples, n_features)
             The processed covariate data.
 
         y_pro: array-like, shape (n_samples, )
             The processed response data.
+
+        sample_weight_pro: None or array-like,  shape (n_samples,)
+            The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
 
         pro_pro_out: dict
             Data from preprocessing e.g. X_center, X_scale.
@@ -68,7 +73,7 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
             penalty_data['init_est'] = init_data['est']
 
         # preproceess X, y
-        X_pro, y_pro, pre_pro_out = \
+        X_pro, y_pro, sample_weight_pro, pre_pro_out = \
             self.preprocess(X=X, y=y, sample_weight=sample_weight, copy=True)
 
         if self.has_preset_adpt_weights():
@@ -82,7 +87,7 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
             penalty_data['coef_init'] = np.array(init_data['coef'])
             penalty_data['n_samples'] = X.shape[0]
 
-        return X_pro, y_pro, pre_pro_out, penalty_data
+        return X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data
 
     def get_pen_val_max(self, X, y, sample_weight=None):
         """
@@ -104,7 +109,7 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
         pen_val_max: float
             Largest reasonable tuning parameter value.
         """
-        X_pro, y_pro, _, penalty_data = \
+        X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data = \
             self.prefit(X=X, y=y, sample_weight=sample_weight)
 
         # tell the penalty about the adpative weights
@@ -115,7 +120,7 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
 
             return get_pen_max(X=X_pro, y=y_pro,
                                fit_intercept=self.fit_intercept,
-                               sample_weight=sample_weight,
+                               sample_weight=sample_weight_pro,
                                loss=self._get_loss_config(),
                                penalty=penalty.cvx_pen
                                )
@@ -123,7 +128,7 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
         elif self._primary_penalty_type == 'ridge':
             return get_ridge_pen_max(X=X_pro, y=y_pro,
                                      fit_intercept=self.fit_intercept,
-                                     sample_weight=sample_weight,
+                                     sample_weight=sample_weight_pro,
                                      loss=self._get_loss_config(),
                                      penalty=penalty.cvx_pen
                                      )
@@ -166,7 +171,7 @@ class GlmAdptPenCV(GlmCV):
             init_data.pop('est', None)
 
         # process init coef
-        X_pro, y_pro, pre_pro_out = \
+        X_pro, y_pro, sample_weight_pro, pre_pro_out = \
             est.preprocess(X=X, y=y,
                            sample_weight=sample_weight,
                            copy=True,

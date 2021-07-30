@@ -5,7 +5,6 @@ from scipy.sparse import diags
 from ya_glm.opt.glm_loss.base import GlmMultiResp
 from ya_glm.opt.utils import safe_entrywise_mult
 from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
-from ya_glm.class_weight import get_sample_weight_balanced_classes
 
 
 def sample_losses(z, y):
