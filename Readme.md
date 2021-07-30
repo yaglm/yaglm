@@ -59,12 +59,12 @@ To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) yo
 # Example
 
 Basic convex penalties
+
 ```python
 # from ya_glm.models.Vanilla import Vanilla  # unpenalized GLMs
-# from ya_glm.models.Lasso import Lasso, LassoCV
+from ya_glm.models.Lasso import Lasso, LassoCV
 # from ya_glm.models.Ridge import Ridge, RidgeCV
-from ya_glm.models.ENet import ENet, ENetCV
-
+# from ya_glm.models.ENet import ENet, ENetCV
 
 # sample multinomial regression model with a row sparse coefficient matrix
 from ya_glm.toy_data import sample_sparse_multinomial
@@ -72,18 +72,18 @@ X, y = sample_sparse_multinomial(n_samples=100, n_features=10, n_classes=3)[0:2]
 
 
 # fit using the sklearn API you know and love!
-ENet(loss='multinomial',  # specify loss function
+Lasso(loss='multinomial',  # specify loss function
      multi_task=True
      ).fit(X, y)
-# ENet().fit(X, y)  # entrywise Lasso
-# ENet(nuc=True).fit(X, y)  # nuclear norm
+# Lasso().fit(X, y)  # entrywise Lasso
+# Lasso(nuc=True).fit(X, y)  # nuclear norm
 
 
 # tune the elastic net penalty with cross-validation
 # we use path algorithms to compute the tuning path faster!
 # we automatically generate the tuning sequence
 # for any loss + penalty combination (including concave ones!)
-ENetCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se rule
+LassoCV(cv_select_rule='1se', # here we select the penalty parameter with the 1se rule
        cv_n_jobs=-1 # parallelization over CV folds with joblib
        ).fit(X, y)
 
@@ -95,7 +95,7 @@ X, y = sample_sparse_multinomial(n_samples=100, n_features=10)[0:2]
 
 # you can use group lasso with user specified groups
 groups = [range(5), range(5, 10)]
-ENet(groups=groups).fit(X, y) # group elastic net
+Lasso(groups=groups).fit(X, y) # group elastic net
 ```
 
 Specifying the GLM loss
@@ -103,18 +103,19 @@ Specifying the GLM loss
 ```python
 # specify the desired GLM loss function
 # 'lin_reg' is the default
-ENet(loss='lin_reg', # 'huber', 'quantile'
+Lasso(loss='lin_reg', # 'huber', 'quantile'
      ).fit(X, y)
 
 
 # Some loss functions have additional parameters that can be specified
 # with config objects
 from ya_glm.loss.LossConfig import Quantile, Huber
-ENet(loss=Quantile(quantile=0.75),
+Lasso(loss=Quantile(quantile=0.75),
      ).fit(X, y)
 ```
 
 Concave penalties
+
 ```python
 # from ya_glm.models.AdptLasso import AdptLasso, AdptLassoCV
 # from ya_glm.models.AdptENet import AdptENet, AdptENetCV
@@ -126,7 +127,7 @@ FcpLLA(pen_func='scad',
        ).fit(X, y)
 
 # you can provide your favorite initializer object
-FcpLLA(init=ENetCV() ).fit(X, y)
+FcpLLA(init=LassoCV() ).fit(X, y)
 
 # or specify the initialization yourself
 import numpy as np
@@ -139,6 +140,7 @@ FcpLLACV().fit(X, y)
 ```
 
 Custom solvers
+
 ```python
 # you can customize the solver using a solver config class
 from ya_glm.solver.FistaSolver import FistaSolver
