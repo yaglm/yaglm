@@ -212,7 +212,8 @@ def setup_problem(X, y, loss,
                 multi_task_lasso_penalty(coef, weights=lasso_weights)
 
         else:
-            objective += lasso_pen_val * lasso_penalty(coef, weights=lasso_weights)
+            objective += lasso_pen_val * lasso_penalty(coef,
+                                                       weights=lasso_weights)
 
     # Add ridge
     if ridge_pen_val is not None:
@@ -221,7 +222,8 @@ def setup_problem(X, y, loss,
                 tikhonov_penalty(coef, tikhonov=tikhonov)
 
         else:
-            objective += ridge_pen_val * ridge_penalty(coef, weights=ridge_weights)
+            objective += ridge_pen_val * ridge_penalty(coef,
+                                                       weights=ridge_weights)
 
     problem = cp.Problem(cp.Minimize(objective))
     return problem, coef, intercept, lasso_pen_val, ridge_pen_val
