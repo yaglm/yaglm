@@ -42,6 +42,7 @@ class FcpLLA(LossMixin, GlmFcpLLA):
 
     init: str, dict, estimator.
         If init='default', will use LassoCV as the initializer.
+        If init='zero', will initialize at zero.
         If init is a dict, will return self.init. If init is an estimator that is already fit, it will NOT be refit on the new data. If init is a dict with 'adpt_weights' the the estimator will use exactly these adpative weights.
 
 
@@ -66,8 +67,8 @@ class FcpLLA(LossMixin, GlmFcpLLA):
     standardize: bool
         Whether or not to perform internal standardization before fitting the data. Standardization means mean centering and scaling each column by its standard deviation. For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size). Putting each variable on the same scale makes sense for fitting penalized models. Note the fitted coefficient/intercept is transformed to be on the original scale of the input data.
 
-    solver: str, ya_glm.GlmSolver
-        The solver used to solve the penalized GLM optimization problem. If this is set to 'default' we try to guess the best solver. Otherwise a custom solver can be provided by specifying a GlmSolver object.
+    glm_solver: str, ya_glm.GlmSolver
+        The solver used to solve the penalized GLM subproblems in the LLA algorithm. If this is set to 'default' we try to guess the best solver. Otherwise a custom solver can be provided by specifying a GlmSolver object.
 
     Attributes
     ----------
