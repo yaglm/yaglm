@@ -2,7 +2,7 @@
 
 
 
-`ya_glm` aims to give you an extensive, easy to use, flexible and fast package for fitting penalized *generalized linear models* (GLMs) in Python. Existing packages (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd), [grpreg](https://github.com/pbreheny/grpreg), [ncreg](https://cran.r-project.org/web/packages/ncvreg/index.html), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html)) focus on speed and ease of use, but support a limited number of loss + penalty combinations and are not easy to customize.
+`ya_glm` aims to give you an extensive, easy to use, flexible and fast package for fitting penalized *generalized linear models* (GLMs) in Python. Existing packages (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd), [picasso](https://github.com/jasonge27/picasso), [grpreg](https://github.com/pbreheny/grpreg), [ncreg](https://cran.r-project.org/web/packages/ncvreg/index.html), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html)) focus on speed and ease of use, but support a limited number of loss + penalty combinations and are not easy to customize.
 
 
 We currently support the following loss functions
