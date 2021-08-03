@@ -351,6 +351,35 @@ class Glm(BaseEstimator):
     def _more_tags(self):
         return {'requires_y': True}
 
+    def _get_coef_intercept_shape(self, X, y):
+        """
+        Gets the coefficient and intercept shapes for a given dataset.
+
+        Parameters
+        ----------
+        X: array-like, shape (n_samples, n_features)
+            The training covariate data.
+
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The training response data.
+        Output
+        ------
+        coef_shape, intercept_shape
+
+        """
+        n_features = X.shape[1]
+
+        if self._estimator_type == 'classifier':
+            n_responses = len(np.unique(y))
+        else:
+            n_responses = y.shape[1]
+
+        if n_responses == 1:
+            return (n_features, ), (0, )
+
+        else:
+            (n_features, n_responses), (n_responses, )
+
     ################################
     # sub-classes should implement #
     ################################

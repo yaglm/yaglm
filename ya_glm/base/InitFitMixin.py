@@ -1,4 +1,5 @@
 from copy import deepcopy
+import numpy as np
 
 from ya_glm.utils import fit_if_unfitted
 from ya_glm.utils import get_coef_and_intercept
@@ -12,6 +13,7 @@ class InitFitMixin:
     ----------
     init: str, dict, estimator.
         If init='default', will use a default estimator.
+        If init='zero', will initialize at zero.
         If init is a dict, will return self.init. If init is an estimator that is already fit, it will NOT be refit on the new data.
     """
 
@@ -38,6 +40,16 @@ class InitFitMixin:
         # user provided initial values
         if isinstance(self.init, dict):
             return deepcopy(self.init)
+
+        elif self.init == 'zero':
+            # initialize at zero
+            coef_shape, intercept_shape = self._get_coef_intercept_shape(X, y)
+            coef = np.zeros(coef_shape)
+
+            if intercept_shape[0] == 0:
+                intercept = 0
+            else:
+                intercept = np.zeros(intercept_shape)
 
         elif self.init == 'default':
             # initialize from defualt strategy

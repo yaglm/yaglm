@@ -48,6 +48,7 @@ class AdptLasso(LossMixin, GlmAdptPen):
 
     init: str, dict, estimator.
         If init='default', will use LassoCV as the initializer.
+        If init='zero', will initialize at zero.
         If init is a dict, will return self.init. If init is an estimator that is already fit, it will NOT be refit on the new data. If init is a dict with 'adpt_weights' the the estimator will use exactly these adpative weights.
 
     adpt_func: str
