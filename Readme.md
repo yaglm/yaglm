@@ -30,6 +30,7 @@ and the following more sophisticated penalties
 - [Elastic net](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) versions of the above
 - [Adaptive Lasso](http://users.stat.umn.edu/~zouxx019/Papers/adalasso.pdf) versions of the above (including multi-task, group and nuclear norm)
 - Folded concave penalties (FCP) such as [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf) fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit ([Zou and Li, 2008](http://www.personal.psu.edu/ril4/research/AOS0316.pdf); [Fan et al, 2014](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/)). We also provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
+- Non-convex penalties fit directly e.g. via proximal gradient descent
 
 The adaptive Lasso and LLA algorithm come with strong statistical guarantees while their computational costs are not significantly worse than their convex cousins.
 
@@ -109,7 +110,6 @@ Specifying the GLM loss
 Lasso(loss='lin_reg', # 'huber', 'quantile'
       ).fit(X, y)
 
-
 # Some loss functions have additional parameters that can be specified
 # with config objects
 from ya_glm.loss.LossConfig import Quantile
@@ -117,29 +117,49 @@ Lasso(loss=Quantile(quantile=0.75),
       ).fit(X, y)
 ```
 
-Concave penalties
+Adaptive penalties
 
 ```python
-# from ya_glm.models.AdptLasso import AdptLasso, AdptLassoCV
+from ya_glm.models.AdptLasso import AdptLasso, AdptLassoCV
 # from ya_glm.models.AdptENet import AdptENet, AdptENetCV
-from ya_glm.models.FcpLLA import FcpLLA, FcpLLACV
 
-# concave penalties require an initial estimator
-FcpLLA(pen_func='scad',
-       init='default',  # default init = LassoCV
-       ).fit(X, y)
+# Adpative penalties require an initial estimator
+AdptLasso(pen_func='scad',
+          init='default',  # default init = LassoCV
+           ).fit(X, y)
 
 # you can provide your favorite initializer object
-FcpLLA(init=LassoCV()).fit(X, y)
+AdptLasso(init=LassoCV()).fit(X, y)
 
 # or specify the initialization yourself
 import numpy as np
-FcpLLA(init={'coef': np.zeros(X.shape[1])}).fit(X, y)
-
+AdptLasso(init={'coef': np.zeros(X.shape[1])}).fit(X, y)
 
 # The CV object knows to fit the initializer object
 # before running cross-validation
-FcpLLACV().fit(X, y)
+AdptLassoCV().fit(X, y)
+```
+
+Non-convex penalties fit with the LLA algorithm
+
+```python
+from ya_glm.models.FcpLLA import FcpLLA, FcpLLACV
+
+# Just like adaptive penalties, the LLA algorithm requires an initial estimator
+FcpLLA(pen_func='scad',
+       init='default',  # default init = LassoCV
+       ).fit(X, y)
+```
+
+Non-convex penalties fit directly
+
+```python
+from ya_glm.models.NonConvex import NonConvex, NonConvexCV
+from ya_glm.solver.FistaSolver import FistaSolver
+
+NonConvex(init='zero', # initialize from 0 by default
+			solver= FistaSolver() # specify your favorite solver!
+			).fit(X, y)
 ```
 
 Custom solvers
