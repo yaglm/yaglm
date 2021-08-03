@@ -152,9 +152,9 @@ class FcpLLA(LossMixin, GlmFcpLLA):
 
 class FcpLLACV(SinglePenSeqSetterMixin, RunCVGridMixin, GlmFcpLLACV):
     """
-    Tunes an concave penalized GLM  using cross-validation.
+    Tunes an concave penalized GLM using cross-validation.
 
-    Note the initializer is fit before running cross-validation so the same adpat_weights are used for each CV fold.
+    Note the initializer is fit before running cross-validation so the same initializer is used for each CV fold.
 
     Parameters
     ----------
