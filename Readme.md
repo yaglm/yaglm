@@ -24,6 +24,7 @@ the following basic penalties
 - Ridge
 - Weighed versions of the above
 - [Tikhonov regularization](https://en.wikipedia.org/wiki/Tikhonov_regularization#Tikhonov_regularization)
+- constraints (e.g. enforce a positive coefficient)
 
 and the following more sophisticated penalties
 
