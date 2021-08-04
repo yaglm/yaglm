@@ -2,7 +2,7 @@ from ya_glm.base.GlmCvxPen import GlmCvxPen
 from ya_glm.base.GlmCV import GlmCV, SinglePenSeqSetterMixin
 
 from ya_glm.loss.LossMixin import LossMixin
-from ya_glm.PenaltyConfig import ConvexPenalty, ConvexPenaltySequence
+from ya_glm.PenaltyConfig import ConvexPenalty, PenaltySequence
 
 from ya_glm.cv.RunCVMixin import RunCVGridOrPathMixin
 
@@ -157,15 +157,15 @@ class RidgeCV(SinglePenSeqSetterMixin, RunCVGridOrPathMixin, GlmCV):
 
         Output
         ------
-        penalty: ya_glm.PenaltyConfig.ConvexPenaltySequence
+        penalty: ya_glm.PenaltyConfig.PenaltySequence
             A penalty sequence config object.
         """
         if not hasattr(self, 'pen_val_seq_'):
             raise RuntimeError("pen_val_seq_ has not yet been set")
 
         penalty = estimator._get_penalty_config()
-        return ConvexPenaltySequence(penalty=penalty,
-                                     ridge_pen_seq=self.pen_val_seq_)
+        return PenaltySequence(penalty=penalty,
+                               ridge_pen_seq=self.pen_val_seq_)
 
     def _check_base_estimator(self):
         check_estimator_type(self.estimator, Ridge)

@@ -166,10 +166,13 @@ def numeric_prox(func, x, step, init=None, force_no_grad=False, **kws):
 
     step: float
 
+    init: array-like
+        (Optional) Initialization for the prox numeric solver.
+
     force_no_grad: bool
         Whether or not to force the algorithm to not use func.grad even if it has one. E.g. some non-smooth functions may have .grad that returns a subgradient which we may not want to use for numeric computaion
 
-    kws: key word arguments to scipy.optimize.minimize
+    kws: keyword arguments to scipy.optimize.minimize
 
     Output
     ------
@@ -184,7 +187,7 @@ def numeric_prox(func, x, step, init=None, force_no_grad=False, **kws):
     def get_prox_funcs(x, step):
 
         def prox_eval(z):
-            return step * func.eval(z) + 0.5 * (abs(z - x) ** 2).sum()
+            return step * func.eval(z) + 0.5 * ((z - x) ** 2).sum()
 
         if not force_no_grad and 'GRAD' in func.capabilities(x):
             def prox_grad(z):
@@ -200,7 +203,8 @@ def numeric_prox(func, x, step, init=None, force_no_grad=False, **kws):
     return opt_out.x, opt_out
 
 
-def check_prox_impl(func, values, step=1, rtol=1e-5, atol=1e-5, behavior='ret',
+def check_prox_impl(func, values, step=0.5,
+                    rtol=1e-5, atol=1e-5, behavior='ret',
                     verbosity=0, opt_kws={}):
     """
     Checks the prox implementation of a function.

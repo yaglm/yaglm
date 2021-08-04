@@ -1,4 +1,5 @@
-from ya_glm.base.GlmFcpLLA import GlmFcpLLA, GlmFcpLLACV
+from ya_glm.base.GlmFcpLLA import GlmFcpLLA
+from ya_glm.base.GlmNonConvex import GlmNonConvexCV
 from ya_glm.base.GlmCV import SinglePenSeqSetterMixin
 
 from ya_glm.PenaltyConfig import ConcavePenalty
@@ -150,7 +151,7 @@ class FcpLLA(LossMixin, GlmFcpLLA):
         return LassoCV(estimator=est)
 
 
-class FcpLLACV(SinglePenSeqSetterMixin, RunCVGridMixin, GlmFcpLLACV):
+class FcpLLACV(SinglePenSeqSetterMixin, RunCVGridMixin, GlmNonConvexCV):
     """
     Tunes an concave penalized GLM using cross-validation.
 

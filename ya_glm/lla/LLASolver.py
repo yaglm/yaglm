@@ -50,12 +50,10 @@ class LLASolver(GlmSolver):
         self.glm_solver.setup(X=X, y=y, loss=loss, penalty=penalty,
                               sample_weight=sample_weight)
 
-    def solve(self, X, y, loss, penalty,
+    def solve(self, X, y, loss, penalty, coef_init,
               fit_intercept=True,
               sample_weight=None,
-              # TODO: think more about if we want coef_init
-              # coef_init=None,  # we get coef_init from penalty
-              # intercept_init=None
+              intercept_init=None
               ):
         """
         Solves a penalized GLM problem using the LLA algorithm. See docs for ya_glm.GlmSolver.
@@ -75,16 +73,13 @@ class LLASolver(GlmSolver):
 
         # get initializer for intercept -- the solve_lla needs and intercept
         # initializer if an intercept is present
-
-        if fit_intercept:
+        if fit_intercept and intercept_init is None:
             intercept_init = wlasso_solver.glm_loss.intercept_at_coef_eq0()
-        else:
-            intercept_init = None
 
         return solve_lla(wlasso_solver=wlasso_solver,
                          penalty_fcn=penalty.get_penalty_func(),
                          transform=penalty._get_coef_transform(),
-                         init=penalty.coef_init,
+                         init=coef_init,
                          init_upv=intercept_init,
                          **self.get_solve_kws()
                          )

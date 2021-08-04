@@ -1,18 +1,11 @@
-from sklearn.base import clone
-import numpy as np
-
-from ya_glm.base.Glm import Glm
-from ya_glm.base.GlmCV import GlmCV
-from ya_glm.base.InitFitMixin import InitFitMixin
-
+from ya_glm.base.GlmNonConvex import GlmNonConvex
 from ya_glm.lla.LLASolver import LLASolver
 
 from ya_glm.solver.default import get_default_solver
-from ya_glm.processing import process_init_data
 from ya_glm.pen_max.fcp_lla import get_pen_max
 
 
-class GlmFcpLLA(InitFitMixin, Glm):
+class GlmFcpLLA(GlmNonConvex):
     """
     Base class for folded concave penalties fit with the LLA algorithm.
 
@@ -62,61 +55,6 @@ class GlmFcpLLA(InitFitMixin, Glm):
                          n_steps=self.lla_n_steps,
                          **self.lla_kws)
 
-    def prefit(self, X, y, sample_weight=None):
-        """
-        Fits an initial estimator to the data, computes the adpative weights and proprocessed the X, y data (e.g. centering/scaling).
-
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The covariate data.
-
-        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
-            The response data.
-
-        sample_weight: None or array-like,  shape (n_samples,)
-            Individual weights for each sample.
-
-        Output
-        ------
-        X_pro, y_pro, sample_weight_pro, pro_pro_out, penalty_data
-
-        X_pro: array-like, shape (n_samples, n_features)
-            The processed covariate data.
-
-        y_pro: array-like, shape (n_samples, )
-            The processed response data.
-
-        sample_weight_pro: None or array-like,  shape (n_samples,)
-            The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
-
-        pro_pro_out: dict
-            Data from preprocessing e.g. X_center, X_scale.
-
-        penalty_data: dict
-            A dict with key 'coef_init' containing the processed initial coefficient.
-
-        """
-
-        penalty_data = {}
-
-        # get init data e.g. fit an initial estimator to the data
-        init_data = self._get_init_data(X=X, y=y, sample_weight=sample_weight)
-
-        if 'est' in init_data:
-            penalty_data['init_est'] = init_data['est']
-
-        # preproceess X, y
-        X_pro, y_pro, sample_weight_pro, pre_pro_out = \
-            self.preprocess(X=X, y=y, sample_weight=sample_weight, copy=True)
-
-        # process init data
-        init_data = process_init_data(init_data=init_data,
-                                      pre_pro_out=pre_pro_out)
-        penalty_data['coef_init'] = np.array(init_data['coef'])
-
-        return X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data
-
     def get_pen_val_max(self, X, y, sample_weight=None):
         """
         Returns the largest reasonable penalty parameter for the processed data.
@@ -152,28 +90,3 @@ class GlmFcpLLA(InitFitMixin, Glm):
                            loss=self._get_loss_config(),
                            penalty=penalty
                            )
-
-
-class GlmFcpLLACV(GlmCV):
-
-    def _get_estimator_for_cv(self, X, y=None, sample_weight=None):
-        """
-        Fits the initial coefficient and adds it to the 'init' argument.
-
-        Output
-        ------
-        estimator
-        """
-
-        est = clone(self.estimator)
-
-        # get initialization from raw data
-        init_data = est._get_init_data(X, y, sample_weight=sample_weight)
-        if 'est' in init_data:
-            self.init_est_ = init_data['est']
-            init_data.pop('est', None)
-
-        # set initialization data
-        est.set_params(init=init_data)
-
-        return est

@@ -2,12 +2,16 @@ from copy import deepcopy
 
 from ya_glm.GlmSolver import GlmSolver
 
+from ya_glm.opt.penalty.concave_penalty import get_penalty_func
 from ya_glm.opt.penalty.vec import LassoPenalty, RidgePenalty, \
     WithIntercept, TikhonovPenalty
 from ya_glm.opt.penalty.GroupLasso import GroupLasso
 from ya_glm.opt.penalty.mat_penalty import MultiTaskLasso, NuclearNorm, \
-    MatricizeEntrywisePen, \
-    MatWithIntercept
+    MatricizeEntrywisePen, MatWithIntercept
+
+from ya_glm.opt.penalty.composite_structured import CompositeGroup,\
+    CompositeMultiTaskLasso, CompositeNuclearNorm
+
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
 from ya_glm.opt.fista import solve_fista
 from ya_glm.opt.base import Sum, Func
@@ -142,6 +146,9 @@ def solve_glm(X, y,
               ridge_weights=None,
               tikhonov=None,
 
+              nonconvex_func=None,
+              nonconvex_func_kws=None,
+
               coef_init=None,
               intercept_init=None,
               xtol=1e-4,
@@ -214,21 +221,44 @@ def solve_glm(X, y,
     if lasso_pen_val is None:
         lasso = None
 
-    elif groups is not None:
+    elif nonconvex_func is None:
 
-        lasso = GroupLasso(groups=groups,
-                           mult=lasso_pen_val, weights=lasso_weights)
+        if groups is not None:
 
-    elif is_mr and multi_task:
-        lasso = MultiTaskLasso(mult=lasso_pen_val, weights=lasso_weights)
-        is_already_mat_pen = True
+            lasso = GroupLasso(groups=groups,
+                               mult=lasso_pen_val, weights=lasso_weights)
 
-    elif is_mr and nuc:
-        lasso = NuclearNorm(mult=lasso_pen_val, weights=lasso_weights)
-        is_already_mat_pen = True
+        elif is_mr and multi_task:
+            lasso = MultiTaskLasso(mult=lasso_pen_val, weights=lasso_weights)
+            is_already_mat_pen = True
+
+        elif is_mr and nuc:
+            lasso = NuclearNorm(mult=lasso_pen_val, weights=lasso_weights)
+            is_already_mat_pen = True
+
+        else:
+            lasso = LassoPenalty(mult=lasso_pen_val, weights=lasso_weights)
 
     else:
-        lasso = LassoPenalty(mult=lasso_pen_val, weights=lasso_weights)
+
+        # set penaly for compoisite function
+        func = get_penalty_func(pen_func=nonconvex_func,
+                                pen_val=lasso_pen_val,
+                                pen_func_kws=nonconvex_func_kws)
+
+        if groups is not None:
+            lasso = CompositeGroup(groups=groups, func=func)
+
+        elif is_mr and multi_task:
+            lasso = CompositeMultiTaskLasso(func=func)
+            is_already_mat_pen = True
+
+        elif is_mr and nuc:
+            lasso = CompositeNuclearNorm(func=func)
+            is_already_mat_pen = True
+
+        else:
+            lasso = func
 
     ##############
     # L2 penalty #
@@ -322,7 +352,6 @@ def solve_glm_path(X, y, loss,
     """
     Fits a GLM along a tuning parameter path using the homotopy method.
     Each subproblem is solved using FISTA.
-
 
     Parameters
     -----------

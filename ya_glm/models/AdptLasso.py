@@ -3,7 +3,7 @@ from ya_glm.base.GlmCV import SinglePenSeqSetterMixin
 
 from ya_glm.models.Lasso import Lasso, LassoCV
 
-from ya_glm.PenaltyConfig import AdptPenalty, ConvexPenaltySequence
+from ya_glm.PenaltyConfig import AdptPenalty, PenaltySequence
 from ya_glm.loss.LossMixin import LossMixin
 from ya_glm.cv.RunCVMixin import RunCVGridOrPathMixin
 
@@ -237,15 +237,15 @@ class AdptLassoCV(SinglePenSeqSetterMixin, RunCVGridOrPathMixin, GlmAdptPenCV):
 
         Output
         ------
-        penalty: ya_glm.PenaltyConfig.ConvexPenaltySequence
+        penalty: ya_glm.PenaltyConfig.PenaltySequence
             A penalty sequence config object.
         """
         if not hasattr(self, 'pen_val_seq_'):
             raise RuntimeError("pen_val_seq_ has not yet been set")
 
         penalty = estimator._get_penalty_config()
-        return ConvexPenaltySequence(penalty=penalty,
-                                     lasso_pen_seq=self.pen_val_seq_)
+        return PenaltySequence(penalty=penalty,
+                               lasso_pen_seq=self.pen_val_seq_)
 
     def _check_base_estimator(self):
         check_estimator_type(self.estimator, AdptLasso)

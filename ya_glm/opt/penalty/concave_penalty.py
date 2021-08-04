@@ -1,5 +1,4 @@
 import numpy as np
-from textwrap import dedent
 
 from ya_glm.opt.base import Func
 from ya_glm.opt.utils import sign_never_0, safe_vectorize
@@ -76,7 +75,33 @@ def scad_grad_1d(x, pen_val, a=3.7):
 scad_grad = safe_vectorize(scad_grad_1d)
 
 
-def scad_prox_1d(x, pen_val, a=3.7):
+# def scad_prox_1d(x, pen_val, a=3.7):
+#     """
+#     Evaluates the proximal operator of the SCAD function
+
+#     Parameters
+#     ----------
+#     x: float
+
+#     a: float
+
+#     pen_val: float
+
+#     Output
+#     ------
+#     value: float
+#     """
+#     abs_x = abs(x)
+#     if abs_x <= 2 * pen_val:
+#         return np.sign(x) * np.max([0, abs_x - pen_val])
+
+#     elif abs_x <= a * pen_val:
+#         return ((a - 1) * x - np.sign(x) * a * pen_val) / (a - 2)
+
+#     else:
+#         return x
+
+def scad_prox_1d_with_step(x, pen_val, a=3.7, step=1):
     """
     Evaluates the proximal operator of the SCAD function
 
@@ -88,22 +113,43 @@ def scad_prox_1d(x, pen_val, a=3.7):
 
     pen_val: float
 
+    step: float
+
     Output
     ------
     value: float
     """
+    # TODO: clean this up
     abs_x = abs(x)
-    if abs_x <= 2 * pen_val:
-        return np.sign(x) * np.max([0, abs_x - pen_val])
 
-    elif abs_x <= a * pen_val:
-        return ((a - 1) * x - np.sign(x) * a * pen_val) / (a - 2)
+    sol_1 = max(0, abs_x - step * pen_val)
+    sol_2 = ((a - 1) * abs_x - step * pen_val * a) / (a - 1 - step)
+    sol_2 = abs(sol_2)
+    sol_3 = abs_x
 
-    else:
-        return x
+    prox_obj_1 = scad_eval_1d(x=sol_1, pen_val=pen_val, a=a) + \
+        (0.5 / step) * (sol_1 - abs_x) ** 2
+
+    prox_obj_2 = scad_eval_1d(x=sol_2, pen_val=pen_val, a=a) + \
+        (0.5 / step) * (sol_2 - abs_x) ** 2
+
+    prox_obj_3 = scad_eval_1d(x=sol_3, pen_val=pen_val, a=a) + \
+        (0.5 / step) * (sol_3 - abs_x) ** 2
+
+    objs = [prox_obj_1, prox_obj_2, prox_obj_3]
+    idx_min = np.argmin(objs)
+
+    if idx_min == 0:
+        return np.sign(x) * sol_1
+
+    elif idx_min == 1:
+        return np.sign(x) * sol_2
+
+    elif idx_min == 2:
+        return np.sign(x) * sol_3
 
 
-scad_prox = safe_vectorize(scad_prox_1d)
+scad_prox = safe_vectorize(scad_prox_1d_with_step)
 
 
 class SCAD(Func):
@@ -116,6 +162,9 @@ class SCAD(Func):
     
     def _grad(self, x):
         return scad_grad(x, pen_val=self.pen_val, a=self.a)
+
+    def _prox(self, x, step=1):
+        return scad_prox(x, pen_val=self.pen_val, a=self.a, step=step)
 
 #######
 # MCP #
@@ -181,7 +230,35 @@ def mcp_grad_1d(x, a, pen_val):
 mcp_grad = safe_vectorize(mcp_grad_1d)
 
 
-def mcp_prox_1d(x, pen_val, a=2):
+# def mcp_prox_1d(x, pen_val, a=2):
+#     """
+#     Proximal operator of the MCP function.
+
+#     Parameters
+#     ----------
+#     x: float
+
+#     pen_val: float
+
+#     a: float
+
+#     Output
+#     ------
+#     value: float
+#     """
+
+#     abs_x = abs(x)
+#     if abs_x <= pen_val:
+#         return 0
+
+#     elif abs_x <= a * pen_val:
+#         return np.sign(x) * (abs_x - pen_val) / (1 - (1 / a))
+
+#     else:
+#         return x
+
+
+def mcp_prox_1d_with_step(x, pen_val, a=2, step=1):
     """
     Proximal operator of the MCP function.
 
@@ -193,23 +270,36 @@ def mcp_prox_1d(x, pen_val, a=2):
 
     a: float
 
+    step: float
+
     Output
     ------
     value: float
     """
+    # TODO: clean this up
 
     abs_x = abs(x)
-    if abs_x <= pen_val:
-        return 0
 
-    elif abs_x <= a * pen_val:
-        return np.sign(x) * (abs_x - pen_val) / (1 - (1 / a))
+    sol_1 = (1 / (1 - (step / a))) * max(0, abs_x - step * pen_val)
+    sol_2 = abs_x
 
-    else:
-        return x
+    prox_obj_1 = mcp_eval_1d(x=sol_1, pen_val=pen_val, a=a) + \
+        (0.5 / step) * (sol_1 - abs_x) ** 2
+
+    prox_obj_2 = mcp_eval_1d(x=sol_2, pen_val=pen_val, a=a) + \
+        (0.5 / step) * (sol_2 - abs_x) ** 2
+
+    objs = [prox_obj_1, prox_obj_2]
+    idx_min = np.argmin(objs)
+
+    if idx_min == 0:
+        return np.sign(x) * sol_1
+
+    elif idx_min == 1:
+        return np.sign(x) * sol_2
 
 
-mcp_prox = safe_vectorize(mcp_prox_1d)
+mcp_prox = safe_vectorize(mcp_prox_1d_with_step)
 
 
 class MCP(Func):
@@ -223,6 +313,9 @@ class MCP(Func):
 
     def _grad(self, x):
         return mcp_grad(x=x, pen_val=self.pen_val, a=self.a)
+
+    def _prox(self, x, step=1):
+        return mcp_prox(x=x, pen_val=self.pen_val, a=self.a, step=step)
 
 
 ###############
@@ -264,22 +357,6 @@ class Lq(Func):
         return self.pen_val * self.q * np.abs(x) ** (self.q - 1)
 
 
-_pen_fuc_docs = dict(
-    options=dedent("""
-    pen_func_kws: str
-        Which folded concave penalty function to use. Must be one of ['SCAD', 'MCP', 'Log', 'Lq', 'Lasso'].
-
-    pen_kws: dict
-        Optional key-word arguments for folded concave penalty.
-        """),
-
-    pen_param=dedent("""
-    pen_val: float
-        Penalty parameter value for the folded concave penalty.
-        """)
-)
-
-
 def get_penalty_func(pen_func, pen_val=1, pen_func_kws={}):
     """
     Returns a concave penalty function.
@@ -293,6 +370,7 @@ def get_penalty_func(pen_func, pen_val=1, pen_func_kws={}):
         The penalty function value.
 
     pen_func_kws:
+        Optional keyword arguments for folded concave penalty.
     """
     pen_func = pen_func.lower()
     assert pen_func in avail_concave_pens
@@ -313,16 +391,3 @@ def get_penalty_func(pen_func, pen_val=1, pen_func_kws={}):
 
 
 avail_concave_pens = ['scad', 'mcp', 'log', 'lq']
-
-get_penalty_func.__doc__ = dedent("""
-Gets a folded concave penalty function object.
-
-Parameters
-----------
-{options}
-{pen_param}
-
-Output
-------
-penaly: FoldedPenalty
-""".format(**_pen_fuc_docs))

@@ -1,7 +1,7 @@
-from ya_glm.base.GlmNonConvexPen import GlmNonConvexPen
+from ya_glm.base.GlmNonConvex import GlmNonConvex
 from ya_glm.base.GlmCV import GlmCV, SinglePenSeqSetterMixin
 
-from ya_glm.PenaltyConfig import ConcavePenalty
+from ya_glm.PenaltyConfig import ConcavePenalty, PenaltySequence
 from ya_glm.loss.LossMixin import LossMixin
 
 from ya_glm.models.Lasso import Lasso, LassoCV
@@ -12,7 +12,7 @@ from ya_glm.processing import check_estimator_type
 from ya_glm.autoassign import autoassign
 
 
-class NonConvex(LossMixin, GlmNonConvexPen):
+class NonConvex(LossMixin, GlmNonConvex):
     """
     A GLM with with a non-convex penalty (FCP) fit directly e.g. with proximal gradient or coordinate descent. This handles entrywise, group , multi-task and nuclear norm like penalties.
 
@@ -146,7 +146,7 @@ class NonConvexCV(SinglePenSeqSetterMixin, RunCVGridOrPathMixin, GlmCV):
 
     Parameters
     ----------
-    estimator: ya_glm.models.FcpLLA
+    estimator: ya_glm.models.NonConvex
         The base FcpLLA estimator to be tuned with cross-validation. Only the pen_val parameter is tuned.
 
     cv: int, cross-validation generator or an iterable, default=None
@@ -217,3 +217,19 @@ class NonConvexCV(SinglePenSeqSetterMixin, RunCVGridOrPathMixin, GlmCV):
 
     def _check_base_estimator(self):
         check_estimator_type(self.estimator, NonConvex)
+
+    def _get_penalty_seq_config(self, estimator):
+        """
+        Gets the penalty sequence config for tuning the penalty parameter.
+
+        Output
+        ------
+        penalty: ya_glm.PenaltyConfig.PenaltySequence
+            A penalty sequence config object.
+        """
+        if not hasattr(self, 'pen_val_seq_'):
+            raise RuntimeError("pen_val_seq_ has not yet been set")
+
+        penalty = estimator._get_penalty_config()
+        return PenaltySequence(penalty=penalty,
+                               ridge_pen_seq=self.pen_val_seq_)

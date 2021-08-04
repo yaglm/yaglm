@@ -5,7 +5,7 @@ from sklearn.model_selection._split import check_cv
 import numpy as np
 from numbers import Number
 
-from ya_glm.PenaltyConfig import ConvexPenaltySequence
+from ya_glm.PenaltyConfig import PenaltySequence
 
 from ya_glm.cv.RunCVMixin import RunCVGridOrPathMixin
 from ya_glm.cv.run_cv import run_cv_path, add_params_to_cv_results
@@ -253,9 +253,9 @@ class GlmENetCVMixin(RunCVGridOrPathMixin):
                 ridge_pen_seq = pen_val_seq * (1 - l1_ratio)
 
                 pen_seq_config = \
-                    ConvexPenaltySequence(penalty=base_penalty,
-                                          lasso_pen_seq=lasso_pen_seq,
-                                          ridge_pen_seq=ridge_pen_seq)
+                    PenaltySequence(penalty=base_penalty,
+                                    lasso_pen_seq=lasso_pen_seq,
+                                    ridge_pen_seq=ridge_pen_seq)
 
                 solve_path_kws['penalty_seq'] = pen_seq_config
 
@@ -300,9 +300,9 @@ class GlmENetCVMixin(RunCVGridOrPathMixin):
             ridge_pen_seq = pen_val_seq * (1 - l1_ratio_seq)
 
             pen_seq_config = \
-                ConvexPenaltySequence(penalty=base_penalty,
-                                      lasso_pen_seq=lasso_pen_seq,
-                                      ridge_pen_seq=ridge_pen_seq)
+                PenaltySequence(penalty=base_penalty,
+                                lasso_pen_seq=lasso_pen_seq,
+                                ridge_pen_seq=ridge_pen_seq)
 
             solve_path_kws['penalty_seq'] = pen_seq_config
 

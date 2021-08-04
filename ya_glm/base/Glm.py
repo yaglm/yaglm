@@ -1,3 +1,4 @@
+import numpy as np
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
@@ -116,8 +117,7 @@ class Glm(BaseEstimator):
                                                   sample_weight=sample_weight)
 
         # run prefitting procedures including preprocessing the X, y data
-        X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data =\
-            self.prefit(X=X, y=y, sample_weight=sample_weight)
+        prefit_out = self.prefit(X=X, y=y, sample_weight=sample_weight)
 
         # get the loss, penalty and solver config
         loss = self._get_loss_config()
@@ -126,22 +126,25 @@ class Glm(BaseEstimator):
 
         # possibly add information to the penalty
         # e.g. the initial coefficient for concave penalities
-        if penalty_data is not None and len(penalty_data) > 0:
-            penalty.set_data(penalty_data)
+        if 'penalty_data' in prefit_out:
+            penalty.set_data(prefit_out['penalty_data'])
 
         # solve the optimzation problem!!!
         coef, intercept, out_data = \
-            solver.solve(X=X_pro, y=y_pro,
+            solver.solve(X=prefit_out['X_pro'],
+                         y=prefit_out['y_pro'],
                          loss=loss,
                          penalty=penalty,
                          fit_intercept=self.fit_intercept,
-                         sample_weight=sample_weight_pro)
+                         sample_weight=prefit_out['sample_weight_pro'],
+                         coef_init=prefit_out.pop('coef_init', None),
+                         intercept_init=prefit_out.pop('intercept_init', None))
 
         # set the fit coefficient e.g. undo preprocessing scaling
         self._set_fit(fit_out={'coef': coef,
                                'intercept': intercept,
                                'opt_data': out_data},
-                      pre_pro_out=pre_pro_out)
+                      pre_pro_out=prefit_out['pre_pro_out'])
 
         return self
 
@@ -162,7 +165,8 @@ class Glm(BaseEstimator):
 
         Output
         ------
-        X_pro, y_pro, sample_weight_pro, pro_pro_out, penalty_data
+        prefit_out: dict
+            Dictionary with the following keys
 
         X_pro: array-like, shape (n_samples, n_features)
             The processed covariate data.
@@ -176,17 +180,25 @@ class Glm(BaseEstimator):
         pro_pro_out: dict
             Data from preprocessing e.g. X_center, X_scale.
 
+        Optional keys
+
         penalty_data: None, dict
             Additional data that the penalty needs to know about.
+
+        coef_init: None, array-like
+            Optional initialization for the coefficient.
+
+        intercept_init: None, array-like
+            Optional initialization for the intercept.
         """
         # preproceess X, y
         X_pro, y_pro, sample_weight_pro, pre_pro_out = \
             self.preprocess(X=X, y=y, sample_weight=sample_weight, copy=True)
 
-        # by default we dont do any thing here
-        penalty_data = None
-
-        return X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data
+        return {'X_pro': X_pro,
+                'y_pro': y_pro,
+                'sample_weight_pro': sample_weight_pro,
+                'pre_pro_out': pre_pro_out}
 
     def _validate_data(self, X, y, sample_weight=None, accept_sparse=True):
         """
@@ -320,6 +332,9 @@ class Glm(BaseEstimator):
         if 'classes' in pre_pro_out:
             self.classes_ = pre_pro_out['classes']
 
+        if 'est_init' in pre_pro_out:
+            self.est_init_ = pre_pro_out['est_init']
+
     def decision_function(self, X):
         """
         The GLM decision function i.e. z = X.T @ coef + interept
@@ -378,7 +393,7 @@ class Glm(BaseEstimator):
             return (n_features, ), (0, )
 
         else:
-            (n_features, n_responses), (n_responses, )
+            return (n_features, n_responses), (n_responses, )
 
     ################################
     # sub-classes should implement #

@@ -223,7 +223,7 @@ class AdptPenalty(PenaltyConfig):
         return adpt_weights
 
 
-class ConvexPenaltySequence:
+class PenaltySequence:
 
     def __init__(self, penalty, lasso_pen_seq=None, ridge_pen_seq=None):
         self.penalty = penalty
@@ -299,8 +299,6 @@ class ConcavePenalty(PenaltyConfig):
             self.ridge_weights = None
 
     def validate(self):
-        if not hasattr(self, 'coef_init'):
-            raise NotImplementedError
 
         if self.pen_val is not None and self.pen_val < 0:
             raise ValueError("pen_val should be non-negative")
@@ -326,12 +324,18 @@ class ConcavePenalty(PenaltyConfig):
                                 pen_val=self.pen_val,
                                 pen_func_kws=self.pen_func_kws)
 
-    def set_data(self, data):
-        self.coef_init = data['coef_init']
-        return self
-
     def get_solve_kws(self):
-        raise NotImplementedError
+        kws = deepcopy(self.__dict__)
+
+        # rename several parameters
+        # TODO: think carefully if this is the best way to hanlde this
+        # e.g. ideally we don't rename anything. But the arguments to solve_glm
+        # need something like nonconvex_func instead of pen_func
+        kws['nonconvex_func'] = kws.pop('pen_func')
+        kws['nonconvex_func_kws'] = kws.pop('pen_func_kws')
+        kws['lasso_pen_val'] = kws.pop('pen_val')  # this one is especially egregious
+
+        return kws
 
 
 def get_convex_base_from_concave(penalty):

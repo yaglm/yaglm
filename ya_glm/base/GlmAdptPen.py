@@ -87,7 +87,13 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
             penalty_data['coef_init'] = np.array(init_data['coef'])
             penalty_data['n_samples'] = X.shape[0]
 
-        return X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data
+        return {'X_pro': X_pro,
+                'y_pro': y_pro,
+                'sample_weight_pro': sample_weight_pro,
+                'pre_pro_out': pre_pro_out,
+
+                'penalty_data': penalty_data
+                }
 
     def get_pen_val_max(self, X, y, sample_weight=None):
         """

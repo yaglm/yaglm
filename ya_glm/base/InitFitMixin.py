@@ -51,6 +51,10 @@ class InitFitMixin:
             else:
                 intercept = np.zeros(intercept_shape)
 
+            return {'coef': coef,
+                    'intercept': intercept
+                    }
+
         elif self.init == 'default':
             # initialize from defualt strategy
             defualt_init = self._get_default_init()
@@ -74,6 +78,7 @@ class InitFitMixin:
 
         coef, intercept = get_coef_and_intercept(init_est, copy=True,
                                                  error=True)
+
 
         return {'coef': coef,
                 'intercept': intercept,
