@@ -7,7 +7,8 @@ class PositiveOrthant(Func):
 
     def _prox(self, x, step=1):
         p = np.zeros_like(x)
-        p[x <= 0] = 0
+        pos_mask = x > 0
+        p[pos_mask] = x[pos_mask]
         return p
 
     def _eval(self, x):
