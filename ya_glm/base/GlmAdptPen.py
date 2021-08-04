@@ -18,14 +18,12 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
 
     Parameters
     ----------
-    adpt_func: str
-        The concave function whose gradient is used to obtain the adpative weights from the initial coefficient. See ya_glm.opt.penalty.concave_penalty.
-
-    adpt_func_kws: dict
-        Keyword arguments to the adpative function e.g. q for the Lq norm.
+    adpt_expon: float
+        A positive number indicating the exponent for the adpative weights.
+        The adpative weights are set via 1 / (abs(init_coef) + pertub_init) ** adpt_expon
 
     pertub_init: str, float
-        How to perturb the initial coefficient i.e. we evaluate the adpative function's gradient at abs(init_coef) + pertub_init. If pertub_init='n_samples', then we use 1/n_samples. This perturbation is useful, for example, when the init coefficient has exact zeros and adpt_func='log'.
+        How to perturb the initial coefficient before computing the adpative weights. This perturbation is useful  when the init coefficient has exact zeros. If pertub_init='n_samples', then we use 1/n_samples.
     """
 
     def prefit(self, X, y, sample_weight=None):
@@ -115,26 +113,27 @@ class GlmAdptPen(InitFitMixin, GlmCvxPen):
         pen_val_max: float
             Largest reasonable tuning parameter value.
         """
-        X_pro, y_pro, sample_weight_pro, pre_pro_out, penalty_data = \
-            self.prefit(X=X, y=y, sample_weight=sample_weight)
+        prefit_out = self.prefit(X=X, y=y, sample_weight=sample_weight)
 
         # tell the penalty about the adpative weights
         penalty = self._get_penalty_config()
-        penalty.set_data(penalty_data)
+        penalty.set_data(prefit_out['penalty_data'])
 
         if self._primary_penalty_type == 'lasso':
 
-            return get_pen_max(X=X_pro, y=y_pro,
+            return get_pen_max(X=prefit_out['X_pro'],
+                               y=prefit_out['y_pro'],
                                fit_intercept=self.fit_intercept,
-                               sample_weight=sample_weight_pro,
+                               sample_weight=prefit_out['sample_weight_pro'],
                                loss=self._get_loss_config(),
                                penalty=penalty.cvx_pen
                                )
 
         elif self._primary_penalty_type == 'ridge':
-            return get_ridge_pen_max(X=X_pro, y=y_pro,
+            return get_ridge_pen_max(X=prefit_out['X_pro'],
+                                     y=prefit_out['y_pro'],
                                      fit_intercept=self.fit_intercept,
-                                     sample_weight=sample_weight_pro,
+                                     sample_weight=prefit_out['sample_weight_pro'],
                                      loss=self._get_loss_config(),
                                      penalty=penalty.cvx_pen
                                      )

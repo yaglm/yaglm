@@ -142,13 +142,11 @@ class ConvexPenalty(PenaltyConfig):
 
 class AdptPenalty(PenaltyConfig):
 
-    def __init__(self, adpt_func='log',
-                 adpt_func_kws={},
+    def __init__(self, adpt_expon=1,
                  pertub_init='n_samples',
                  **cvx_pen_kws):
 
-        self.adpt_func = adpt_func
-        self.adpt_func_kws = adpt_func_kws
+        self.adpt_expon = adpt_expon
         self.pertub_init = pertub_init
 
         self.cvx_pen = ConvexPenalty(lasso_weights=np.empty(0), **cvx_pen_kws)
@@ -169,6 +167,9 @@ class AdptPenalty(PenaltyConfig):
         return self.cvx_pen.get_solve_kws()
 
     def validate(self):
+        if self.adpt_expon < 0:
+            raise ValueError("adpt_expon should be non-negative")
+
         if len(self.cvx_pen.lasso_weights) == 0:
             raise RuntimeError("Adpative weights have not yet been set")
 
@@ -215,11 +216,13 @@ class AdptPenalty(PenaltyConfig):
         elif self.pertub_init is not None:
             coef_transf += self.pertub_init
 
-        # get adpative weights from the gradient of a concave function
-        penalty_func = get_penalty_func(pen_func=self.adpt_func,
-                                        pen_val=1,
-                                        pen_func_kws=self.adpt_func_kws)
-        adpt_weights = penalty_func.grad(coef_transf)
+        # get adpative weights
+        adpt_weights = 1 / coef_transf ** self.adpt_expon
+
+        # penalty_func = get_penalty_func(pen_func=self.adpt_func,
+        #                                 pen_val=1,
+        #                                 pen_func_kws=self.adpt_func_kws)
+        # adpt_weights = penalty_func.grad(coef_transf)
         return adpt_weights
 
 

@@ -386,8 +386,12 @@ class Glm(BaseEstimator):
 
         if self._estimator_type == 'classifier':
             n_responses = len(np.unique(y))
+
         else:
-            n_responses = y.shape[1]
+            if y.ndim == 1:
+                n_responses = 1
+            else:
+                n_responses = y.shape[1]
 
         if n_responses == 1:
             return (n_features, ), (0, )

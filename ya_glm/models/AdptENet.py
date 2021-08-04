@@ -56,15 +56,12 @@ class AdptENet(LossMixin, GlmAdptPen):
         If init='zero', will initialize at zero.
         If init is a dict, will return self.init. If init is an estimator that is already fit, it will NOT be refit on the new data. If init is a dict with 'adpt_weights' the the estimator will use exactly these adpative weights.
 
-    adpt_func: str
-        The concave function whose gradient is used to obtain the adpative weights from the initial coefficient. See ya_glm.opt.penalty.concave_penalty.
-
-    adpt_func_kws: dict
-        Keyword arguments to the adpative function e.g. q for the Lq norm.
+    adpt_expon: float
+        A positive number indicating the exponent for the adpative weights.
+        The adpative weights are set via 1 / (abs(init_coef) + pertub_init) ** adpt_expon
 
     pertub_init: str, float
-        How to perturb the initial coefficient i.e. we evaluate the adpative function's gradient at abs(init_coef) + pertub_init. If pertub_init='n_samples', then we use 1/n_samples. This perturbation is useful, for example, when the init coefficient has exact zeros and adpt_func='log'.
-
+        How to perturb the initial coefficient before computing the adpative weights. This perturbation is useful  when the init coefficient has exact zeros. If pertub_init='n_samples', then we use 1/n_samples.
 
     standardize: bool
         Whether or not to perform internal standardization before fitting the data. Standardization means mean centering and scaling each column by its standard deviation. For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size). Putting each variable on the same scale makes sense for fitting penalized models. Note the fitted coefficient/intercept is transformed to be on the original scale of the input data.
@@ -93,8 +90,7 @@ class AdptENet(LossMixin, GlmAdptPen):
                  groups=None, multi_task=False, nuc=False,
                  ridge_pen_val=None, ridge_weights=None, tikhonov=None,
 
-                 adpt_func='log',  # TODO: is this the name we want?
-                 adpt_func_kws={},
+                 adpt_expon=1,
                  init='default',
                  pertub_init='n_samples',
 
@@ -115,8 +111,7 @@ class AdptENet(LossMixin, GlmAdptPen):
             lasso_and_ridge_from_enet(pen_val=self.pen_val,
                                       l1_ratio=self.l1_ratio)
 
-        config = AdptPenalty(adpt_func=self.adpt_func,
-                             adpt_func_kws=self.adpt_func_kws,
+        config = AdptPenalty(adpt_expon=self.adpt_expon,
                              pertub_init=self.pertub_init,
 
                              lasso_pen_val=lasso_pen_val,
