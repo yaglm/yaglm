@@ -13,7 +13,7 @@ def process_X(X, fit_intercept=True,
               standardize=False, groups=None, sample_weight=None, copy=True,
               check_input=True, accept_sparse=True):
     """
-    Processes and possibly standardize the X feature matrix. If standardize=True then the coulmns are scaled to be unit norm. If additionally fit_intercept=True, the columns of X are first mean centered before scaling.
+    Processes and possibly standardize the X feature matrix. If standardize=True then the coulmns are scaled such that their euclidean norm is equal to sqrt(n_samples). If additionally fit_intercept=True, the columns of X are first mean centered before scaling.
 
     If grouops is provided an additional scaling is applied that scales each variable by 1 / sqrt(group size).
 
@@ -82,18 +82,17 @@ def process_X(X, fit_intercept=True,
                                                   sample_weight=sample_weight,
                                                   ddof=0)
 
-            # this way columns are normalized to unit norm
-            X_scale *= np.sqrt(X.shape[0])
-
         else:
             X_offset = None
 
             # L2 norms of columns
             X_scale = safe_norm(X, axis=0)
 
-        # for columns with zero scale reset scale to 1
+            # make the norm of the columns be sqrt(n_samples)
+            X_scale /= np.sqrt(X.shape[0])
+
+        # columns with zero scale
         zero_scale_mask = X_scale <= np.finfo(float).eps
-        X_scale[zero_scale_mask] = 1
 
         # adjust scaling for groups
         if groups is not None:
@@ -106,6 +105,9 @@ def process_X(X, fit_intercept=True,
             for g, grp_idxs in enumerate(groups):
                 for feat_idx in grp_idxs:
                     X_scale[feat_idx] /= group_size_sqrts[g]
+
+        # for columns with zero scale reset scale to 1
+        X_scale[zero_scale_mask] = 1
 
         # data to return
         out['X_scale'] = X_scale
