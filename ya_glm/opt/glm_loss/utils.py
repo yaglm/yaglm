@@ -25,7 +25,8 @@ def safe_covar_mat_op_norm(X, fit_intercept=True, sample_weight=None):
     """
 
     if fit_intercept:
-        X_ = safe_hstack([np.ones((X.shape[0], 1)), X])
+        constant_col = np.ones((X.shape[0], 1))
+        X_ = safe_hstack([constant_col, X])
     else:
         X_ = X
 
