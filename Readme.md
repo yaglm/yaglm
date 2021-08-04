@@ -123,9 +123,8 @@ Adaptive penalties
 from ya_glm.models.AdptLasso import AdptLasso, AdptLassoCV
 # from ya_glm.models.AdptENet import AdptENet, AdptENetCV
 
-# Adpative penalties require an initial estimator
-AdptLasso(pen_func='scad',
-          init='default',  # default init = LassoCV
+# Adaptive penalties require an initial estimator
+AdptLasso(init='default',  # default init = LassoCV
            ).fit(X, y)
 
 # you can provide your favorite initializer object
