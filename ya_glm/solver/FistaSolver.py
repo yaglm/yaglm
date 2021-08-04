@@ -1,16 +1,16 @@
 from copy import deepcopy
 
 from ya_glm.GlmSolver import GlmSolver
-
+from ya_glm.ConstraintConfig import ConstraintConfig
 from ya_glm.opt.penalty.concave_penalty import get_penalty_func
 from ya_glm.opt.penalty.vec import LassoPenalty, RidgePenalty, \
     WithIntercept, TikhonovPenalty
 from ya_glm.opt.penalty.GroupLasso import GroupLasso
 from ya_glm.opt.penalty.mat_penalty import MultiTaskLasso, NuclearNorm, \
     MatricizeEntrywisePen, MatWithIntercept
-
 from ya_glm.opt.penalty.composite_structured import CompositeGroup,\
     CompositeMultiTaskLasso, CompositeNuclearNorm
+from ya_glm.opt.penalty.constraints import PositiveOrthant
 
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
 from ya_glm.opt.fista import solve_fista
@@ -91,14 +91,19 @@ class FistaSolver(GlmSolver):
                              "implements {}".format(loss.name,
                                                     self._get_avail_losses()))
 
-        return solve_glm(X=X, y=y,
-                         loss=loss,
-                         fit_intercept=fit_intercept,
-                         sample_weight=sample_weight,
-                         coef_init=coef_init,
-                         intercept_init=intercept_init,
-                         **penalty.get_solve_kws(),
-                         **self.get_solve_kws())
+        if isinstance(penalty, ConstraintConfig):
+            solve = solve_constrained_glm
+        else:
+            solve = solve_glm
+
+        return solve(X=X, y=y,
+                     loss=loss,
+                     fit_intercept=fit_intercept,
+                     sample_weight=sample_weight,
+                     coef_init=coef_init,
+                     intercept_init=intercept_init,
+                     **penalty.get_solve_kws(),
+                     **self.get_solve_kws())
 
     def solve_path(self, X, y, loss, penalty_seq,
                    fit_intercept=True,
@@ -421,3 +426,107 @@ def solve_glm_path(X, y, loss,
 
         # if generator:
         yield fit_out, params
+
+
+def solve_constrained_glm(X, y,
+                          loss,
+                          fit_intercept=True,
+                          sample_weight=None,
+
+                          pos=False,
+
+                          coef_init=None,
+                          intercept_init=None,
+                          xtol=1e-4,
+                          rtol=None,
+                          atol=None,
+                          max_iter=1000,
+                          bt_max_steps=20,
+                          bt_shrink=0.5,
+                          bt_grow=1.1,
+                          tracking_level=0):
+
+    """
+    Sets up and solves a constrained GLM problem using fista.
+    For documentation of the GLM arguments see TODO.
+
+    For documentaion of the optimization arguments see ya_glm.opt.fista.solve_fista.
+    """
+
+    #######################
+    # setup loss function #
+    #######################
+
+    is_mr = y.ndim > 1 and y.shape[1] > 1
+
+    loss_func = get_glm_loss(X=X, y=y, loss=loss,
+                             fit_intercept=fit_intercept,
+                             sample_weight=sample_weight)
+
+    if _LOSS_FUNC_CLS2STR[type(loss_func)] == 'quantile':
+        raise NotImplementedError("fista solver does not support quantile loss")
+
+    ####################
+    # setup constraint #
+    ####################
+
+    if pos:
+        constraint = PositiveOrthant()
+
+    else:
+        constraint = None
+
+    # make sure we dont constrain the intercept
+    if constraint is not None and fit_intercept:
+        if is_mr:
+            constraint = MatWithIntercept(func=constraint)
+        else:
+            constraint = WithIntercept(func=constraint)
+
+    #####################
+    # set initial value #
+    #####################
+    if coef_init is None or intercept_init is None:
+        init_val = loss_func.default_init()
+    else:
+        init_val = loss_func.cat_intercept_coef(intercept_init, coef_init)
+
+    ##############
+    # L2 penalty #
+    ##############
+
+    # setup step size/backtracking
+    if loss_func.grad_lip is not None:
+        # use Lipchtiz constant if it is available
+        step = 'lip'
+        backtracking = False
+    else:
+        step = 1  # TODO: perhaps smarter base step size?
+        backtracking = True
+
+    coef, out = solve_fista(smooth_func=loss_func,
+                            init_val=init_val,
+                            non_smooth_func=constraint,
+                            step=step,
+                            backtracking=backtracking,
+                            accel=True,
+                            restart=True,
+                            max_iter=max_iter,
+                            xtol=xtol,
+                            rtol=rtol,
+                            atol=atol,
+                            bt_max_steps=bt_max_steps,
+                            bt_shrink=bt_shrink,
+                            bt_grow=bt_grow,
+                            tracking_level=tracking_level)
+
+    # format output
+    if fit_intercept:
+        if is_mr:
+            coef, intercept = decat_coef_inter_mat(coef)
+        else:
+            coef, intercept = decat_coef_inter_vec(coef)
+    else:
+        intercept = None
+
+    return coef, intercept, out
