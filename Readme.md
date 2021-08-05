@@ -29,7 +29,7 @@ the following basic penalties
 and the following more sophisticated penalties
 
 - [Elastic net](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.ElasticNet.html) versions of the above
-- [Adaptive Lasso](http://users.stat.umn.edu/~zouxx019/Papers/adalasso.pdf) versions of the above (including multi-task, group and nuclear norm)
+- [Adaptive](http://users.stat.umn.edu/~zouxx019/Papers/adalasso.pdf) versions of the above (including elastic-net, multi-task, group and nuclear norm)
 - Folded concave penalties (FCP) such as [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf) fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit ([Zou and Li, 2008](http://www.personal.psu.edu/ril4/research/AOS0316.pdf); [Fan et al, 2014](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/)). We also provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
 - Non-convex penalties fit directly e.g. via proximal gradient descent
 
