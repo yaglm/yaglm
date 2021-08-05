@@ -2,7 +2,7 @@
 
 
 
-`ya_glm` aims to give you an extensive, easy to use, flexible and fast package for fitting penalized *generalized linear models* (GLMs) in Python. Existing packages (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd), [picasso](https://github.com/jasonge27/picasso), [grpreg](https://github.com/pbreheny/grpreg), [ncreg](https://cran.r-project.org/web/packages/ncvreg/index.html), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html)) focus on speed and ease of use, but support a limited number of loss + penalty combinations and are not easy to customize.
+`ya_glm` is an extensive, easy to use, flexible and fast package for fitting penalized *generalized linear models* (GLMs) in Python. It supports a wide variety of GLM loss plus penalty combinations including standard penalties such as the Lasso, Ridge and ElasticNet as well as structured sparsity inducing penalties such as the group Lasso and nuclear norm. It also supports the potentially more accurate adaptive and non-convex (e.g. SCAD) versions of these penalties that come with strong statistical guarantees at limited additional computational expense. The existing packages that inspired `ya_glm` (e.g. [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd), [picasso](https://github.com/jasonge27/picasso), [grpreg](https://github.com/pbreheny/grpreg), [ncreg](https://cran.r-project.org/web/packages/ncvreg/index.html), [glmnet](https://glmnet.stanford.edu/articles/glmnet.html)) focus on speed and ease of use, but support a limited number of loss + penalty combinations and are not easy to customize. 
 
 
 We currently support the following loss functions
@@ -33,12 +33,12 @@ and the following more sophisticated penalties
 - Folded concave penalties (FCP) such as [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf) fit by applying the *local linear approximation* (LLA) algorithm to a "good enough" initializer such as the Lasso fit ([Zou and Li, 2008](http://www.personal.psu.edu/ril4/research/AOS0316.pdf); [Fan et al, 2014](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/)). We also provide concave versions of the group Lasso, multi-task Lasso and nuclear norm that are not discussed in the original paper.
 - Non-convex penalties fit directly e.g. via proximal gradient descent
 
-The adaptive Lasso and LLA algorithm come with strong statistical guarantees while their computational costs are not significantly worse than their convex cousins.
+The adaptive Lasso and LLA algorithm come with strong statistical guarantees while their computational costs are not significantly worse than their convex cousins (see references below).
 
 The built in cross-validation functionality supports
 
-- faster path algorithms for convex penalties and adaptive lasso (e.g. as in [sklearn.linear_model.LassoCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html))
 - automatically generated tuning parameter path for any loss + penalty combination
+- faster path algorithms for convex penalties and adaptive lasso (e.g. as in [sklearn.linear_model.LassoCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html))
 - custom evaluation metrics
 - custom selection rules such as the '1se' rule from the glmnet package
 
@@ -46,9 +46,7 @@ We provide a built in FISTA algorithm ([Beck and Teboulle, 2009](https://epubs.s
 
 We aim to add additional loss functions (e.g. gamma, cox regression) and penalties (e.g. generalized Lasso, TV1).
 
-
- **Beware**: this is a preliminary release of the package; the documentation and testing may leave you wanting and the code may be subject to breaking changes in the near future.
-
+ **Beware**: this is a preliminary release of the package; the code may be subject to breaking changes in the near future.
 
 
 # Installation
@@ -58,7 +56,7 @@ git clone https://github.com/idc9/ya_glm.git
 python setup.py install
 ```
 
-To use the backend from [andersoncd](https://github.com/mathurinm/andersoncd) you have to install their package manually -- see the github page.
+To use the solver from [andersoncd](https://github.com/mathurinm/andersoncd) you have to install their package manually -- see the github page.
 
 
 # Example
@@ -190,8 +188,6 @@ We welcome contributions to make this a stronger package: data examples,
 bug fixes, spelling errors, new features, etc.
 
 
-
-
 # References
 
 
@@ -202,3 +198,5 @@ Zou, H. and Li, R., 2008. [One-step sparse estimates in nonconcave penalized lik
 Beck, A. and Teboulle, M., 2009. [A fast iterative shrinkage-thresholding algorithm for linear inverse problems](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw). SIAM journal on imaging sciences, 2(1), pp.183-202.
 
 Fan, J., Xue, L. and Zou, H., 2014. [Strong oracle optimality of folded concave penalized estimation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/). Annals of statistics, 42(3), p.819.
+
+Loh, P.L. and Wainwright, M.J., 2017. [Support recovery without incoherence: A case for nonconvex regularization](https://projecteuclid.org/journals/annals-of-statistics/volume-45/issue-6/Support-recovery-without-incoherence-A-case-for-nonconvex-regularization/10.1214/16-AOS1530.pdf). The Annals of Statistics, 45(6), pp.2455-2482.
