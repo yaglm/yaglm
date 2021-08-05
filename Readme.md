@@ -144,9 +144,9 @@ Non-convex penalties fit with the LLA algorithm
 from ya_glm.models.FcpLLA import FcpLLA, FcpLLACV
 
 # Just like adaptive penalties, the LLA algorithm requires an initial estimator
-FcpLLA(pen_func='scad',
-       init='default',  # default init = LassoCV
-       ).fit(X, y)
+FcpLLA(pen_func='scad', init='default').fit(X, y)
+
+FcpLLACV().fit(X, y)
 ```
 
 Non-convex penalties fit directly
@@ -156,8 +156,9 @@ from ya_glm.models.NonConvex import NonConvex, NonConvexCV
 from ya_glm.solver.FistaSolver import FistaSolver
 
 NonConvex(init='zero', # initialize from 0 by default
-			solver= FistaSolver() # specify your favorite solver!
 			).fit(X, y)
+
+NonConvexCV().fit(X, y) # will use a path algorithm by default
 ```
 
 Custom solvers

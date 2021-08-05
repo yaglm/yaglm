@@ -224,6 +224,7 @@ class Glm(BaseEstimator):
         # TODO: do we actually want this for log_reg/multinomial?
         y = check_array(y, ensure_2d=False)
 
+        # make sure 1d input is actually a vector
         if y.ndim == 2 and y.shape[1] == 1:
             y = y.reshape(-1)
 
