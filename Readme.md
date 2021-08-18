@@ -43,7 +43,7 @@ The built in cross-validation functionality supports
 - custom evaluation metrics
 - custom selection rules such as the '1se' rule from the glmnet package
 
-We provide a built in FISTA algorithm ([Beck and Teboulle, 2009](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw)) that covers many loss + non-smooth penalty combinations (`ya_glm.opt` is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). We also provide an augmented ADMM algorithm for generalized Lasso problems ([Zhu, 2017](https://www.tandfonline.com/doi/full/10.1080/10618600.2015.1114491)). **It is straightforward for you to plug in your favorite state of the art optimization algorithm.**
+We provide a built in FISTA algorithm ([Beck and Teboulle, 2009](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw)) that covers many loss + non-smooth penalty combinations (`ya_glm.opt` is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). We also provide an augmented ADMM algorithm for generalized Lasso problems ([Zhu, 2017](https://www.tandfonline.com/doi/full/10.1080/10618600.2015.1114491)). **It is straightforward for you to plug in your favorite state of the art optimization algorithm using the `solver` argument (see below).**
 
 We aim to add additional loss functions (e.g. hinge, gamma, cox regression).
 
