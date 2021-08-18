@@ -1,4 +1,5 @@
 from scipy.sparse.linalg import svds
+from scipy.sparse import diags
 import numpy as np
 
 
@@ -55,3 +56,27 @@ def leading_sval(X, solver='lobpcg', **kws):
         return np.sqrt((X.reshape(-1) ** 2).sum())
 
     return svds(X, k=1, which='LM', solver=solver, **kws)[1].item()
+
+
+# TODO: add kth difference
+def get_diff_mat(d):
+    """
+    Gets the kth difference matrix; see (2) and(3) from https://arxiv.org/pdf/1406.2082.pdf
+
+    Parameters
+    ----------
+    d: int
+        Number of points.
+
+    k: int
+        Order of the difference.
+
+    Output
+    ------
+    D: array-like, shape (d - k, d)
+        The kth order difference matrix.
+    """
+    D = diags(diagonals=[-np.ones(d), np.ones(d - 1)], offsets=[0, 1])
+    D = D.tocsc()
+    D = D[:-1, :]
+    return D
