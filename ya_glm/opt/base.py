@@ -21,6 +21,21 @@ class Func(object):
         """
         return self._prox(np.array(x), step)
 
+    def conj_prox(self, x, step=1):
+        """
+        The proximal operator of the conjugate function
+
+        conj_prox(x, step) = argmin_z step * conj_func(z) + 0.5 * ||x - z||_2^2
+
+        where
+        conj_func(x) := sup_z <x, z> - func(z)
+
+        We can compute this easily with with just prox using Moreau’s identity
+
+        prox_{s f^*}(y) = y - s prox_{f/s}(y/s)
+        """
+        return np.array(x) - step * self.prox(x=x / step, step=1/step)
+
     def _eval(self, x):
         raise NotImplementedError
 

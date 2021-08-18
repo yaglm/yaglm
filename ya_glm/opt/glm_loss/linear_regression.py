@@ -1,5 +1,6 @@
 import numpy as np
-from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp
+
+from ya_glm.opt.glm_loss.base import Glm, GlmInputLoss, GlmMultiResp
 from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
 
@@ -13,6 +14,15 @@ def sample_losses_multi_resp(z, y):
 
 def sample_grads(z, y):
     return z - y
+
+
+def sample_proxs(z, y, step=1):
+    """
+    computes prox_(step * f)(z)
+    where
+    f(z) = 0.5 * (z - y) ** 2
+    """
+    return (z + step * y) / (1 + step)
 
 
 def compute_lip(X, fit_intercept=True, sample_weight=None):
@@ -31,18 +41,29 @@ def compute_lip(X, fit_intercept=True, sample_weight=None):
     return (1 / X.shape[0]) * op_norm ** 2
 
 
-class LinReg(Glm):
+class LeastSquares(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
+    sample_proxs = staticmethod(sample_proxs)
+
+
+class LinReg(Glm):
+
+    GLM_LOSS_CLASS = LeastSquares
     compute_lip = staticmethod(compute_lip)
 
     def intercept_at_coef_eq0(self):
         return np.average(self.y, weights=self.sample_weight)
 
 
-class LinRegMultiResp(GlmMultiResp):
-    sample_losses = staticmethod(sample_losses_multi_resp)
+class LeastSquaresMulti(GlmInputLoss):
+    sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
+    sample_proxs = staticmethod(sample_proxs)
+
+
+class LinRegMultiResp(GlmMultiResp):
+    GLM_LOSS_CLASS = LeastSquaresMulti
     compute_lip = staticmethod(compute_lip)
 
     def intercept_at_coef_eq0(self):

@@ -1,13 +1,58 @@
-from ya_glm.opt.base import Func
-from ya_glm.opt.utils import safe_data_mat_coef_dot, safe_data_mat_coef_mat_dot
 from scipy.sparse import diags
 import numpy as np
 
-from ya_glm.autoassign import autoassign
+from ya_glm.opt.base import Func
+from ya_glm.opt.utils import safe_data_mat_coef_dot, safe_data_mat_coef_mat_dot
+
 
 # TODO how to handle loss kws
 # currently pass them in as a dict but this seems wrong e.g.
 # they should be arguments to init
+
+class GlmInputLoss(Func):
+    """
+    Represents f(z) = (1/n_samples) sum_i w_i L(z_i, y_i) where L(z, y) is a loss function.
+    """
+
+    # subclasses should implement these
+    sample_losses = None
+    sample_grads = None
+    sample_proxs = None
+
+    def __init__(self, y, sample_weight=None, **loss_kws):
+        self.y = y
+
+        self.sample_weight = sample_weight
+        self.n_samples = y.shape[0]
+        self.loss_kws = loss_kws
+
+    def _eval(self, x):
+        losses = self.sample_losses(z=x, y=self.y, **self.loss_kws)
+
+        if self.sample_weight is None:
+            return losses.sum() / self.n_samples
+
+        else:
+            return (losses.T @ self.sample_weight) / self.n_samples
+
+    def _grad(self, x):
+
+        grads = self.sample_grads(z=x, y=self.y, **self.loss_kws)
+
+        # possibly reweight
+        if self.sample_weight is not None:
+            grads = diags(self.sample_weight) @ grads
+
+        grads /= self.n_samples
+        return grads
+
+    def _prox(self, x, step=1):
+        if self.sample_weight is not None:
+            raise NotImplementedError  # TODO
+
+        return self.sample_proxs(z=x, y=self.y,
+                                 step=step / self.n_samples,
+                                 **self.loss_kws)
 
 
 class Glm(Func):
@@ -15,14 +60,37 @@ class Glm(Func):
     Represents a GLM loss function.
     (1/n) sum_{i=1}^n w_i L(x_i^T coef + intercept, y_i)
     """
+
+    # the GLM input loss
+    # subclass needs to overwrite
+    # TODO: is this the best way to do this?
+    GLM_LOSS_CLASS = None
+
+    # a method to compute the gradient Lipschitz constant
     compute_lip = None
 
-    @autoassign
     def __init__(self, X, y, fit_intercept=True, sample_weight=None,
                  **loss_kws):
 
+        # instantiate GLM input loss class
+        self.glm_loss = self.GLM_LOSS_CLASS(y=y,
+                                            sample_weight=sample_weight,
+                                            **loss_kws)
+        self.X = X
+        self.fit_intercept = fit_intercept
         self._set_shape_data()
-        self.loss_kws = loss_kws
+
+    @property
+    def y(self):
+        return self.glm_loss.y
+
+    @property
+    def sample_weight(self):
+        return self.glm_loss.sample_weight
+
+    @property
+    def loss_kws(self):
+        return self.glm_loss.loss_kws
 
     @property
     def grad_lip(self):
@@ -76,57 +144,22 @@ class Glm(Func):
     def get_zero_coef(self):
         return np.zeros(self.coef_shape_)
 
-    def sample_losses(self, z):
-        """
-        Parameters
-        ----------
-        z: array-like, (n_samples, )
-
-        Output
-        ------
-        loss_vals: array-like, (n_samples, )
-        """
-        raise NotImplementedError
-
-    def sample_grads(self, z):
-        """
-        Computes the gradient of the prediction at each sample
-
-        Parameters
-        ----------
-        z: array-like, (n_samples, )
-
-        Output
-        ------
-        loss_grads: array-like, (n_samples, ) or (n_samples, n_responses)
-        """
-        raise NotImplementedError
-
     def _eval(self, x):
-        z = self.get_z(x)
-        losses = self.sample_losses(z=z, y=self.y, **self.loss_kws)
-        if self.sample_weight is not None:
-            losses *= self.sample_weight
-        return losses.sum() / self.X.shape[0]
+        return self.glm_loss.eval(self.get_z(x))
 
     def _grad(self, x):
-        # compute loss at each sample
-        z = self.get_z(x)
-        loss_grads = self.sample_grads(z=z, y=self.y, **self.loss_kws)
-
-        # possibly reweight
-        if self.sample_weight is not None:
-            loss_grads = diags(self.sample_weight) @ loss_grads
+        # compute grad at each sample
+        sample_grads = self.glm_loss.grad(self.get_z(x))
 
         # get coefficient gradients
-        grad = self.X.T @ loss_grads
+        grad = self.X.T @ sample_grads
 
         # possibly add intercept to gradient
         if self.fit_intercept:
-            intercept_grad = loss_grads.sum(axis=0)
+            intercept_grad = sample_grads.sum(axis=0)
             grad = self.cat_intercept_coef(intercept_grad, grad)
 
-        return (1 / self.X.shape[0]) * grad
+        return grad
 
     def grad_at_coef_eq0(self):
         """

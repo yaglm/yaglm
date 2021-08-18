@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import logsumexp
 from scipy.sparse import diags
 
-from ya_glm.opt.glm_loss.base import GlmMultiResp
+from ya_glm.opt.glm_loss.base import GlmMultiResp, GlmInputLoss
 from ya_glm.opt.utils import safe_entrywise_mult
 from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
@@ -39,9 +39,18 @@ def combine_weights(y, sample_weight=None, class_weight=None):
     return sample_weight
 
 
-class Multinomial(GlmMultiResp):
+class MultinomialLoss(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
+
+    # TODO: add this
+    # sample_proxs = !!!!
+
+
+class Multinomial(GlmMultiResp):
+
+    GLM_LOSS_CLASS = MultinomialLoss
+
     compute_lip = staticmethod(compute_lip)
 
     def intercept_at_coef_eq0(self):

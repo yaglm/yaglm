@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import root_scalar
 
-from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp
+from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
 from ya_glm.opt.utils import safe_vectorize
 from ya_glm.opt.glm_loss.linear_regression import \
     compute_lip as lin_reg_compute_lip
@@ -27,6 +27,18 @@ def huber_grad_1d(r, knot=1):
 
 
 vec_huber_grad = safe_vectorize(huber_grad_1d)
+
+
+def huber_prox_1d(z, y, knot=1, step=1):
+    # https://math.stackexchange.com/questions/1650411/proximal-operator-of-the-huber-loss-function
+    # also see (2.2) or https://web.stanford.edu/~boyd/papers/pdf/prox_algs.pdf
+
+    r = z - y
+    p = r - step * r / max(abs(r), step + 1)
+    return p + y
+
+
+vec_huber_prox = safe_vectorize(huber_prox_1d)
 
 
 def sample_losses(z, y, knot=1):
@@ -112,9 +124,17 @@ def compute_lip(knot=1.35, **kws):
     return lin_reg_compute_lip(**kws)
 
 
-class HuberReg(Glm):
+class Huber(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
+
+    # TODO: add this
+    # sample_proxs = !!!!
+
+
+class HuberReg(Glm):
+
+    GLM_LOSS_CLASS = Huber
     compute_lip = staticmethod(compute_lip)
 
     def __init__(self, X, y, fit_intercept=True, sample_weight=None,
@@ -130,9 +150,15 @@ class HuberReg(Glm):
                               knot=self.knot)
 
 
-class HuberRegMultiResp(GlmMultiResp):
+class HuberMulti(GlmInputLoss):
     sample_losses = staticmethod(sample_losses_multi_resp)
     sample_grads = staticmethod(sample_grads)
+    sample_proxs = staticmethod(vec_huber_prox)
+
+
+class HuberRegMultiResp(GlmMultiResp):
+
+    GLM_LOSS_CLASS = HuberMulti
     compute_lip = staticmethod(compute_lip)
 
     def __init__(self, X, y, fit_intercept=True, sample_weight=None,

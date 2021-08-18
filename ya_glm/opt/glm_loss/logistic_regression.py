@@ -1,6 +1,6 @@
 import numpy as np
 
-from ya_glm.opt.glm_loss.base import Glm
+from ya_glm.opt.glm_loss.base import Glm, GlmInputLoss
 from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
 
@@ -48,9 +48,18 @@ def compute_lip(X, fit_intercept=True, sample_weight=None):
     return (0.25/X.shape[0]) * op_norm ** 2
 
 
-class LogReg(Glm):
+class Logistic(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
+
+    # TODO: add this
+    # sample_proxs = !!!!
+
+
+class LogReg(Glm):
+
+    GLM_LOSS_CLASS = Logistic
+
     compute_lip = staticmethod(compute_lip)
 
     def intercept_at_coef_eq0(self):

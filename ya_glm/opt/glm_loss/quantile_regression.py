@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize_scalar
-from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp
+from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
 from ya_glm.opt.utils import safe_vectorize
 
 
@@ -93,9 +93,14 @@ def sample_grads(z, y, quantile=0.5):
     return tilted_L1_grad(z - y, quantile=quantile)
 
 
-class QuantileReg(Glm):
+class Quantile(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
+    sample_proxs = staticmethod(tilted_L1_prox)
+
+
+class QuantileReg(Glm):
+    GLM_LOSS_CLASS = Quantile
 
     def __init__(self, X, y, fit_intercept=True, sample_weight=None,
                  quantile=0.5):
@@ -110,14 +115,23 @@ class QuantileReg(Glm):
                                  q=self.quantile)
 
 
-class QuantileRegMultiResp(GlmMultiResp):
+class QuantileMulti(GlmInputLoss):
     sample_losses = staticmethod(sample_losses_multi_resp)
     sample_grads = staticmethod(sample_grads)
+
+    # TODO: add this
+    # sample_proxs = !!!!
+
+
+class QuantileRegMultiResp(GlmMultiResp):
+
+    GLM_LOSS_CLASS = QuantileMulti
 
     def __init__(self, X, y, fit_intercept=True, sample_weight=None,
                  quantile=0.5):
 
         super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+                         sample_weight=sample_weight,
                          quantile=quantile)
 
     def intercept_at_coef_eq0(self):
