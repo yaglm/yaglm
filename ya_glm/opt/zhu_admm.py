@@ -249,6 +249,15 @@ def solve_path(prob_data_iter, **kws):
     """
     An iterator that computes the solution path over a sequence of problems using warm starts.
 
+    Parameters
+    ----------
+    prob_data_iter: iterator
+        Iterator yielding the sequence of problems to solve.
+        Each element should be the tuple (g1, g2, A1, A2).
+
+    **kws:
+        Keyword arguments to ya_glm.opt.zhu_admm.solve
+
     Output
     ------
     soln, opt_data, admm_data
