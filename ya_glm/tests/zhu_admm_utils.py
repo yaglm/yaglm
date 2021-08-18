@@ -1,6 +1,6 @@
 import numpy as np
 
-from ya_glm.admm.admm import solve
+from ya_glm.opt.zhu_admm import solve
 from ya_glm.opt.fista import solve_fista
 from ya_glm.admm.GlmInputLoss import LinRegInput
 from ya_glm.opt.base import Zero
