@@ -112,8 +112,7 @@ Lasso(loss='lin_reg', # 'huber', 'quantile'
 # Some loss functions have additional parameters that can be specified
 # with config objects
 from ya_glm.loss.LossConfig import Quantile
-Lasso(loss=Quantile(quantile=0.75),
-      ).fit(X, y)
+Lasso(loss=Quantile(quantile=0.75)).fit(X, y)
 ```
 
 Adaptive penalties
@@ -156,7 +155,7 @@ from ya_glm.models.NonConvex import NonConvex, NonConvexCV
 from ya_glm.solver.FistaSolver import FistaSolver
 
 NonConvex(init='zero', # initialize from 0 by default
-			).fit(X, y)
+          ).fit(X, y)
 
 NonConvexCV().fit(X, y) # will use a path algorithm by default
 ```
