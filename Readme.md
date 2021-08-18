@@ -42,7 +42,7 @@ The built in cross-validation functionality supports
 - custom evaluation metrics
 - custom selection rules such as the '1se' rule from the glmnet package
 
-We provide a built in FISTA algorithm ([Beck and Teboulle, 2009](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw)) that covers most loss + non-smooth penalty combinations (`ya_glm.opt` is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). **It is straightforward for you to plug in your favorite state of the art optimization algorithm.**
+We provide a built in FISTA algorithm ([Beck and Teboulle, 2009](https://epubs.siam.org/doi/pdf/10.1137/080716542?casa_token=cjyK5OxcbSoAAAAA:lQOp0YAVKIOv2-vgGUd_YrnZC9VhbgWvZgj4UPbgfw8I7NV44K82vbIu0oz2-xAACBz9k0Lclw)) that covers many loss + non-smooth penalty combinations (`ya_glm.opt` is inspired by [pyunlocbox](https://github.com/epfl-lts2/pyunlocbox) and [lightning](https://github.com/scikit-learn-contrib/lightning)). We also provided an augmented ADMM algorithm for generalized Lasso problems ([Zhu, 2017](https://www.tandfonline.com/doi/full/10.1080/10618600.2015.1114491)). **It is straightforward for you to plug in your favorite state of the art optimization algorithm.**
 
 We aim to add additional loss functions (e.g. gamma, cox regression) and penalties (e.g. generalized Lasso, TV1).
 
@@ -200,3 +200,6 @@ Beck, A. and Teboulle, M., 2009. [A fast iterative shrinkage-thresholding algori
 Fan, J., Xue, L. and Zou, H., 2014. [Strong oracle optimality of folded concave penalized estimation](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4295817/). Annals of statistics, 42(3), p.819.
 
 Loh, P.L. and Wainwright, M.J., 2017. [Support recovery without incoherence: A case for nonconvex regularization](https://projecteuclid.org/journals/annals-of-statistics/volume-45/issue-6/Support-recovery-without-incoherence-A-case-for-nonconvex-regularization/10.1214/16-AOS1530.pdf). The Annals of Statistics, 45(6), pp.2455-2482.
+
+
+Zhu, Y., 2017. [An augmented ADMM algorithm with application to the generalized lasso problem](https://www.tandfonline.com/doi/full/10.1080/10618600.2015.1114491). Journal of Computational and Graphical Statistics, 26(1), pp.195-204.
