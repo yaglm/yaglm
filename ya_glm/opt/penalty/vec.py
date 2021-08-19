@@ -58,7 +58,7 @@ class LassoPenalty(Func):
 
     def _prox(self, x, step):
 
-        # set thresholding vlaues
+        # set thresholding values
         if self.weights is None:
             thresh_vals = step * self.mult
         else:
