@@ -58,10 +58,9 @@ def leading_sval(X, solver='lobpcg', **kws):
     return svds(X, k=1, which='LM', solver=solver, **kws)[1].item()
 
 
-# TODO: add kth difference
-def get_diff_mat(d):
+def get_diff_mat(d, k=1):
     """
-    Gets the kth difference matrix; see (2) and(3) from https://arxiv.org/pdf/1406.2082.pdf
+    Gets the kth difference matrix. See Section 2.1.2 of (Tibshirani and Taylor, 2011).
 
     Parameters
     ----------
@@ -74,9 +73,19 @@ def get_diff_mat(d):
     Output
     ------
     D: array-like, shape (d - k, d)
-        The kth order difference matrix.
+        The kth order difference matrix returned in a sparse matrix format.
+
+    References
+    ----------
+    Tibshirani, R.J. and Taylor, J., 2011. The solution path of the generalized lasso. The annals of statistics, 39(3), pp.1335-1371.
     """
-    D = diags(diagonals=[-np.ones(d), np.ones(d - 1)], offsets=[0, 1])
-    D = D.tocsc()
-    D = D[:-1, :]
-    return D
+    if k == 1:
+        D = diags(diagonals=[-np.ones(d), np.ones(d - 1)], offsets=[0, 1])
+        D = D.tocsc()
+        D = D[:-1, :]
+        return D
+
+    else:
+        D1d = get_diff_mat(d=d-k+1, k=1)  # first order diff for d - k + 1
+        Dkm1 = get_diff_mat(d=d, k=k-1)  # k-1 order diff
+        return D1d @ Dkm1
