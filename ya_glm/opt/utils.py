@@ -7,6 +7,18 @@ def euclid_norm(x):
     return np.sqrt((x ** 2).sum())
 
 
+def L2_prox(x, mult):
+    """
+    Computes the proximal operator of mutl * ||x||_2
+    """
+    norm = euclid_norm(x)
+
+    if norm <= mult:
+        return np.zeros_like(x)
+    else:
+        return x * (1 - (mult / norm))
+
+
 def decat_coef_inter_vec(cat):
     """
     De-concatenates a vector of the coefficient and intercept.

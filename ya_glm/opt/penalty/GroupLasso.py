@@ -1,6 +1,6 @@
 import numpy as np
 from ya_glm.opt.base import Func
-from ya_glm.opt.utils import euclid_norm
+from ya_glm.opt.utils import euclid_norm, L2_prox
 
 
 class L2Penalty(Func):
@@ -11,7 +11,7 @@ class L2Penalty(Func):
         self.mult = mult
 
     def _eval(self, x):
-        return euclid_norm(x)
+        return self.mult * euclid_norm(x)
 
     def _prox(self, x, step):
         return L2_prox(x=x, mult=self.mult * step)
@@ -31,7 +31,7 @@ class GroupLasso(Func):
         The multiplicative penalty value.
 
     weights: None, array-like
-        The (optional) variable weights.
+        The (optional) group weights.
     """
     def __init__(self, groups, mult=1.0, weights=None):
 
@@ -61,15 +61,3 @@ class GroupLasso(Func):
                 out[x_idx] = p[p_idx]
 
         return out
-
-
-def L2_prox(x, mult):
-    """
-    Computes the proximal operator of mutl * ||x||_2
-    """
-    norm = euclid_norm(x)
-
-    if norm <= mult:
-        return np.zeros_like(x)
-    else:
-        return x * (1 - (mult / norm))

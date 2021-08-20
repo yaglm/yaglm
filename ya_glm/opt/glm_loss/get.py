@@ -7,6 +7,8 @@ from ya_glm.opt.glm_loss.poisson_regression import PoissonReg, \
 from ya_glm.opt.glm_loss.quantile_regression import QuantileReg, QuantileRegMultiResp
 from ya_glm.opt.glm_loss.logistic_regression import LogReg
 
+from ya_glm.opt.glm_loss.L2_regression import L2Reg, L2RegMultiResp
+
 _LOSS_CLS_VEC = {'lin_reg': LinReg,
 
                  'huber': HuberReg,
@@ -16,6 +18,8 @@ _LOSS_CLS_VEC = {'lin_reg': LinReg,
                  'poisson': PoissonReg,
 
                  'quantile': QuantileReg,
+
+                 'L2': L2Reg
                  }
 
 _LOSS_CLS_MAT = {
@@ -28,6 +32,8 @@ _LOSS_CLS_MAT = {
                  'poisson': PoissonRegMultiResp,
 
                  'quantile': QuantileRegMultiResp,
+
+                 'L2': L2RegMultiResp
                 }
 
 _LOSS_FUNC_CLS2STR = {v: k for (k, v) in chain(_LOSS_CLS_VEC.items(),
