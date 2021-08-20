@@ -43,5 +43,6 @@ class L2Reg(Glm):
 
 
 # TODO: add multiple response version
-class LinRegMultiResp(GlmMultiResp):
-    raise NotImplementedError
+class L2RegMultiResp(GlmMultiResp):
+    def __init__(self):
+        raise NotImplementedError
