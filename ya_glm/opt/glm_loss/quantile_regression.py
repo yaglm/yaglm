@@ -93,10 +93,16 @@ def sample_grads(z, y, quantile=0.5):
     return tilted_L1_grad(z - y, quantile=quantile)
 
 
+def sample_proxs(z, y, quantile=0.5, step=1):
+    r = z - y
+    p = tilted_L1_prox(x=r, step=step, quantile=quantile)
+    return p + y
+
+
 class Quantile(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
-    sample_proxs = staticmethod(tilted_L1_prox)
+    sample_proxs = staticmethod(sample_proxs)
 
 
 class QuantileReg(Glm):
