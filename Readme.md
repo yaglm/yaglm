@@ -10,6 +10,7 @@ We currently support the following loss functions
 - Poisson regression
 - Huber regression
 - Quantile regression
+- [L2 norm regression](https://arxiv.org/pdf/1009.5689.pdf) (i.e. used in the square root Lasso)
 - Multiple response versions of the linear, huber and poisson losses
 
 the following basic penalties
@@ -17,6 +18,7 @@ the following basic penalties
 - Lasso
 - [Group Lasso](https://rss.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/j.1467-9868.2005.00532.x?casa_token=wN_F5iYwNK4AAAAA:4PVnAz4icP5hR9FIRviV0zqnp_QAibv55uYkptKQKezvDoqtMzrSpFyHh15lL4IO1yFJ3Sfl4OwOuA) with user specified groups
 - [Multi-task Lasso](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.MultiTaskLasso.html#sklearn.linear_model.MultiTaskLasso) (i.e. L1 to L2 norm)
+- [Exclusive Lasso](http://proceedings.mlr.press/v9/zhou10a/zhou10a.pdf)
 - [Generalized Lasso](https://projecteuclid.org/journals/annals-of-statistics/volume-39/issue-3/The-solution-path-of-the-generalized-lasso/10.1214/11-AOS878.full) which includes other penalties such as the fused lasso
 - Nuclear norm
 - Ridge
