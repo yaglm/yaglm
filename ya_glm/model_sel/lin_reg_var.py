@@ -38,16 +38,16 @@ def lin_reg_var_via_ridge(X, y, fit_intercept=True, pen_val='default'):
 
     if pen_val == 'default':
         alpha = 0.1
-        pen_val = alpha * (X.T @ y) / (n * d)
+        pen_val = alpha * abs(X.T @ y).max() / (n * d)
 
     # compute (X^TX + pen_val I)^{-1}
     if n <= d:
         # directly
-        xtx_i_inv = np.linalg.inv(X.T @ X / n + pen_val)
+        xtx_i_inv = np.linalg.inv(X.T @ X / n + pen_val * np.eye(d))
     else:
         # Woodbury matrix identity
         xxt_i_inv = np.linalg.inv(X @ X.T / n + pen_val * np.eye(n))
-        xtx_i_inv = (1/pen_val) * (np.eye(d) - (1 / n) * X.T @ xxt_i_inv @ Xs)
+        xtx_i_inv = (1/pen_val) * (np.eye(d) - (1 / n) * X.T @ xxt_i_inv @ X)
 
     # see (2) in (Liu et al, 2020)
     A = (1 / n) * X @ xtx_i_inv @ X.T
