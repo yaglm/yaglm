@@ -130,7 +130,7 @@ class FistaSolver(GlmSolver):
                               **penalty_seq.get_solve_kws(),
                               **self.get_solve_kws())
 
-    def has_path_algo(self, loss, penalty):
+    def has_path_algo(self):
         """
         Yes this solver has an available path algorithm!
         """
