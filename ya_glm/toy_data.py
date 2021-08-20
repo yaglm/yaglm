@@ -3,14 +3,18 @@ from sklearn.utils import check_random_state
 from scipy.special import expit
 from sklearn.utils.extmath import softmax
 from numbers import Number
-# from itertools import product
+
+# TODO: add signal to noise ratio for logistic, multinomial and poisson
 
 
-def sample_sparse_lin_reg(n_samples=100, n_features=10, n_responses=1,
+def sample_sparse_lin_reg(n_samples=100, n_features=10,
+                          n_responses=1,
                           n_nonzero=5,
-                          X_dist='indep',
-                          x_corr=0.1,
-                          noise_std=1,
+                          cov='ar',
+                          corr=0.35,
+                          beta_type=1,
+                          snr=1,
+                          noise_std=None,
                           intercept=0,
                           random_state=None):
     """
@@ -29,17 +33,21 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10, n_responses=1,
         
     n_nonzero: int
         Number of non-zero features
+
+    beta_type: int
+        Which type of coefficient to create; see Section 3.1 of (Hastie et al, 2017).
+
+    cov: str
+        The covariance matrix of the X data. Must be one of ['ident', 'tot', 'ar']. If cov == 'ident' then we use the identity. If cov == 'ar' then Sigma_{ij} = corr **|i-j| follows an autoregression process. If cov == 'tot' then  (1 - corr) * I + corr * 11^T.
+
+    corr: float
+        The correlation for the covariace matrix for the X data.
         
-    X_dist: str
-        How to sample the X data. Must be one of ['indep', 'corr'].
-        X data is always follows a multivariate Gaussian.
-        If 'corr', then cov = (1 - corr) * I + corr * 11^T.
-        
-    x_corr: float
-        How correlated the x data are.
-        
-    noise_std: float
-        Noise level.
+    snr: float
+        The desired signal to noise ratio defined as coef.T @ cov @ coef / noise_std ** 2. This will automatically set noise_std.
+
+    noise_std: None, float
+        The (optional) user specified noise level; this will over ride the snr argument if provided.
         
     intercept: float or array-like, shape (n_responses, )
         The true intercept.
@@ -63,17 +71,22 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10, n_responses=1,
     """
     rng = check_random_state(random_state)
 
-    # set coefficient
+    # set coefficient and covariance matrix
     coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
-                           n_responses=n_responses)
+                           n_responses=n_responses, beta_type=beta_type)
 
-    # sample design matrix
-    X = sample_X(n_samples=n_samples,
-                 n_features=n_features,
-                 X_dist=X_dist, x_corr=x_corr,
-                 random_state=rng)
+    cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
-    # set y
+    # determine the noise_std
+    if noise_std is None:
+        ct_Sigma_c = coef_cov_quad_form(coef, cov)
+        noise_std = np.sqrt(ct_Sigma_c / snr)
+
+    # sample X data
+    X = rng.multivariate_normal(mean=np.zeros(n_features), cov=cov,
+                                size=n_samples)
+
+    # sample noise
     if n_responses == 1:
         E = rng.normal(size=n_samples)
 
@@ -82,6 +95,7 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10, n_responses=1,
         if isinstance(intercept, Number):
             intercept = intercept * np.ones(n_responses)
 
+    # set y
     y = X @ coef + intercept + noise_std * E
     
     return X, y, coef, intercept
@@ -132,9 +146,11 @@ def infuse_outliers(y, prop_bad=.1, random_state=None):
     return y_bad
 
 
+# TODO: add signal to noise ratio
 def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
-                          X_dist='indep',
-                          x_corr=0.1,
+                          beta_type=1,
+                          cov='ar',
+                          corr=0.35,
                           coef_scale=1,
                           intercept=0,
                           random_state=None):
@@ -152,16 +168,17 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
     n_nonzero: int
         Number of non-zero features
 
-    X_dist: str
-        How to sample the X data. Must be one of ['indep', 'corr'].
-        X data is always follows a multivariate Gaussian.
-        If 'corr', then cov = (1 - corr) * I + corr * 11^T.
+    beta_type: int
+        Which type of coefficient to create; see Section 3.1 of (Hastie et al, 2017).
 
-    x_corr: float
-        How correlated the x data are.
+    cov: str
+        The covariance matrix of the X data. Must be one of ['ident', 'tot', 'ar']. If cov == 'ident' then we use the identity. If cov == 'ar' then Sigma_{ij} = corr **|i-j| follows an autoregression process. If cov == 'tot' then  (1 - corr) * I + corr * 11^T.
+
+    corr: float
+        The correlation for the covariace matrix for the X data.
 
     coef_scale: float
-        The scale of the non-zero entries of the coefficeint.
+        The value of coef.T @ cov @ coef, which controls the signal to noise ratio.
 
     intercept: float
         The true intercept.
@@ -188,15 +205,20 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
     """
     rng = check_random_state(random_state)
 
-    # set coefficient
-    coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero)
-    coef *= coef_scale
+    # set coefficient and covariance matrix
+    coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
+                           beta_type=beta_type)
 
-    # sample design matrix
-    X = sample_X(n_samples=n_samples,
-                 n_features=n_features,
-                 X_dist=X_dist, x_corr=x_corr,
-                 random_state=rng)
+    cov = get_cov(n_features=n_features, cov=cov, corr=corr)
+
+    # determine the noise_std
+    ct_Sigma_c = coef_cov_quad_form(coef, cov)
+    if ct_Sigma_c > np.finfo(float).eps:
+        coef *= (coef_scale / ct_Sigma_c)
+
+    # sample X data
+    X = rng.multivariate_normal(mean=np.zeros(n_features), cov=cov,
+                                size=n_samples)
 
     z = X @ coef + intercept
     p = expit(z)
@@ -206,9 +228,9 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
 
 
 def sample_sparse_multinomial(n_samples=100, n_features=10,
-                              n_nonzero=5, n_classes=3,
-                              X_dist='indep',
-                              x_corr=0.1,
+                              n_nonzero=5, n_classes=3, beta_type=1,
+                              cov='ar',
+                              corr=0.35,
                               coef_scale=1,
                               intercept=0,
                               random_state=None):
@@ -226,16 +248,17 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
     n_nonzero: int
         Number of non-zero features
 
-    X_dist: str
-        How to sample the X data. Must be one of ['indep', 'corr'].
-        X data is always follows a multivariate Gaussian.
-        If 'corr', then cov = (1 - corr) * I + corr * 11^T.
+    beta_type: int
+        Which type of coefficient to create; see Section 3.1 of (Hastie et al, 2017).
 
-    x_corr: float
-        How correlated the x data are.
+    cov: str
+        The covariance matrix of the X data. Must be one of ['ident', 'tot', 'ar']. If cov == 'ident' then we use the identity. If cov == 'ar' then Sigma_{ij} = corr **|i-j| follows an autoregression process. If cov == 'tot' then  (1 - corr) * I + corr * 11^T.
+
+    corr: float
+        The correlation for the covariace matrix for the X data.
 
     coef_scale: float
-        The scale of the non-zero entries of the coefficeint.
+        The value of coef.T @ cov @ coef, which controls the signal to noise ratio.
 
     intercept: float
         The true intercept.
@@ -262,17 +285,20 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
     """
     rng = check_random_state(random_state)
 
-    # set coefficient
-    coef = get_sparse_rand_coef(n_features=n_features, n_nonzero=n_nonzero,
-                                n_responses=n_classes)
-    coef *= coef_scale
+    # set coefficient and covariance matrix
+    coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
+                           beta_type=beta_type, n_responses=n_classes)
 
-    # sample design matrix
-    X = sample_X(n_samples=n_samples,
-                 n_features=n_features,
-                 X_dist=X_dist, x_corr=x_corr,
-                 random_state=rng)
+    cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
+    # determine the noise_std
+    ct_Sigma_c = coef_cov_quad_form(coef, cov)
+    if ct_Sigma_c > np.finfo(float).eps:
+        coef *= (coef_scale / ct_Sigma_c)
+
+    # sample X data
+    X = rng.multivariate_normal(mean=np.zeros(n_features), cov=cov,
+                                size=n_samples)
     z = X @ coef + intercept
     p = softmax(z)
 
@@ -285,8 +311,10 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
 
 def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
                               n_nonzero=5,
-                              X_dist='indep',
-                              x_corr=0.1,
+                              beta_type=1,
+                              coef_scale=1,
+                              cov='ar',
+                              corr=0.35,
                               intercept=0,
                               random_state=None):
     """
@@ -306,13 +334,17 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
     n_nonzero: int
         Number of non-zero features
 
-    X_dist: str
-        How to sample the X data. Must be one of ['indep', 'corr'].
-        X data is always follows a multivariate Gaussian.
-        If 'corr', then cov = (1 - corr) * I + corr * 11^T.
+    beta_type: int
+        Which type of coefficient to create; see Section 3.1 of (Hastie et al, 2017).
 
-    x_corr: float
-        How correlated the x data are.
+    cov: str
+        The covariance matrix of the X data. Must be one of ['ident', 'tot', 'ar']. If cov == 'ident' then we use the identity. If cov == 'ar' then Sigma_{ij} = corr **|i-j| follows an autoregression process. If cov == 'tot' then  (1 - corr) * I + corr * 11^T.
+
+    corr: float
+        The correlation for the covariace matrix for the X data.
+
+    coef_scale: float
+        The value of coef.T @ cov @ coef, which controls the signal to noise ratio.
 
     intercept: float or array-like, shape (n_responses, )
         The true intercept.
@@ -339,16 +371,20 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
     """
     rng = check_random_state(random_state)
 
-    # set coefficient
+    # set coefficient and covariance matrix
     coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
-                           n_responses=n_responses)
+                           beta_type=beta_type)
 
-    # sample design matrix
-    X = sample_X(n_samples=n_samples,
-                 n_features=n_features,
-                 X_dist=X_dist, x_corr=x_corr,
-                 random_state=rng)
+    cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
+    # determine the noise_std
+    ct_Sigma_c = coef_cov_quad_form(coef, cov)
+    if ct_Sigma_c > np.finfo(float).eps:
+        coef *= (coef_scale / ct_Sigma_c)
+
+    # sample X data
+    X = rng.multivariate_normal(mean=np.zeros(n_features), cov=cov,
+                                size=n_samples)
     # set y
     z = X @ coef + intercept
     lam = np.exp(z)
@@ -357,7 +393,8 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
     return X, y, lam, coef, intercept
 
 
-def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1):
+def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
+                    neg_idx=None):
     """
     Sets a sparse coefficeint vector where half the entries are positive
     and half the entries are negative.
@@ -369,90 +406,139 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1):
 
     n_nonzero: int
         Number of non-zero features.
-    """
-    assert n_nonzero <= n_features
-    # setup true coefficient
-    n_pos = n_nonzero // 2
 
-    if n_responses == 1:
+    n_responses: int
+        Number of responses. For multiple responses, the first coefficient is positive and the remaining responses have a single negative entry.
+
+    beta_type: int
+        Which type of coefficient to create; see Section 3.1 of (Hastie et al, 2017).
+
+    neg_idx: None, int
+        (Optional) Sets one of the support entries to a negative value.
+
+    Output
+    ------
+    coef: array-like, shape (n_features, n_responses)
+        The coefficient.
+
+    References
+    ----------
+    Hastie, T., Tibshirani, R. and Tibshirani, R.J., 2017. Extended comparisons of best subset selection, forward stepwise selection, and the lasso. arXiv preprint arXiv:1707.08692.
+    """
+    if n_responses > 1:
+        assert n_nonzero >= n_responses
+
+        coefs = []
+        for r in range(n_responses):
+            if r == 0:
+                neg_idx = None
+            else:
+                neg_idx = r
+            coefs.append(get_sparse_coef(n_features=n_features,
+                                         n_nonzero=n_nonzero,
+                                         n_responses=1,
+                                         beta_type=beta_type,
+                                         neg_idx=neg_idx))
+
+        return np.vstack(coefs).T
+
+    assert n_nonzero <= n_features
+    if neg_idx is not None:
+        assert neg_idx < n_nonzero
+
+    if beta_type == 1:
+        # roughly equally spaced 1s
         coef = np.zeros(n_features)
-        coef[0:n_pos] = 1
-        coef[n_pos:n_nonzero] = -1
-        return coef
 
-    else:
-        coef = np.zeros((n_features, n_responses))
-        coef[0:n_pos, :] = 1
-        coef[n_pos:n_nonzero, :] = -1
-        return coef
+        support_idxs = np.linspace(start=0, stop=n_features,
+                                   num=n_nonzero,
+                                   dtype=int, endpoint=False)
 
+        coef[support_idxs] = 1
 
-def get_sparse_rand_coef(n_features=10, n_nonzero=5, n_responses=1,
-                         random_state=None):
-    """
-    Random sparse coefficient where the non-zero entries are drawn from
-    Uniform(-1, 1)
-    """
-    rng = check_random_state(random_state)
+    elif beta_type == 2:
+        # 1s at beginning
+        coef = np.zeros(n_features)
+        coef[0:n_nonzero] = 1
 
-    assert n_nonzero <= n_features
+        support_idxs = np.arange(n_nonzero)
 
-    coef_non_zero = rng.uniform(low=-1, high=1, size=(n_nonzero, n_responses))
-#     if sqrt:
-#         sgns = np.sign(coef_non_zero)
-#         coef_non_zero = np.sqrt(abs(coef_non_zero))
-#         coef_non_zero *= sgns
-    # coef_non_zero = np.sign(coef_non_zero)
+    elif beta_type == 3:
+        # first entries linearly decaying from 10 to 0.5, others zero
+        coef = np.zeros(n_features)
 
-    coef = np.zeros((n_features, n_responses))
-    coef[0:n_nonzero, :] = coef_non_zero
+        values = np.linspace(start=10, stop=0.5,
+                             num=n_nonzero)
+        coef[0:n_nonzero] = values
 
-    if n_responses == 1:
-        coef = coef.ravel()
+        support_idxs = np.arange(n_nonzero)
+
+    elif beta_type == 4:
+        raise NotImplementedError
+
+    elif beta_type == 5:
+        # first entries equal to 1, rest exponentially decaying
+        n_decay = n_features - n_nonzero
+        decay = 0.5 ** np.arange(1, n_decay + 1)
+        coef = np.concatenate([np.ones(n_nonzero), decay])
+
+        support_idxs = np.arange(n_nonzero)
+
+    # possibly set one of the entries to a negative value
+    if neg_idx is not None:
+        coef[support_idxs[neg_idx]] *= -1
 
     return coef
 
 
-def sample_X(n_samples=100, n_features=10, X_dist='indep', x_corr=0.1,
-             random_state=None):
+def get_cov(n_features=10, cov='ar', corr=0.35):
     """
-    Samples a random design matrix.
+    Sets up the covariance matrix.
 
     Parameters
     ----------
-    n_samples: int
-        Number of samples to draw.
-
     n_features: int
         Number of features.
 
-    X_dist: str
-        How to sample the X data. Must be one of ['indep', 'corr'].
-        X data is always follows a multivariate Gaussian.
-        If 'corr', then cov = (1 - corr) * I + corr * 11^T.
+    cov: str
+        The covariance matrix of the X data. Must be one of ['ident', 'tot', 'ar']. If cov == 'ident' then we use the identity. If cov == 'ar' then Sigma_{ij} = corr **|i-j| follows an autoregression process. If cov == 'tot' then  (1 - corr) * I + corr * 11^T.
 
-    x_corr: float
-        How correlated the x data are.
-
-    random_state: None, int
-        The seed.
+    corr: float
+        How correlated the data are.
 
     Output
     ------
     X: array-like, (n_samples, n_features)
-
+        The sampled
     """
-    rng = check_random_state(random_state)
 
-    assert X_dist in ['indep', 'corr']
+    assert cov in ['ident', 'tot', 'ar']
 
     # sample X data
-    if X_dist == 'indep':
-        return rng.normal(size=(n_samples, n_features))
+    if cov == 'identy':
+        cov = np.eye(n_features)
 
-    elif X_dist == 'corr':
-        cov = (1 - x_corr) * np.eye(n_features) + \
-            x_corr * np.ones((n_features, n_features))
+    elif cov == 'tot':
+        cov = (1 - corr) * np.eye(n_features) + \
+            corr * np.ones((n_features, n_features))
 
-        return rng.multivariate_normal(mean=np.zeros(n_features), cov=cov,
-                                       size=n_samples)
+    elif cov == 'ar':
+        cov = np.array([[abs(i - j) for i in range(n_features)]
+                        for j in range(n_features)])
+
+        cov = corr ** cov
+
+    return cov
+
+
+def coef_cov_quad_form(coef, cov):
+    """
+    Computes the quadratic form coef.T @ cov @ coef. Handles the case when coef is is a matrix by returning np.trace(coef.T @ cov @ coef).
+    """
+    ct_Sigma_c = coef.T @ cov @ coef
+
+    # TODO: is this how we want to handle the SNR?
+    if coef.ndim >= 2:
+        return np.trace(ct_Sigma_c) / coef.shape[1]
+    else:
+        return ct_Sigma_c
