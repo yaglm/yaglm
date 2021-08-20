@@ -34,8 +34,9 @@ def huber_prox_1d(z, y, knot=1, step=1):
     # also see (2.2) or https://web.stanford.edu/~boyd/papers/pdf/prox_algs.pdf
 
     r = z - y
-    p = r - step * r / max(abs(r), step + 1)
-    return p + y
+    # p = r - step * r / max(abs(r), step + 1)
+    # return p + y
+    return z - step * r / max(abs(r), step + 1)
 
 
 vec_huber_prox = safe_vectorize(huber_prox_1d)
