@@ -395,7 +395,7 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
 
 
 def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
-                    neg_idx=None):
+                    neg_idx=None, laplace=False, random_state=None):
     """
     Sets a sparse coefficeint vector where half the entries are positive
     and half the entries are negative.
@@ -414,8 +414,14 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
     beta_type: int
         Which type of coefficient to create; see Section 3.1 of (Hastie et al, 2017).
 
+    laplace: bool
+        Whether or not to scale the entries by a Laplace(1). This is not in the original paper.
+
     neg_idx: None, int
         (Optional) Sets one of the support entries to a negative value.
+
+    random_state: None, int
+        Seed for the Laplace scaling.
 
     Output
     ------
@@ -426,6 +432,8 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
     ----------
     Hastie, T., Tibshirani, R. and Tibshirani, R.J., 2017. Extended comparisons of best subset selection, forward stepwise selection, and the lasso. arXiv preprint arXiv:1707.08692.
     """
+    rng = check_random_state(random_state)
+
     if n_responses > 1:
         assert n_nonzero >= n_responses
 
@@ -435,11 +443,14 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
                 neg_idx = None
             else:
                 neg_idx = r
+
             coefs.append(get_sparse_coef(n_features=n_features,
                                          n_nonzero=n_nonzero,
                                          n_responses=1,
                                          beta_type=beta_type,
-                                         neg_idx=neg_idx))
+                                         neg_idx=neg_idx,
+                                         laplace=laplace,
+                                         random_state=rng))
 
         return np.vstack(coefs).T
 
@@ -485,8 +496,13 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
 
         support_idxs = np.arange(n_nonzero)
 
+    # scale entries by a Laplace
+    if laplace:
+        scaling = rng.laplace(scale=1, size=n_features)
+        coef *= scaling
+
     # possibly set one of the entries to a negative value
-    if neg_idx is not None:
+    elif neg_idx is not None:
         coef[support_idxs[neg_idx]] *= -1
 
     return coef
