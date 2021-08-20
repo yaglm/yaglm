@@ -1,8 +1,7 @@
 import numpy as np
-
+# TODO: add sample weight to all functions in this module
 
 # TODO: rewrite formulas so pen_val is on scale where we average the loss
-# TODO: add sample weight
 def lin_reg_var_via_ridge(X, y, fit_intercept=True, pen_val='default'):
     """
     Estimates the linear regression noise variance use the ridge regression based method from (Liu et al, 2020).
@@ -102,5 +101,80 @@ def lin_reg_var_from_rss_of_sel(X, y, coef, intercept=None, zero_tol=1e-5):
 
     RSS = ((y - y_hat) ** 2).sum()
     sigma_sq = RSS / (X.shape[0] - n_nonzero)
+
+    return sigma_sq
+
+
+def lin_reg_var_natural_lasso(X, y, coef, intercept=None):
+    """
+    Estimates the linear regression variance using the natural Lasso estimate (Yu and Bien, 2019). This requires first fitting a Lasso penalized model.
+
+    Parameters
+    ----------
+    X: array-like, shape (n_samples, n_features)
+        The training covariate data.
+
+    y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+        The training response data.
+
+    coef: array-like, shape (n_features, )
+        The Lasso estimated coefficient.
+
+    intercept: None, float
+        The (optional) estimated intercept.
+
+    References
+    ----------
+    Yu, G. and Bien, J., 2019. Estimating the error variance in a high-dimensional linear model. Biometrika, 106(3), pp.533-546.
+    """
+
+    y_hat = X @ coef
+    if intercept is not None:
+        y_hat += intercept
+
+    # See Proposition 1
+    sigma_sq = (1 / X.shape[0]) * ((y ** 2).sum() - (y_hat ** 2).sum())
+
+    # See equation (7)
+    # RSS = ((y - y_hat) ** 2).sum()
+    # sigma_sq = (1 / X.shape[0]) * RSS + 2 * pen_val * abs(coef).sum()
+
+    return sigma_sq
+
+
+def lin_reg_var_organinc_lasso(X, y, pen_val, coef, intercept=None):
+    """
+    Estimates the linear regression variance using the organic Lasso estimate (Yu and Bien, 2019). This requires first fitting a L1 squared penalized model.
+
+    Parameters
+    ----------
+    X: array-like, shape (n_samples, n_features)
+        The training covariate data.
+
+    y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+        The training response data.
+
+    pen_val: float
+        The squared L1 penalty value.
+
+    coef: array-like, shape (n_features, )
+        The Lasso estimated coefficient.
+
+    intercept: None, float
+        The (optional) estimated intercept.
+
+    References
+    ----------
+    Yu, G. and Bien, J., 2019. Estimating the error variance in a high-dimensional linear model. Biometrika, 106(3), pp.533-546.
+    """
+
+    # See equation (17)
+    y_hat = X @ coef
+    if intercept is not None:
+        y_hat += intercept
+
+    RSS = ((y - y_hat) ** 2).sum()
+    L1_sq = abs(coef).sum() ** 2
+    sigma_sq = (1 / X.shape[0]) * RSS + 2 * pen_val * L1_sq
 
     return sigma_sq
