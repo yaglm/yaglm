@@ -116,7 +116,7 @@ class GlmSolver:
         """
         raise NotImplementedError
 
-    def has_path_algo(self, loss, penalty):
+    def has_path_algo(self):
         """
         Whether or not this solve has a path algorithm available for a given loss/penalty combination.
         """
