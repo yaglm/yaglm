@@ -6,14 +6,22 @@ from ya_glm.opt.utils import euclid_norm, L2_prox
 
 class L2Loss(Func):
     """
-    f(r) = mult * (1/sqrt(n)) ||r||_2
+    f(z) = mult * (1/sqrt(n)) ||y - z||_2
     """
 
+    def __init__(self, y, sample_weight=None):
+        self.y = y
+        self.sample_weight = sample_weight
+        if sample_weight is not None:
+            raise NotImplementedError
+
     def _eval(self, x):
-        return (1 / np.sqrt(x.shape[0])) * euclid_norm(x)
+        return (1 / np.sqrt(x.shape[0])) * euclid_norm(self.y - x)
 
     def _prox(self, x, step):
-        return L2_prox(x=x, mult=(1 / np.sqrt(x.shape[0])) * step)
+        r = x - self.y
+        p = L2_prox(x=r, mult=(1 / np.sqrt(x.shape[0])) * step)
+        return p + self.y
 
 
 class L2Reg(Glm):
