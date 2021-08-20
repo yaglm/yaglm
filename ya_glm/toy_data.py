@@ -63,11 +63,8 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
     y: array-like, shape (n_samples, ) or (n_samples, n_responses)
         The response.
         
-    coef_true: array-like, shape (n_features, ) or (n_features, n_responses)
-        The true regression coefficient.
-        
-    intercept_true: float or array-like shape (n_responses, )
-        The true intercept.
+    info: dict
+        Information related to the true sample distribution e.g. the true coefficient.
     """
     rng = check_random_state(random_state)
 
@@ -78,9 +75,11 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
     cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
     # determine the noise_std
+    ct_Sigma_c = coef_cov_quad_form(coef, cov)
     if noise_std is None:
-        ct_Sigma_c = coef_cov_quad_form(coef, cov)
         noise_std = np.sqrt(ct_Sigma_c / snr)
+    else:
+        snr = ct_Sigma_c / (noise_std ** 2)
 
     # sample X data
     X = rng.multivariate_normal(mean=np.zeros(n_features), cov=cov,
@@ -97,8 +96,13 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
 
     # set y
     y = X @ coef + intercept + noise_std * E
+
+    # other information
+    info = {'coef': coef, 'intercept': intercept,
+            'snr': snr, 'noise_std': noise_std,
+            'cov': cov}
     
-    return X, y, coef, intercept
+    return X, y, info
 
 
 def infuse_outliers(y, prop_bad=.1, random_state=None):
@@ -194,14 +198,8 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
     y: array-like, shape (n_samples, )
         The binary response
 
-    p: array-like, shape (n_samples, )
-        The true probabilities.
-
-    coef_true: array-like, shape (n_features, )
-        The true regression coefficient.
-
-    intercept_true: float
-        The true intercept.
+    info: dict
+        Information related to the true sample distribution e.g. the true coefficient.
     """
     rng = check_random_state(random_state)
 
@@ -224,7 +222,12 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
     p = expit(z)
     y = rng.binomial(n=1, p=p)
 
-    return X, y, p, coef, intercept
+    # other information
+    info = {'coef': coef, 'intercept': intercept,
+            'coef_scale': coef_scale,
+            'probs': p}
+
+    return X, y, info
 
 
 def sample_sparse_multinomial(n_samples=100, n_features=10,
@@ -274,14 +277,8 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
     y: array-like, shape (n_samples, )
         The binary response
 
-    p: array-like, shape (n_samples, )
-        The true probabilities.
-
-    coef_true: array-like, shape (n_features, )
-        The true regression coefficient.
-
-    intercept_true: float
-        The true intercept.
+    info: dict
+        Information related to the true sample distribution e.g. the true coefficient.
     """
     rng = check_random_state(random_state)
 
@@ -306,7 +303,12 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
     y = np.array([np.random.choice(a=classes,  p=p[i, :])
                   for i in range(n_samples)])
 
-    return X, y, p, coef, intercept
+    # other information
+    info = {'coef': coef, 'intercept': intercept,
+            'coef_scale': coef_scale,
+            'probs': p}
+
+    return X, y, info
 
 
 def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
@@ -360,14 +362,8 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
     y: array-like, shape (n_samples, ) or (n_samples, n_responses)
         The response.
 
-    y: array-like, shape (n_samples, ) or (n_samples, n_responses)
-        The Poisson rate parameters.
-
-    coef_true: array-like, shape (n_features, ) or (n_features, n_responses)
-        The true regression coefficient.
-
-    intercept_true: float or array-like shape (n_responses, )
-        The true intercept.
+    info: dict
+        Information related to the true sample distribution e.g. the true coefficient.
     """
     rng = check_random_state(random_state)
 
@@ -390,7 +386,12 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
     lam = np.exp(z)
     y = rng.poisson(lam=lam, size=z.shape)
 
-    return X, y, lam, coef, intercept
+    # other information
+    info = {'coef': coef, 'intercept': intercept,
+            'coef_scale': coef_scale,
+            'lam': lam}
+
+    return X, y, info
 
 
 def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
