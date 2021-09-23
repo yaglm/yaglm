@@ -3,13 +3,14 @@ from scipy.sparse import diags
 import numpy as np
 from time import time
 
-from ya_glm.linalg_utils import leading_sval
-from ya_glm.opt.utils import euclid_norm
+from ya_glm.linalg_utils import leading_sval, euclid_norm
 
 # TODO: handle matrix shaped parameters
+# TODO: allow A1 and or A2 to be None for the identity
+# TODO: allow g1 and or g2 to be None for zero
 def solve(g1, g2, A1, A2,
           primal_init=None, dual_init=None,
-          D_mat='prop_id',
+          D_mat='diag',
           rho=1,
           rho_update=True,
           atol=1e-4,
@@ -71,16 +72,16 @@ def solve(g1, g2, A1, A2,
 
     Output
     ------
-    solution, opt_data, admm_data
+    solution, admm_data, opt_info
 
     solution: array-like
         The solution.
 
-    opt_data: dict
-        Opimization tracking data e.g. the dual/primal residual history.
-
     admm_data: dict
         Data related to ADMM e.g. the dual variables.
+
+    opt_info: dict
+        Opimization tracking data e.g. the dual/primal residual history.
 
     References
     ----------
@@ -156,6 +157,7 @@ def solve(g1, g2, A1, A2,
 
         history['primal_tol'] = []
         history['dual_tol'] = []
+
     if tracking_level >= 2:
         history['primal'] = [primal]
 
@@ -196,7 +198,7 @@ def solve(g1, g2, A1, A2,
 
             history['rho'].append(rho)
 
-            # TODO-DEBUG: remove these
+            # TODO: do we want to track these?
             history['primal_tol'].append(primal_tol)
             history['dual_tol'].append(dual_tol)
 
@@ -230,7 +232,7 @@ def solve(g1, g2, A1, A2,
     # Format output #
     #################
     # optimizaton data
-    opt_data = {'iter': it,
+    opt_info = {'iter': it,
                 'runtime': time() - start_time,
                 'history': history
                 }
@@ -242,7 +244,7 @@ def solve(g1, g2, A1, A2,
                  'D_mat': D_mat
                  }
 
-    return primal_new, opt_data, admm_data
+    return primal_new, admm_data, opt_info
 
 
 def solve_path(prob_data_iter, **kws):
@@ -325,7 +327,7 @@ class DMatrixPropId(DMatrix):
         self
         """
         AtA = A1.T @ A1 + A2.T @ A2
-        self.sval_sq = leading_sval(AtA)
+        self.sval_sq = leading_sval(AtA) ** 2
         # self.val = leading_sval(A1) + leading_sval(A2)
 
     def inv_prod(self, v):
@@ -362,6 +364,7 @@ class DMatrixDiag(DMatrix):
         """
         AtA = A1.T @ A1 + A2.T @ A2
         row_sums = abs(AtA).sum(axis=1)
+        row_sums = np.array(row_sums).reshape(-1)  # annoying issue with sparse matrices
 
         self.diag_mat_inv = diags(1 / row_sums)
 

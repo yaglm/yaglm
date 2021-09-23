@@ -55,6 +55,10 @@ class Logistic(GlmInputLoss):
     # TODO: add this
     # sample_proxs = !!!!
 
+    @property
+    def is_smooth(self):
+        return True
+
 
 class LogReg(Glm):
 

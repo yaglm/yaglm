@@ -2,7 +2,7 @@ import numpy as np
 from scipy.linalg import svd
 
 from ya_glm.opt.base import Func
-from ya_glm.opt.utils import euclid_norm
+from ya_glm.linalg_utils import euclid_norm
 
 
 class CompositeGroup(Func):
@@ -11,6 +11,10 @@ class CompositeGroup(Func):
 
         self.func = func
         self.groups = groups
+
+    @property
+    def is_smooth(self):
+        return False
 
     def eval(self, x):
         norms = np.array([euclid_norm(x[grp_idxs])
@@ -44,6 +48,10 @@ class CompositeMultiTaskLasso(Func):
     def __init__(self, func):
         self.func = func
 
+    @property
+    def is_smooth(self):
+        return False
+
     def _eval(self, x):
         norms = np.array([euclid_norm(x[r, :]) for r in range(x.shape[0])])
         return self.func.eval(norms)
@@ -67,6 +75,10 @@ class CompositeNuclearNorm(Func):
 
     def __init__(self, func):
         self.func = func
+
+    @property
+    def is_smooth(self):
+        return False
 
     def _prox(self, x, step=1):
 

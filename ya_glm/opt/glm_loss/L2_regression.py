@@ -1,7 +1,8 @@
 import numpy as np
 from ya_glm.opt.base import Func
 from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp
-from ya_glm.opt.utils import euclid_norm, L2_prox
+from ya_glm.opt.prox import L2_prox
+from ya_glm.linalg_utils import euclid_norm
 
 
 class L2Loss(Func):
@@ -22,6 +23,15 @@ class L2Loss(Func):
         r = x - self.y
         p = L2_prox(x=r, mult=(1 / np.sqrt(x.shape[0])) * step)
         return p + self.y
+
+    @property
+    def is_smooth(self):
+        return False
+
+# TODO: add
+class L2LossMulti(Func):
+    def __init__(self):
+        raise NotImplementedError
 
 
 class L2Reg(Glm):

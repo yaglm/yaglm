@@ -79,6 +79,33 @@ class Func(object):
 
         return cap
 
+    @property
+    def is_smooth(self):
+        """
+        Output
+        ------
+        Whether or not the function is smooth.
+        """
+        raise NotImplementedError
+
+
+class EntrywiseFunc(Func):
+    """
+    Represents a function applied entrywise to the input whether the input is a float, vector or array
+    """
+    def eval(self, x):
+        return self._eval(np.array(x).reshape(-1))
+
+    def grad(self, x):
+        x = np.array(x)
+        g = self._grad(x.reshape(-1))
+        return g.reshape(x.shape)
+
+    def prox(self, x, step=1):
+        x = np.array(x)
+        p = self._prox(x.reshape(-1), step=step)
+        return p.reshape(x.shape)
+
 
 class Zero(Func):
     def eval(self, x):
@@ -89,6 +116,10 @@ class Zero(Func):
 
     def prox(self, x, step=1):
         return x
+
+    @property
+    def is_smooth(self):
+        return True
 
 
 class Sum(Func):
@@ -116,6 +147,10 @@ class Sum(Func):
                 lip += flip
 
         return lip
+
+    @property
+    def is_smooth(self):
+        return all(f.is_smooth for f in self.funcs)
 
 
 def check_grad_impl(func, values, atol=1e-05, behavior='ret', verbosity=0):

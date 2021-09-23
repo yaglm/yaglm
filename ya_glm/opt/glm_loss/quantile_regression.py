@@ -104,6 +104,10 @@ class Quantile(GlmInputLoss):
     sample_grads = staticmethod(sample_grads)
     sample_proxs = staticmethod(sample_proxs)
 
+    @property
+    def is_smooth(self):
+        return False
+
 
 class QuantileReg(Glm):
     GLM_LOSS_CLASS = Quantile
@@ -127,6 +131,10 @@ class QuantileMulti(GlmInputLoss):
 
     # TODO: add this
     # sample_proxs = !!!!
+
+    @property
+    def is_smooth(self):
+        return False
 
 
 class QuantileRegMultiResp(GlmMultiResp):

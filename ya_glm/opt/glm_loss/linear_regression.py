@@ -46,6 +46,10 @@ class LeastSquares(GlmInputLoss):
     sample_grads = staticmethod(sample_grads)
     sample_proxs = staticmethod(sample_proxs)
 
+    @property
+    def is_smooth(self):
+        return True
+
 
 class LinReg(Glm):
 
@@ -60,6 +64,10 @@ class LeastSquaresMulti(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
     sample_proxs = staticmethod(sample_proxs)
+
+    @property
+    def is_smooth(self):
+        return True
 
 
 class LinRegMultiResp(GlmMultiResp):

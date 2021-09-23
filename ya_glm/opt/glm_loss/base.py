@@ -81,6 +81,10 @@ class Glm(Func):
         self._set_shape_data()
 
     @property
+    def is_smooth(self):
+        return self.glm_loss.is_smooth
+
+    @property
     def y(self):
         return self.glm_loss.y
 

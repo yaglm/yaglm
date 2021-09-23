@@ -1,22 +1,7 @@
 from sklearn.utils.extmath import safe_sparse_dot
 from scipy.sparse import issparse
 import numpy as np
-
-
-def euclid_norm(x):
-    return np.sqrt((x ** 2).sum())
-
-
-def L2_prox(x, mult):
-    """
-    Computes the proximal operator of mutl * ||x||_2
-    """
-    norm = euclid_norm(x)
-
-    if norm <= mult:
-        return np.zeros_like(x)
-    else:
-        return x * (1 - (mult / norm))
+from numbers import Number
 
 
 def decat_coef_inter_vec(cat):
@@ -127,6 +112,53 @@ def safe_data_mat_coef_mat_dot(X, coef, fit_intercept=True):
 
 #     return sum(vec[i] * coef[shift + i] for i in range(len(vec)))
 
+
+def process_zero_init(coef_shape, intercept_shape,
+                      coef_init=None, intercept_init=None,
+                      fit_intercept=True):
+    """
+    Processes coef/intercept initialization arguments. Returns the provided initializer if it is not None or zero if it is None.
+
+    Parameters
+    ----------
+    coef_shape: tuple of ints
+        The shape of the coefficient i.e. either (n_features, ) or (n_features, n_responses).
+
+    intercept_shape: tuple of ints
+        The shape of the intercept i.e. (0, ) or (n_respones, ).
+
+    coef_init: None, array-like
+        The user provided coefficient initializer.
+
+    intercept_init: None, array-like
+        The user provided intercept initializer.
+
+    fit_intercept: bool
+        Whether or not we are fitting and intercept.
+
+    Output
+    ------
+    coef, intercept
+
+    coef: array-like, shape (n_features,) or (n_features, n_respones)
+
+    intercept: None, float, array-like, shape (n_respones,)
+    """
+
+    if coef_init is None:
+        coef_init = np.zeros(coef_shape)
+
+    if not fit_intercept:
+        intercept_init = None
+
+    elif intercept_init is None:
+        if intercept_shape[0] == 0:
+            intercept_init = 0
+        else:
+            intercept_init = np.zeros(intercept_shape)
+
+    return coef_init, intercept_init
+
 def sign_never_0(x):
     """
     The sign function where the output is either +1 or -1 i.e. will not return a 0.
@@ -164,3 +196,36 @@ def safe_entrywise_mult(A, B):
         return B.multiply(A)
     else:
         return A * B
+
+
+def safe_concat(a, b):
+    """
+    Concatenates two values into a one-dimensional array. Works if a or b is a number or matrix.
+
+    Parameters
+    ----------
+    a, b: array-like, Number
+        The two values to concatenate.
+
+    Output
+    ------
+    cat: np.array
+        The concatenated values.
+    """
+
+    to_cat = []
+    if isinstance(a, Number):
+        to_cat.append([a])
+    elif len(a) == 1:
+        to_cat.append([float(a)])
+    else:
+        to_cat.append(np.array(a).reshape(-1))
+
+    if isinstance(b, Number):
+        to_cat.append([b])
+    elif len(b) == 1:
+        to_cat.append([float(b)])
+    else:
+        to_cat.append(np.array(b).reshape(-1))
+
+    return np.concatenate(to_cat)

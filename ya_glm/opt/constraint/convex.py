@@ -3,7 +3,17 @@ import numpy as np
 from ya_glm.opt.base import Func
 
 
-class PositiveOrthant(Func):
+class Constraint(Func):
+
+    def _eval(self, x):
+        return 0
+
+    @property
+    def is_smooth(self):
+        return False
+
+
+class Positive(Constraint):
 
     def _prox(self, x, step=1):
         p = np.zeros_like(x)
@@ -11,11 +21,8 @@ class PositiveOrthant(Func):
         p[pos_mask] = x[pos_mask]
         return p
 
-    def _eval(self, x):
-        return 0
 
-
-class Simplex(Func):
+class Simplex(Constraint):
 
     def __init__(self, mult=1):
         self.mult = mult
@@ -25,11 +32,8 @@ class Simplex(Func):
         p = project_simplex(x.reshape(-1), z=self.mult)
         return p.reshape(x.shape)
 
-    def _eval(self, x):
-        return 0
 
-
-class L1Ball(Func):
+class L1Ball(Constraint):
 
     def __init__(self, mult=1):
         self.mult = mult
@@ -37,9 +41,6 @@ class L1Ball(Func):
     def _prox(self, x, step=1):
         p = project_l1_ball(x.reshape(-1), z=self.mult)
         return p.reshape(x.shape)
-
-    def _eval(self, x):
-        return 0
 
 
 # See https://gist.github.com/mblondel/6f3b7aaad90606b98f71

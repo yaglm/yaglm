@@ -40,22 +40,25 @@ _LOSS_FUNC_CLS2STR = {v: k for (k, v) in chain(_LOSS_CLS_VEC.items(),
                                                _LOSS_CLS_MAT.items())}
 
 
-def get_glm_loss(X, y, loss,
-                 fit_intercept=True,
-                 sample_weight=None):
+avail_loss_names = list(set(_LOSS_CLS_VEC.keys()).union(_LOSS_CLS_MAT.keys()))
+
+
+def get_glm_loss_func(config, X, y,
+                      fit_intercept=True,
+                      sample_weight=None):
     """
     Returns an GLM loss function object.
 
     Parameters
     ----------
+    config: LossCnfig
+        A loss config objecet
+
     X: array-like, shape (n_samples, n_features)
         The training covariate data.
 
     y: array-like, shape (n_samples, )
         The training response data.
-
-    loss:
-        A loss config objecet
 
     fit_intercept: bool
         Whether or not to fit an intercept.
@@ -69,16 +72,21 @@ def get_glm_loss(X, y, loss,
         The GLM loss function object.
     """
 
+    if config.name not in avail_loss_names:
+        raise NotImplementedError("{} is not currently supported by "
+                                  "ya_glm.opt.glm_loss".
+                                  format(config))
+
     if y.ndim == 1 or y.shape[1] == 1:
         # 1d output
-        CLS = _LOSS_CLS_VEC[loss.name]
+        CLS = _LOSS_CLS_VEC[config.name]
     else:
         # multiple response output
-        CLS = _LOSS_CLS_MAT[loss.name]
+        CLS = _LOSS_CLS_MAT[config.name]
 
     kws = {'X': X, 'y': y,
            'fit_intercept': fit_intercept, 'sample_weight': sample_weight,
-           **loss.get_loss_kws()}
+           **config.get_func_params()}
 
     if sample_weight is not None:
         kws['sample_weight'] = sample_weight

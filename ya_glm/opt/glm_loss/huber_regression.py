@@ -132,6 +132,10 @@ class Huber(GlmInputLoss):
     # TODO: add this
     # sample_proxs = !!!!
 
+    @property
+    def is_smooth(self):
+        return self.loss_kws['knot'] > 0
+
 
 class HuberReg(Glm):
 
@@ -148,13 +152,17 @@ class HuberReg(Glm):
         return huberized_mean(values=self.y,
                               axis=0,
                               sample_weight=self.sample_weight,
-                              knot=self.knot)
+                              knot=self.loss_kws['knot'])
 
 
 class HuberMulti(GlmInputLoss):
     sample_losses = staticmethod(sample_losses_multi_resp)
     sample_grads = staticmethod(sample_grads)
     sample_proxs = staticmethod(vec_huber_prox)
+
+    @property
+    def is_smooth(self):
+        return self.loss_kws['knot'] > 0
 
 
 class HuberRegMultiResp(GlmMultiResp):
@@ -172,4 +180,4 @@ class HuberRegMultiResp(GlmMultiResp):
         return huberized_mean(values=self.y,
                               axis=0,
                               sample_weight=self.sample_weight,
-                              knot=self.knot)
+                              knot=self.loss_kws['knot'])

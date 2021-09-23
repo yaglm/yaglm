@@ -22,6 +22,10 @@ class Poisson(GlmInputLoss):
     # TODO: add this
     # sample_proxs = !!!!
 
+    @property
+    def is_smooth(self):
+        return True
+
 
 class PoissonMulti(GlmInputLoss):
 
@@ -31,6 +35,9 @@ class PoissonMulti(GlmInputLoss):
     # TODO: add this
     # sample_proxs = !!!!
 
+    @property
+    def is_smooth(self):
+        return True
 
 # TODO: add exposure
 class PoissonReg(Glm):
