@@ -41,7 +41,6 @@ from ya_glm.metrics.info_criteria import InfoCriteria
 from ya_glm.infer.Inferencer import Inferencer
 from ya_glm.infer.lin_reg_noise_var import ViaRidge
 
-
 # sample sparse linear regression data
 X, y, _ = sample_sparse_lin_reg(n_samples=100, n_features=10)
 
@@ -58,8 +57,6 @@ GlmCV(loss='lin_reg',
       initializer='default'
       ).fit(X, y)
 
-
-
 # fit an adaptive lasso and tuned via EBIC
 # estimate the noise variance via a ridge-regression method
 GlmTrainMetric(loss='lin_reg',
@@ -68,8 +65,6 @@ GlmTrainMetric(loss='lin_reg',
                inferencer=Inferencer(scale=ViaRidge()), # noise variance estimator
                scorer=InfoCriteria(crit='ebic') # Info criteria
                ).fit(X, y)
-
-
 
 # fit a huber loss with a group SCAD penalty
 # both the huber knot parameter and the SCAD penalty parameter are tuned with CV
