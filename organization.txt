@@ -1,0 +1,37 @@
+config
+------
+Implemented the base model parameter configuration objects: loss, penalty, penalty flavor, and constraint. Also includes the tuning objects for these model parameters;
+
+
+infer
+-----
+Implements statistical inference procedures such as estimating the degrees of freedom.
+
+metrics
+-------
+Computes metrics used for model selection and diagnostics such as information criteria.
+
+opt
+---
+Built in optimization library including FISTA, ADMM, and LLA algorithms. Comes with support for GLM loss functions, penalties and constraints.
+
+pen_max
+-------
+Computes the largest reasonable penalty value for combinations of loss + penalties.
+
+solver
+------
+Provides the solver wrapper objects that are used to compute the penalized GLM solutions.
+
+tests
+-----
+Test cases for ya_glm.
+
+tune
+----
+Handles tuning logistics e.g. cross-validation. Also has some tuning diagnostics.
+
+
+
+
+
