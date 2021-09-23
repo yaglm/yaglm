@@ -5,6 +5,7 @@ General
 - speed comparison of opt module
 - compare fits to sklearn baseline
 
+- add validate_init() methods to every object.
 
 Losses
 ------
