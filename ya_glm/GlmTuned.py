@@ -8,8 +8,9 @@ from time import time
 from ya_glm.base import TunedGlm
 from ya_glm.LossMixin import LossMixin
 
+from ya_glm.tune.combined_tuner import PenaltyPerLossFlavorTuner
 from ya_glm.tune.backend import get_cross_validation_jobs, \
-    get_validation_jobs
+    get_validation_jobs, get_train_jobs
 from ya_glm.tune.select import select_tune_param, cv_select_tune_param
 
 from ya_glm.autoassign import autoassign
@@ -30,6 +31,7 @@ class GlmCV(LossMixin, TunedGlm):
                  standardize=True,
                  fit_intercept=True,
                  solver='default',
+                 lla=True,
                  initializer='default',
                  inferencer=None,
 
@@ -49,22 +51,24 @@ class GlmCV(LossMixin, TunedGlm):
         start_time = time()
         tune_info = {'runtime': {}}
 
-        ###########################
-        # preprocessing and setup #
-        ###########################
+        ##############################################
+        # setup, preprocess, and prefitting routines #
+        ##############################################
+        pro_data, raw_data, pre_pro_out, \
+            configs, solver, solver_init, inferencer = \
+            self.setup_and_prefit(X, y, sample_weight)
 
-        # basic formatting check
-        X, y, sample_weight = self._validate_data(X=X, y=y,
-                                                  sample_weight=sample_weight)
-
-        # prefitting routines: prefit inference, fit initializer,
-        # pre process data, setup tuning parameter grid
-        tuner, X_pro, y_pro, sample_weight_pro, pre_pro_out, \
-            solver, solver_init, inferencer =\
-            self._prefit_and_setup_tuning(X, y, sample_weight=sample_weight)
-
-        self.tuner_ = tuner
+        # store inferencer
         self.inferencer_ = inferencer
+
+        ###############################
+        # setup tuning parameter grid #
+        ###############################
+
+        # setup tuning parameter grids from the data
+        self.tuner_ = PenaltyPerLossFlavorTuner(**configs)
+        self.tuner_.set_tuning_values(fit_intercept=self.fit_intercept,
+                                      **pro_data)
 
         tune_info['runtime']['prefit'] = time() - start_time
 
@@ -79,12 +83,11 @@ class GlmCV(LossMixin, TunedGlm):
 
         # setup generator iterating over all the folds + parameter settings
         job_configs =\
-            get_cross_validation_jobs(X=X, y=y,
+            get_cross_validation_jobs(raw_data=raw_data,
                                       fold_iter=cv.split(X=X, y=y),
                                       est=self,
                                       solver=solver,
                                       tune_iter=self.tuner_,
-                                      sample_weight=sample_weight,
                                       path_algo=self.path_algo,
                                       solver_init=deepcopy(solver_init)
                                       )
@@ -117,13 +120,11 @@ class GlmCV(LossMixin, TunedGlm):
         best_tune_configs = get_from(self.tuner_.iter_configs(),
                                      idx=self.best_tune_idx_)
 
-        self._fit_from_configs(configs=best_tune_configs,
+        self._fit_from_configs(pro_data=pro_data, raw_data=raw_data,
+                               configs=best_tune_configs,
                                solver=solver,
                                pre_pro_out=pre_pro_out,
-                               solver_init=solver_init,
-                               X=X, y=y, X_pro=X_pro, y_pro=y_pro,
-                               sample_weight=sample_weight,
-                               sample_weight_pro=sample_weight_pro)
+                               solver_init=solver_init)
 
         tune_info['runtime']['refit'] = time() - start_time
         self.tune_info_ = tune_info
@@ -143,6 +144,7 @@ class GlmValidation(LossMixin, TunedGlm):
                  standardize=True,
                  fit_intercept=True,
                  solver='default',
+                 lla=True,
                  initializer='default',
                  inferencer=None,
 
@@ -161,22 +163,24 @@ class GlmValidation(LossMixin, TunedGlm):
         start_time = time()
         tune_info = {'runtime': {}}
 
-        ###########################
-        # preprocessing and setup #
-        ###########################
+        ##############################################
+        # setup, preprocess, and prefitting routines #
+        ##############################################
+        pro_data, raw_data, pre_pro_out, \
+            configs, solver, solver_init, inferencer = \
+            self.setup_and_prefit(X, y, sample_weight)
 
-        # basic formatting check
-        X, y, sample_weight = self._validate_data(X=X, y=y,
-                                                  sample_weight=sample_weight)
-
-        # prefitting routines: prefit inference, fit initializer,
-        # pre process data, setup tuning parameter grid
-        tuner, X_pro, y_pro, sample_weight_pro, pre_pro_out, \
-            solver, solver_init, inferencer =\
-            self._prefit_and_setup_tuning(X, y, sample_weight=sample_weight)
-
+        # store inferencer
         self.inferencer_ = inferencer
-        self.tuner_ = tuner
+
+        ###############################
+        # setup tuning parameter grid #
+        ###############################
+
+        # setup tuning parameter grids from the data
+        self.tuner_ = PenaltyPerLossFlavorTuner(**configs)
+        self.tuner_.set_tuning_values(fit_intercept=self.fit_intercept,
+                                      **pro_data)
         tune_info['runtime']['prefit'] = time() - start_time
 
         ##################
@@ -201,13 +205,12 @@ class GlmValidation(LossMixin, TunedGlm):
 
         # setup generator iterating over all the folds + parameter settings
         job_configs =\
-            get_validation_jobs(X=X, y=y,
+            get_validation_jobs(raw_data=raw_data,
                                 est=self,
                                 solver=solver,
                                 tune_iter=self.tuner_,
                                 train=train,
                                 test=test,
-                                sample_weight=sample_weight,
                                 path_algo=self.path_algo,
                                 solver_init=deepcopy(solver_init)
                                 )
@@ -230,13 +233,11 @@ class GlmValidation(LossMixin, TunedGlm):
         best_tune_configs = get_from(self.tuner_.iter_configs(),
                                      idx=self.best_tune_idx_)
 
-        self._fit_from_configs(configs=best_tune_configs,
+        self._fit_from_configs(pro_data=pro_data, raw_data=raw_data,
+                               configs=best_tune_configs,
                                solver=solver,
                                pre_pro_out=pre_pro_out,
-                               solver_init=solver_init,
-                               X=X, y=y, X_pro=X_pro, y_pro=y_pro,
-                               sample_weight=sample_weight,
-                               sample_weight_pro=sample_weight_pro)
+                               solver_init=solver_init)
 
         tune_info['runtime']['refit'] = time() - start_time
 
@@ -254,21 +255,24 @@ class GlmTrainMetric(LossMixin, TunedGlm):
         tune_info = {'runtime': {}}
         start_time = time()
 
-        ###########################
-        # preprocessing and setup #
-        ###########################
+        ##############################################
+        # setup, preprocess, and prefitting routines #
+        ##############################################
+        pro_data, raw_data, pre_pro_out, \
+            configs, solver, solver_init, inferencer = \
+            self.setup_and_prefit(X, y, sample_weight)
 
-        # basic formatting check
-        X, y, sample_weight = self._validate_data(X=X, y=y,
-                                                  sample_weight=sample_weight)
-        # prefitting routines: prefit inference, fit initializer,
-        # pre process data, setup tuning parameter grid
-        tuner, X_pro, y_pro, sample_weight_pro, pre_pro_out, \
-            solver, solver_init, inferencer =\
-            self._prefit_and_setup_tuning(X, y, sample_weight=sample_weight)
-
-        self.tuner_ = tuner
+        # store inferencer
         self.inferencer_ = inferencer
+
+        ###############################
+        # setup tuning parameter grid #
+        ###############################
+
+        # setup tuning parameter grids from the data
+        self.tuner_ = PenaltyPerLossFlavorTuner(**configs)
+        self.tuner_.set_tuning_values(fit_intercept=self.fit_intercept,
+                                      **pro_data)
 
         tune_info['runtime']['prefit'] = time() - start_time
 
@@ -279,16 +283,15 @@ class GlmTrainMetric(LossMixin, TunedGlm):
         start_time = time()
 
         # setup generator iterating over all the folds + parameter settings
-        job_configs =\
-            get_validation_jobs(X=X, y=y,
-                                est=self,
-                                solver=solver,
-                                tune_iter=self.tuner_,
-                                train=None, test=None,  # training only!
-                                sample_weight=sample_weight,
-                                path_algo=self.path_algo,
-                                solver_init=deepcopy(solver_init)
-                                )
+        job_configs = get_train_jobs(pro_data=pro_data,
+                                     raw_data=raw_data,
+                                     pre_pro_out=pre_pro_out,
+                                     est=self,
+                                     solver=solver,
+                                     tune_iter=self.tuner_,
+                                     path_algo=self.path_algo,
+                                     solver_init=deepcopy(solver_init)
+                                     )
 
         # fit and score all models!
         self.tune_results_, estimators = \

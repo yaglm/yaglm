@@ -88,40 +88,13 @@ def run_fit_and_score_jobs(job_configs,
             return results, None
 
 
-def get_cross_validation_jobs(X, y, fold_iter, est, solver, tune_iter,
-                              sample_weight=None,
+def get_cross_validation_jobs(raw_data, fold_iter, est, solver, tune_iter,
                               path_algo=True, solver_init={}):
     """
     Iterates over all jobs for cross-validation with a double loop. The outer loop splits and processes each fold; the inner loop is over the parameter settings.
 
     Parameters
     ----------
-    X: array-like
-        The training covariate data.
-
-    y: array-like
-        The training response data.
-
-    fold_iter: iterable yielding (train, test)
-        Yields the traing/test split indices.
-
-    est: Estimator
-        The base estimator to be fit. This object is used for preprocessing and computing train/test metrics.
-
-    solver: GlmSolver
-        The solver object for the subproblems.
-
-    tune_iter:
-        TODO
-
-    sample_weight: None, array-like
-        (Optional) The sample weight.
-
-    path_algo: bool
-        Whether or not to use a path algorithm if one is available to the solver.
-
-    solver_init: dict
-        TODO
 
     Yields
     ------
@@ -136,9 +109,9 @@ def get_cross_validation_jobs(X, y, fold_iter, est, solver, tune_iter,
     for fold_idx, (train, test) in enumerate(fold_iter):
 
         # split/process train data
-        solver_data, eval_data = split_and_process(X=X, y=y, est=est,
-                                                   train=train, test=test,
-                                                   sample_weight=sample_weight)
+        solver_data, eval_data = \
+            split_and_process(**raw_data,  # X, y, sample_weight
+                              est=est, train=train, test=test)
 
         # setup tuning prameter iterator
         if path_algo:
@@ -161,9 +134,8 @@ def get_cross_validation_jobs(X, y, fold_iter, est, solver, tune_iter,
                    }
 
 
-def get_validation_jobs(X, y, est, solver, tune_iter,
-                        train=None, test=None,
-                        sample_weight=None,
+def get_validation_jobs(raw_data, est, solver, tune_iter,
+                        train, test,
                         path_algo=True,
                         solver_init={}):
     """
@@ -171,33 +143,7 @@ def get_validation_jobs(X, y, est, solver, tune_iter,
 
     Parameters
     ----------
-    X: array-like
-        The training covariate data.
 
-    y: array-like
-        The training response data.
-
-    est: Estimator
-        The base estimator to be fit. This object is used for preprocessing and computing train/test metrics.
-
-    solver: GlmSolver
-        The solver object for the subproblems.
-
-    tune_iter:
-        TODO
-
-    train: None, array-like
-
-    test: None, array-like
-
-    sample_weight: None, array-like
-        (Optional) The sample weight.
-
-    path_algo: bool
-        Whether or not to use a path algorithm if one is available to the solver.
-
-    solver_init: dict
-        TODO
 
     Yields
     ------
@@ -209,9 +155,59 @@ def get_validation_jobs(X, y, est, solver, tune_iter,
     path_algo = path_algo and solver.has_path_algo
 
     # split/process train data
-    solver_data, eval_data = split_and_process(X=X, y=y, est=est,
-                                               train=train, test=test,
-                                               sample_weight=sample_weight)
+    solver_data, eval_data = split_and_process(**raw_data,  # X,y,sample_weight
+                                               est=est,
+                                               train=train, test=test)
+
+    # setup tuning prameter iterator
+    if path_algo:
+        config_iter = tune_iter.iter_configs_with_pen_path(with_params=True)
+    else:
+        config_iter = tune_iter.iter_configs(with_params=True)
+
+    for tune_idx_outer, tune_configs in enumerate(config_iter):
+
+        yield {'solver_data': solver_data,
+               'solver': solver,
+               'tune_configs': tune_configs,
+               'solver_init': solver_init,
+
+               'path_algo': path_algo,
+               'tune_idx_outer': tune_idx_outer,
+
+               **eval_data
+               }
+
+
+def get_train_jobs(pro_data, raw_data, pre_pro_out,
+                   est, solver, tune_iter,
+                   path_algo=True,
+                   solver_init={}):
+    """
+    Iterates over all jobs for training only tuning.
+
+    Parameters
+    ----------
+
+    Yields
+    ------
+    job_configs: dict
+        TODO
+    """
+
+    # processed data to be passed to the solver
+    solver_data = {**pro_data,
+                   # TODO: bit of an awkward place to put this
+                   'fit_intercept': est.fit_intercept
+                   }
+
+    # setup evaluation data
+    eval_data = {'pre_pro_out': pre_pro_out, 'base_estimator': est}
+    for k in raw_data.keys():
+        eval_data[k + '_train'] = raw_data[k]
+
+    # use a path algo if the solver has one available
+    path_algo = path_algo and solver.has_path_algo
 
     # setup tuning prameter iterator
     if path_algo:
@@ -309,14 +305,13 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
     #########################
 
     # TODO: need to think carefully about processing fit_params_train
-    X_pro, y_pro, sample_weight_pro, pre_pro_out = \
+    pro_data, pre_pro_out = \
         est.preprocess(X=X_train, y=y_train,
                        sample_weight=sample_weight_train,
                        copy=True)
 
     # processed data to be passed to the solver
-    solver_data = {'X': X_pro, 'y': y_pro,
-                   'sample_weight': sample_weight_pro,
+    solver_data = {**pro_data,
 
                    # TODO: bit of an awkward place to put this
                    'fit_intercept': est.fit_intercept

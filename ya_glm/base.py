@@ -15,10 +15,14 @@ from ya_glm.config.utils import is_flavored
 from ya_glm.config.loss import get_loss_config
 from ya_glm.config.constraint import get_constraint_config
 from ya_glm.config.flavor import get_flavor_config
-from ya_glm.solver.default import get_solver, maybe_get_lla
+from ya_glm.config.penalty import get_penalty_config
+from ya_glm.solver.default import get_solver
 from ya_glm.config.base import TunerConfig, safe_get_config
 from ya_glm.tune.backend import run_fit_and_score_jobs
-from ya_glm.tune.combined_tuner import PenaltyPerLossFlavorTuner
+
+# TODO: rename
+from ya_glm.config.blah_penalty import get_flavor_info, set_adaptive_weights
+from ya_glm.solver.LLA import LLA
 
 
 class BaseGlm(BaseEstimator):
@@ -42,8 +46,11 @@ class BaseGlm(BaseEstimator):
     fit_intercept: bool
         Whether or not to fit intercept, which is not penalized.
 
-    solver: str, ya_glm.GlmSolver
+    solver: str, ya_glm.base.GlmSolver
         The solver used to solve the penalized GLM optimization problem. If this is set to 'default' we try to guess the best solver. Otherwise a custom solver can be provided by specifying a GlmSolver object.
+
+    lla: bool, LLASolver
+        Whether or not to use the LLA algorithm for non-convex penalties. If False, will attempt to solve the non-convex problem directly using the solver. If True, the LLA algorithm will be used for non-convex problems using the solver for the subproblems. Note the default LLA algorithm only takes one LLA step. An LLA algorithm object can be provided that specifies the LLA algorithm's behavior.
 
     initializer: str, dict, Estimator
         Specifies the initial estimator to use for penalties that require an initial estimator e.g. adaptive and non-convex LLA penalties. If str, must be one of ['default', 'zero']. If init='default', will infer a reasonable default penalty to use. If 'init'='zero', will initialize from zero. If an estimator is provided, will fit the estimator to the training data (unless it is already fit) then use the estimtor's fit coefficient. If a dict is provided, it must include the key 'coef' for the initializer coefficient.
@@ -79,6 +86,7 @@ class BaseGlm(BaseEstimator):
                  penalty=None, constraint=None,
                  standardize=True, fit_intercept=True,
                  solver='default',
+                 lla=True,
                  initializer='default',
                  inferencer=None
                  ):
@@ -107,7 +115,15 @@ class BaseGlm(BaseEstimator):
         is_tuner: bool
             Yes this is a tuning object
         """
-        raise NotImplementedError
+        raise NotImplementedError("Subclass should overwrite")
+
+    def get_unflavored_tunable(self):
+        """
+        Returns an unflavored and tunable version of this estimator. If this estimator is not tunable, will return the cross-validation version by default.
+
+        This should copy all data.
+        """
+        raise NotImplementedError("Subclass should overwrite")
 
     def get_initializer(self, X, y, pre_pro_out, sample_weight=None):
         """
@@ -129,10 +145,10 @@ class BaseGlm(BaseEstimator):
 
         Output
         ------
-        init_data_pro, init_est
+        init_data, init_est
 
-        init_data_pro: None, dict
-            The processed initialization data.
+        init_data: None, dict
+            The initialization data.
 
         init_est: None, Estimator
             The initializer estimator if one was fit.
@@ -141,45 +157,56 @@ class BaseGlm(BaseEstimator):
         ######################################
         # Initializer for flavored penalties #
         ######################################
-        init_data_pro = None
-        init_est = None
 
-        if is_flavored(self.penalty):
+        flavor = get_flavor_info(self.penalty)
+
+        # flavored penalties may require fitting an initializer
+        if flavor is not None:
 
             ##############################################
             # Get initializer coefficient/intercept data #
             ##############################################
-            init_est = None
 
             if is_str_and_matches(self.initializer, 'default'):
-                # get the default initial estimator for this flavor
-                init = get_flavor_config(self.penalty.flavor)\
-                    .get_default_init(est=self)
-            else:
-                init = self.initializer
 
-            # user provided initial values
-            if isinstance(init, dict):
-                init_data = deepcopy(self.initializer)
+                # by default adaptive and non-convex LLA algorithms
+                # use the unflavored estimator as a default initializer
+                if flavor == 'adaptive' or self.lla:
+                    init_est = self.get_unflavored_tunable()
+                    yes_pro_pro_init = True
+                else:
+                    init_data = None
+                    init_est = None
 
             # initialize at zero
-            elif is_str_and_matches(init, 'zero'):
+            elif is_str_and_matches(self.initializer, 'zero'):
                 coef_shape, intercept_shape = get_shapes_from(X=X, y=y)
-
                 coef = np.zeros(coef_shape)
-
                 if intercept_shape[0] == 0:
                     intercept = 0
                 else:
                     intercept = np.zeros(intercept_shape)
 
                 init_data = {'coef': coef, 'intercept': intercept}
+                yes_pro_pro_init = False
 
-            # initialize from an estimator fit to the data
+            # if initializer is a dict, just return initializer
+            if isinstance(self.initializer, dict):
+                init_data = self.initializer
+
+                # check whether or not we should apply the preprocessing
+                # to the init data
+                yes_pro_pro_init = init_data.get('pre_pro', True)
+
+            # user provided an initial estimator
             else:
+                init_est = self.initialzier
+                yes_pro_pro_init = True
 
+            # Possibly fit initial estimator
+            if init_est is not None:
                 # possibly fit this estimator if it has not already been fit
-                init_est = fit_if_unfitted(init, X=X, y=y,
+                init_est = fit_if_unfitted(init_est, X=X, y=y,
                                            sample_weight=sample_weight)
 
                 coef, intercept = get_coef_and_intercept(init_est, copy=True,
@@ -187,15 +214,21 @@ class BaseGlm(BaseEstimator):
 
                 init_data = {'coef': coef, 'intercept': intercept}
 
-            # process initializer data and return it
-            init_data_pro = \
-                process_init_data(init_data=init_data,
-                                  pre_pro_out=pre_pro_out)
+            # possibly preprocess the init data
+            if init_data is not None and yes_pro_pro_init:
+                init_data = \
+                    process_init_data(init_data=init_data,
+                                      pre_pro_out=pre_pro_out)
 
             # adaptive Lasso may need to know the number of training samples
-            init_data_pro['n_samples'] = X.shape[0]
+            if flavor == 'adaptive':
+                init_data['n_samples'] = X.shape[0]
 
-        return init_data_pro, init_est
+            return init_data, init_est
+
+        else:
+            init_data, init_est = None, None
+            return init_data, init_est
 
     def _validate_data(self, X, y, sample_weight=None, accept_sparse=True):
         """
@@ -254,16 +287,19 @@ class BaseGlm(BaseEstimator):
 
         Output
         ------
-        X_pro, y_pro, pre_pro_out
+        pro_data, pre_pro_out
 
-        X_pro: array-like, shape (n_samples, n_features)
-            The possibly transformed covariate data.
+        pro_data: dict
+            The processed data. Has keys
 
-        y_pro: array-like, shape (n_samples, )
-            The possibly transformed response data.
+            X: array-like, shape (n_samples, n_features)
+                The possibly transformed covariate data.
 
-        sample_weight_pro: None or array-like,  shape (n_samples,)
-            The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
+            y: array-like, shape (n_samples, )
+                The possibly transformed response data.
+
+            sample_weight: None or array-like,  shape (n_samples,)
+                The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
 
         pro_pro_out: dict
             Data from preprocessing e.g. X_center, X_scale.
@@ -295,11 +331,100 @@ class BaseGlm(BaseEstimator):
 
         out.update(y_out)
 
-        return X, y, sample_weight, out
+        pro_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
+        return pro_data, out
 
-    def _fit_from_configs(self, configs, solver, pre_pro_out, solver_init,
-                          X, y, X_pro, y_pro,
-                          sample_weight=None, sample_weight_pro=None):
+    def setup_and_prefit(self, X, y, sample_weight):
+        """
+        TODO document
+
+        Output
+        ------
+        pro_data, raw_data, pre_pro_out,
+            configs, solver, solver_init, inferencer
+        """
+
+        #################
+        # preprocessing #
+        #################
+
+        # basic formatting check
+        X, y, sample_weight = self._validate_data(X=X, y=y,
+                                                  sample_weight=sample_weight)
+
+        raw_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
+
+        # run any prefitting inference
+        inferencer = self.run_prefit_inference(**raw_data)
+
+        # preproceess X, y
+        pro_data, pre_pro_out = self.preprocess(**raw_data, copy=True)
+
+        # possibly fit initializer estimator for flavored penalties
+        # that need one
+        init_data, init_est = \
+            self.get_initializer(X=X, y=y,
+                                 pre_pro_out=pre_pro_out,
+                                 sample_weight=sample_weight)
+
+        # store init_est here to be saved later in _pre_fit
+        pre_pro_out['init_est'] = init_est
+
+        #################
+        # setup configs #
+        #################
+
+        # setup loss, constraint and penalty configs
+        # TODO: copy or clone?
+        configs = {'loss': get_loss_config(self.loss),
+                   'constraint': get_constraint_config(self.constraint),
+                   'penalty': get_penalty_config(self.penalty)
+                   }
+        # TODO: somewhere run get_flavor_config to setup penalty flavor from string
+
+        # maybe setup adaptive weights and optimzation initialization
+        flavor = get_flavor_info(configs['penalty'])
+        if flavor == 'adaptive':
+            configs['penalty'] = \
+                set_adaptive_weights(penalty=configs['penalty'],
+                                     init_data=init_data)
+
+        ################
+        # setup solver #
+        ################
+
+        if self.lla:
+
+            # default LLA solver
+            if type(self.lla) == bool:
+                solver = LLA(n_steps=1)
+            else:
+                solver = self.lla  # TODO: should there be a copy or clone?
+
+            # set subproblem solver
+            glm_solver = get_solver(self.solver)  # base
+            solver.set_sp_solver(glm_solver)
+
+            # set initialization
+            solver.set_fixed_init(init_data)
+
+        else:
+            # TODO: copy or clone?
+            solver = get_solver(self.solver)
+
+        # initialization for the solver
+        if flavor == 'non_convex' and not self.lla:
+            # non-convex direct solution
+            solver_init = init_data
+        else:
+            solver_init = None
+        # TODO: perhaps make this also the initializer for convex solvers?
+
+        return pro_data, raw_data, pre_pro_out, \
+            configs, solver, solver_init, inferencer
+
+    def _fit_from_configs(self, pro_data, raw_data, configs, solver,
+                          pre_pro_out, solver_init=None):
         """
         TODO: document
         """
@@ -309,10 +434,8 @@ class BaseGlm(BaseEstimator):
         ##########
 
         # setup solver
-        solver.setup(X=X_pro,
-                     y=y_pro,
-                     fit_intercept=self.fit_intercept,
-                     sample_weight=sample_weight_pro,
+        solver.setup(fit_intercept=self.fit_intercept,
+                     **pro_data,  # X, y, sample_weight
                      **configs,  # loss, penalty, constraint
                      )
 
@@ -329,8 +452,7 @@ class BaseGlm(BaseEstimator):
                       opt_info=opt_info)
 
         # run any post fitting statistical inference e.g. estimate number of DoF
-        self.run_postfit_inference(X=X, y=y,
-                                   sample_weight=sample_weight)
+        self.run_postfit_inference(**raw_data)  # X, y, sample_weight
 
         return self
 
@@ -445,8 +567,7 @@ class BaseGlm(BaseEstimator):
         # TODO: for multi-response our coef_ is the transpose of sklearn's
         # convention. I think our choice of (n_features, n_responses)
         # Do we want to be stick with this choice?
-        z = safe_sparse_dot(X, self.coef_,  # .T
-                            dense_output=True)
+        z = safe_sparse_dot(X, self.coef_, dense_output=True)
 
         if hasattr(self, 'intercept_') and self.intercept_ is not None:
             z += self.intercept_
@@ -545,6 +666,7 @@ class TunedGlm(BaseGlm):
                  standardize=True,
                  fit_intercept=True,
                  solver='default',
+                 lla=True,
                  initializer='default',
                  inferencer=None,
 
@@ -559,70 +681,6 @@ class TunedGlm(BaseGlm):
     @property
     def _is_tuner(self):
         return True
-
-    def _prefit_and_setup_tuning(self, X, y, sample_weight=None):
-        """
-        TODO: document
-
-        Parameters
-        ----------
-
-        Output
-        ------
-        tuner, X_pro, y_pro, sample_weight_pro, pre_pro_out,
-        solver, solver_init, inferencer
-        """
-
-        # run any prefitting inference
-        inferencer = self.run_prefit_inference(X, y, sample_weight)
-
-        # preproceess X, y
-        X_pro, y_pro, sample_weight_pro, pre_pro_out = \
-            self.preprocess(X=X, y=y, sample_weight=sample_weight, copy=True)
-
-        # possibly fit initializer estimator for flavored penalties
-        #  that need one
-        init_data_pro, init_est = \
-            self.get_initializer(X=X, y=y,
-                                 pre_pro_out=pre_pro_out,
-                                 sample_weight=sample_weight)
-
-        # store init_est here to be saved later in _pre_fit
-        pre_pro_out['init_est'] = init_est
-
-        # initialize config objects
-        configs, solver, solver_init = \
-            safe_initialize_configs(solver=self.solver,
-                                    loss=self.loss,
-                                    penalty=self.penalty,
-                                    constraint=self.constraint,
-                                    init_data=init_data_pro)
-
-        ################
-        # Setup tuning #
-        ################
-
-        # pull out flavor config from the penalty object
-        if is_flavored(configs['penalty']):
-            configs['flavor'] = safe_get_config(configs['penalty']).flavor
-
-        # initialize tuning objects for each config
-        for k in configs.keys():
-            # if this is not already a tuner object, call the .tune() method
-            if configs[k] is not None and  \
-                    not isinstance(configs[k], TunerConfig):
-
-                # create tuning object by default for all provided confings
-                configs[k] = configs[k].tune()
-
-        # setup tuning parameter grids from the data
-        tuner = PenaltyPerLossFlavorTuner(**configs)
-        tuner.set_tuning_values(X=X_pro, y=y_pro,
-                                fit_intercept=self.fit_intercept,
-                                sample_weight=sample_weight_pro)
-
-        return tuner, X_pro, y_pro, sample_weight_pro, pre_pro_out,\
-            solver, solver_init, inferencer
 
     def _get_select_metric(self):
         """
@@ -666,102 +724,3 @@ class TunedGlm(BaseGlm):
                                       n_jobs=self.n_jobs,
                                       verbose=self.verbose,
                                       pre_dispatch=self.pre_dispatch)
-
-
-def safe_initialize_configs(solver, loss, penalty=None, constraint=None,
-                            init_data=None):
-    """
-    Safely initializes the solver and configs where some of the configs might be ConfigTuner objects. Otherwise the same as initialize_configs().
-
-    """
-
-    configs = {'loss': loss, 'penalty': penalty, 'constraint': constraint}
-
-    # pull out base configs from any tuning config that was provided
-    tuners = {}
-    keys = list(configs.keys())
-    for k in keys:
-        if isinstance(configs[k], TunerConfig):
-            tuners[k] = configs.pop(k)
-
-    # setup tuning configs
-    configs_out, solver, init_values = \
-        initialize_configs(solver=solver, init_data=init_data,
-                           **configs,
-                           **{k: v.base for (k, v) in tuners.items()})
-
-    # put base initialized base config into tuning config
-    for k, v in tuners.items():
-        configs_out[k] = tuners[k].set_params(base=configs_out[k])
-
-    return configs_out, solver, init_values
-
-
-def initialize_configs(solver, loss, penalty=None, constraint=None,
-                       init_data=None):
-    """
-    Initializers the solver and the loss, constraint, penalty, and penalty flavor configs. For example, this computes the adaptive weights from the initial coefficient for adaptive penalties.
-
-    Parameters
-    ----------
-    solver: str, GlmSolver
-        The desired Glm solver.
-
-    loss: str, LossConfig
-        The desired loss.
-
-    penalty:  str, PenaltyConfig
-        The desired penalty
-
-    constraint: str, ConstraintConfig
-        The desired constraint
-
-    init_data: dict
-        The preprocessed initializer data e.g. including the initializer coefficient.
-
-    Output
-    ------
-    configs, solver, init_vals
-
-    configs: dict
-        The setup loss, constraint and penalty config objects. E.g. the penalty's adaptive weights are set here.
-
-    solver: GlmSolver
-        The configured Glm solver.
-
-    solver_init: dict or None
-        The values at which we should start the optimization problem.
-    """
-    assert type(penalty) != str, "TODO: need to add this"
-
-    # optimization initialization
-    # TODO-THINK-THROUGH: currently only used for NonConvexDirect
-    # the logic of this code is a bit hard to follow at first glance
-    solver_init = {}
-
-    configs = {}
-    configs['loss'] = get_loss_config(loss)
-    configs['constraint'] = get_constraint_config(constraint)
-
-    # possibly set initializers
-    if is_flavored(penalty):
-        configs['penalty'] = safe_get_config(penalty.flavor).\
-            get_initialized_penalty(penalty=penalty,
-                                    init_data=init_data)
-
-        if safe_get_config(penalty.flavor).needs_separate_solver_init:
-            solver_init = {'coef_init': penalty.coef_init_,
-                           'intercept_init': penalty.intercept_init_}
-
-    else:
-        configs['penalty'] = penalty
-
-    # get the GLM solver
-    solver = get_solver(solver=solver,
-                        **configs)
-
-    # possibly get the LLA algorithm if needed
-    solver = maybe_get_lla(penalty=configs['penalty'],
-                           glm_solver=solver)
-
-    return configs, solver, solver_init
