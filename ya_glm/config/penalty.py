@@ -17,12 +17,6 @@ class NoPenalty(PenaltyConfig):
     """
     Represents no penalty.
     """
-    def set_tuning_values(self, *args, **kws):
-        """
-        This of course does nothing
-        """
-        pass
-
     def is_smooth(self):
         return True
 

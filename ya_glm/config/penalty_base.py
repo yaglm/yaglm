@@ -26,13 +26,6 @@ class PenaltyConfig(Config):
         """
         return False  # false by default because most penalties are not!
 
-    def set_tuning_values(self,  X, y, loss, fit_intercept=True,
-                          sample_weight=None):
-        """
-        Sets the tuning parameter sequence for a given dataset.
-        """
-        raise NotImplementedError
-
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
                         sample_weight=None):
         """
