@@ -1,6 +1,7 @@
 import numpy as np
 from copy import deepcopy
 from numbers import Number
+from itertools import islice
 
 from sklearn.exceptions import NotFittedError
 from sklearn.utils.validation import check_is_fitted
@@ -214,3 +215,165 @@ def fit_if_unfitted(estimator, X, y=None, **fit_params):
     if not is_fitted(estimator):
         return clone(estimator).fit(X, y, **fit_params)
     return estimator
+
+
+def delete_fit_attrs(est):
+    """
+    Removes any fit attribute from an estimator.
+    """
+    fit_keys = [k for k in est.__dict__.keys() if k.endswith('_')]
+    for k in fit_keys:
+        del est.__dict__[k]
+    return est
+
+
+def is_str_and_matches(check, value, lower=True):
+    """
+    Checks if an input is a string and if it matches a given value.
+
+    Parameters
+    ----------
+    check:
+        The object to check.
+
+    value: str
+        The value we want to match.
+
+    lower: bool
+        Lower case both check and value before matching.
+    """
+
+    if not isinstance(check, str):
+        return False
+
+    else:
+        if lower:
+            return check.lower() == value.lower()
+        else:
+            return check == value
+
+
+def get_shapes(n_features, n_responses):
+    """
+    Gets the shapes of the coefficeint and intercept.
+
+    Parameters
+    ----------
+    n_features: int
+        Number of features.
+
+    n_responses: int
+        Number of responses
+
+    Output
+    ------
+    coef_shape, intercept_shape
+
+    coef_shape: tuple
+        Shape of the coefficient.
+
+    intercept_shape: tuple
+        Shape of the intercept.
+    """
+    if n_responses == 1:
+        coef_shape = (n_features, )
+        intercept_shape = (0, )
+    else:
+        coef_shape = (n_features, n_responses)
+        intercept_shape = (n_responses, )
+
+    return coef_shape, intercept_shape
+
+
+def get_shapes_from(X, y):
+    """
+    Gets the shapes of the coefficeint and intercept.
+
+    Parameters
+    ----------
+    X: array-like, shape (n_samples, n_features)
+        The covariate matrix.
+
+    y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+        The response data.
+
+    Output
+    ------
+    coef_shape, intercept_shape
+
+    coef_shape: tuple
+        Shape of the coefficient.
+
+    intercept_shape: tuple
+        Shape of the intercept.
+    """
+    n_features = X.shape[1]
+
+    if y.ndim == 1:
+        n_respones = 1
+    else:
+        n_respones = y.shape[1]
+
+    return get_shapes(n_features=n_features, n_responses=n_respones)
+
+
+def get_from(iterable, idx):
+    """
+    Selects an index from an iterable that may be a generator without going through the entire generator.
+    Acts like list(iterable)[idx]
+    """
+    try:
+        return next(islice(iterable, idx, idx + 1))
+    except StopIteration:
+        raise ValueError("idx={} was out of range for iterable".format(idx))
+
+
+def count_support(x, zero_tol='machine'):
+    """
+    Counts the number of non-zero elements in an array.
+    Parameters
+    ----------
+    x: array-like
+        The array whose support we want to count.
+
+    zero_tol: float, str
+        Tolerance for declaring a small value equal to zero. If zero_tol=='machine' then we use the machine precision i.e. np.finfo(x.dtype).eps.
+
+    Output
+    ------
+    n_nonzero: int
+        Number of non zero elements of x.
+    """
+
+    _x = np.array(x)
+    if zero_tol == 'machine':
+        zero_tol = np.finfo(_x.dtype).eps
+
+    return (abs(_x) > zero_tol).sum()
+
+
+def lb_transform_to_indices(lb, y):
+    """
+    Transforms the dummay variable encoding output by a LabelBinarizer to integers. Safely returns a numpy vector even if the binerizer returns a sparse output.
+
+    Essentially just
+
+    lb.fit_transform(y).argmax(axis=1),
+
+    but with additional numpy converstion.
+
+
+    Parameters
+    ----------
+    lb: sklearn.preprocessing.LabelBinarizer
+        The fit label binarizer.
+
+    y: array-like
+        The target values to transform
+
+    Output
+    ------
+    y_idxs: array-like of ints
+        The class label indices.
+    """
+    return np.array(lb.fit_transform(y).argmax(axis=1)).reshape(-1)

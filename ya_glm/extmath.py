@@ -1,7 +1,29 @@
 from sklearn.utils.sparsefuncs import mean_variance_axis
 from scipy.sparse import issparse
-
+from scipy.special import loggamma
 import numpy as np
+
+
+def log_binom(n, k):
+    """
+    log (n choose k)
+
+    Parameters
+    ----------
+    n, k: int
+
+    Output
+    ------
+    log_binom: float
+    """
+    return loggamma(n + 1) - loggamma(k + 1) - loggamma(n - k + 1)
+
+# TODO: add this test
+# import numpy as np
+# from scipy.special import binom
+# n = 10
+# k = 3
+# abs(np.log(binom(n, k)) - log_binom(n, k)) < 1e-8
 
 
 def weighted_mean_std(X, sample_weight=None, ddof=0):

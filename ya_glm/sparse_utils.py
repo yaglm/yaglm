@@ -1,5 +1,5 @@
 from scipy.sparse.linalg import LinearOperator, aslinearoperator
-from scipy.sparse import diags, issparse
+from scipy.sparse import diags, issparse, vstack, hstack
 from scipy.sparse.linalg import norm as norm_sparse
 from numpy.linalg import norm
 
@@ -15,16 +15,92 @@ def safe_norm(X, ord=None, axis=0):
         return norm(X, ord=ord, axis=axis)
 
 
-def is_sparse_or_lin_op(a):
-    return issparse(a) or isinstance(a, LinearOperator)
-
-
 def safe_hstack(tup):
 
+    if all(issparse(t) for t in tup):
+        # if all sparse, use scipy.sprase.hstack
+        return hstack(tup)
+
     if any(is_sparse_or_lin_op(t) for t in tup):
+        # If a mix of sparse, dense and or linear operator
+        # use linear operator Hstack
         return HStacked(tup)
     else:
+        # if no sparse or linear operator use np.hstack
         return np.hstack(tup)
+
+
+def safe_vstack(tup):
+
+    if all(issparse(t) for t in tup):
+        # if all sparse, use scipy.sprase.vstack
+        return vstack(tup)
+
+    if any(is_sparse_or_lin_op(t) for t in tup):
+        # If a mix of sparse, dense and or linear operator
+        # use linear operator Vstack
+        raise NotImplementedError("TODO: add this below")
+    else:
+        # if no sparse or linear operator use np.vstack
+        return np.vstack(tup)
+
+
+def safe_row_scaled(mat, s):
+    # just scale normally for sparse matrices or numpy arraies
+    if issparse(mat) or not isinstance(mat, LinearOperator):
+        return diags(s) @ mat
+
+    else:
+        # if is a linear operator use RowScaled
+        return RowScaled(mat=mat, s=s)
+
+
+def safe_col_scaled(mat, s):
+    # just scale normally for sparse matrices or numpy arraies
+    if issparse(mat) or not isinstance(mat, LinearOperator):
+        return mat @ diags(s)
+
+    else:
+        # if is a linear operator use ColScaled
+        return ColScaled(mat=mat, s=s)
+
+
+def center_scale_sparse(X, X_offset=None, X_scale=None):
+    """
+    Returns a linear operator representing a centered and scaled matrix
+
+    X_cent_scale = (X - X_offset) @ diags(1 / X_scale)
+
+    Output
+    ------
+    X_cent_scale: LinearOperator
+    """
+    if X_offset is None and X_scale is None:
+        return X
+
+    if X_offset is not None and X_scale is not None:
+        X_offset_scale = X_offset / X_scale
+        X_offset_scale = np.array(X_offset_scale).reshape(-1, 1)
+
+    elif X_offset is not None:
+        X_offset_scale = X_offset
+
+    else:
+        X_offset_scale = None
+
+    if X_scale is not None:
+        X_ = X @ diags(1 / X_scale)
+    else:
+        X_ = X
+
+    if X_offset_scale is not None:
+        return centered_operator(X=X_, center=X_offset_scale)
+    else:
+        return X_
+
+
+def is_sparse_or_lin_op(a):
+    return issparse(a) or isinstance(a, LinearOperator)
 
 
 class HStacked(LinearOperator):
@@ -84,54 +160,6 @@ class OnesOuterVec(LinearOperator):
 
 def centered_operator(X, center):
     return aslinearoperator(X) - OnesOuterVec(X.shape[0], center)
-
-
-def center_scale_sparse(X, X_offset=None, X_scale=None):
-    """
-    Returns a linear operator representing a centered and scaled matrix
-
-    X_cent_scale = (X - X_offset) @ diags(1 / X_scale)
-
-    Output
-    ------
-    X_cent_scale: LinearOperator
-    """
-    if X_offset is None and X_scale is None:
-        return X
-
-    if X_offset is not None and X_scale is not None:
-        X_offset_scale = X_offset / X_scale
-        X_offset_scale = np.array(X_offset_scale).reshape(-1, 1)
-
-    elif X_offset is not None:
-        X_offset_scale = X_offset
-
-    else:
-        X_offset_scale = None
-
-    if X_scale is not None:
-        X_ = X @ diags(1 / X_scale)
-    else:
-        X_ = X
-
-    if X_offset_scale is not None:
-        return centered_operator(X=X_, center=X_offset_scale)
-    else:
-        return X_
-
-
-def safe_row_scaled(mat, s):
-    if is_sparse_or_lin_op(mat):
-        return RowScaled(mat=mat, s=s)
-    else:
-        return diags(s) @ mat
-
-
-def safe_col_scaled(mat, s):
-    if is_sparse_or_lin_op(mat):
-        return ColScaled(mat=mat, s=s)
-    else:
-        return mat @ diags(s)
 
 
 class RowScaled(LinearOperator):
