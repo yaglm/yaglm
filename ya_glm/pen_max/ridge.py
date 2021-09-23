@@ -2,7 +2,7 @@ import numpy as np
 from ya_glm.linalg_utils import smallest_sval
 
 
-def get_ridge_pen_max(X, y, loss, penalty,
+def get_ridge_pen_max(X, y, loss, weights,
                       fit_intercept=True, sample_weight=None,
                       targ_ubd=1, norm_by_dim=True):
     """
@@ -20,8 +20,8 @@ def get_ridge_pen_max(X, y, loss, penalty,
     loss:
         A loss config object.
 
-    penalty:
-        A penalty config object.
+    weights: None, array-like
+        (Optional) ridge weights.
 
     fit_intercept: bool
         Whether or not to fit an intercept.
@@ -38,7 +38,7 @@ def get_ridge_pen_max(X, y, loss, penalty,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
                                  targ_ubd=targ_ubd,
-                                 weights=penalty.ridge_weights,
+                                 weights=weights,
                                  norm_by_dim=norm_by_dim)
 
     elif loss.name == 'log_reg':
@@ -46,7 +46,7 @@ def get_ridge_pen_max(X, y, loss, penalty,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
                                  targ_ubd=targ_ubd,
-                                 weights=penalty.ridge_weights,
+                                 weights=weights,
                                  norm_by_dim=norm_by_dim)
 
     else:

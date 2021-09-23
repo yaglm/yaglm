@@ -1,35 +1,35 @@
 import numpy as np
 
 from ya_glm.linalg_utils import leading_sval
-from ya_glm.opt.glm_loss.get import get_glm_loss
+from ya_glm.opt.glm_loss.from_config import get_glm_loss_func
 
 
-def get_pen_max(X, y, loss,
-                penalty, fit_intercept, sample_weight=None):
+def get_lasso_pen_max(X, y, loss, fit_intercept, weights=None,
+                      sample_weight=None,
+                      multi_task=False, groups=None, nuc=False):
+
+    # make sure only one special thing is provided
+    assert sum([multi_task, groups is not None, nuc]) <= 1
 
     # compute the gradient of the loss function when
     #  the coefficeint is zero
-    loss_func = get_glm_loss(X=X, y=y, loss=loss,
-                             fit_intercept=fit_intercept,
-                             sample_weight=sample_weight)
+    loss_func = get_glm_loss_func(config=loss, X=X, y=y,
+                                  fit_intercept=fit_intercept,
+                                  sample_weight=sample_weight)
 
     grad = loss_func.grad_at_coef_eq0()
 
-    weights = penalty.lasso_weights
-
-    pen_kind = penalty.get_penalty_kind()
-
-    if pen_kind == 'entrywise':
-        return lasso_max(grad, weights=weights)
-
-    elif pen_kind == 'multi_task':
+    if multi_task:
         return mult_task_lasso_max(grad, weights=weights)
 
-    elif pen_kind == 'group':
-        return group_lasso_max(grad, groups=penalty.groups, weights=weights)
-
-    elif pen_kind == 'nuc':
+    elif nuc:
         return nuclear_norm_max(grad, weights=weights)
+
+    elif groups is not None:
+        return group_lasso_max(grad, groups=groups, weights=weights)
+
+    else:
+        return lasso_max(grad, weights=weights)
 
 
 def lasso_max(grad, weights=None):
