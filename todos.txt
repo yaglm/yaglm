@@ -1,24 +1,60 @@
-Need to do
-----------
-
+General
+-------
 - testing testing testing
 - documentation documentation documentation
 - speed comparison of opt module
 - compare fits to sklearn baseline
 
+
+Losses to add
+-------------
+- Cox
 - Gamma
-- max pen val for Tikhonov
-- total variation CV and max pen val
+- Hindge
+- DWD
+- smooth quantile
 
-- 1se rule for ENet
 
-Eventualy
----------
-- cox
-- cv over other parameters with path algorithms
-- constraints: positive, simplex
+Penalties to add
+----------------
+- group lasso default weights
+- (long run) group lasso SVD preprocessing
+- add multiple overlapping penalties (e.g. sparse group, sparse fused, elastic net, etc)
+- infimal sum penalties
+
+
+Linear regression noise estimates
+---------------------------------
+- finish adding natural and organic lasso
+- implement for multiple responses
+- (long run) perhaps add some methods for other types of penalties
+- communicate the base estimator to the Inferencer object.
+
+Degrees of freedom
+------------------
+- add DoF estimators for other penalties: group lasso, generalized Lasso, exclusive lasso, nuclear norm
+- We currently estimate DoFs using the raw data even though we fit on the processed (standardized data). Think through if this messes anything up?
+- add alternative DoF estimators for SCAD
+- addd DoF simulations
+
+
+Tuning
+------
+- tuning framework for multiple penalties
+- re add pen_val_max for ridge
+- max pen val for: generalized ridge, generalized Lasso
+- Generalized CV
+- 1se rule for multiple parameters (e.g. elastic net)
+- add better print progress for tuning in parallel e.g. see https://github.com/scikit-learn/scikit-learn/blob/2beed55847ee70d363bdbfe14ee4401438fba057/sklearn/model_selection/_validation.py#L454
+
+
+Solvers
+-------
+- probably make solvers use update_weights() and update_pen_val() instead of update_penalty()
+- re-add cvxpy backend
+- re-add andersonCD backend
+- re-add Linear and Quadartic program solvers for quantile
 - bulid coordinate descent framework (e.g. based on https://arxiv.org/abs/1410.1386)
-- for cv_scorer figure out how to have custom fit_metrics (e.g. for n_nonzero) instead of the ugly train/test
 
-- add better print progress for cv_run_path in parallel e.g. see https://github.com/scikit-learn/scikit-learn/blob/2beed55847ee70d363bdbfe14ee4401438fba057/sklearn/model_selection/_validation.py#L454
+
 
