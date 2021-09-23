@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from ya_glm.config.base import Config, ManualTunerMixin, safe_get_config
+from ya_glm.config.base import Config, ManualTunerMixin
 from ya_glm.autoassign import autoassign
 from ya_glm.utils import is_str_and_matches, delete_fit_attrs
 
@@ -337,7 +337,7 @@ class NonConvexLLA(ManualTunerMixin, FlavorConfig):
 
 def get_flavor_config(config):
     """
-    Gets the flavor config object. If a tuned flavor is provided this will return the base flavor config.
+    Gets the flavor config object.
 
     Parameters
     ----------
@@ -350,7 +350,7 @@ def get_flavor_config(config):
         The flavor config object.
     """
     if type(config) != str:
-        return safe_get_config(config)
+        return config
     else:
         return flavor_str2obj[config.lower()]
 

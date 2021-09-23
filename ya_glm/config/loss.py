@@ -1,4 +1,4 @@
-from ya_glm.config.base import Config, ManualTunerMixin, safe_get_config
+from ya_glm.config.base import Config, ManualTunerMixin
 
 
 class LossConfig(Config):
@@ -186,7 +186,7 @@ class Multinomial(LossConfig):
 
 def get_loss_config(config):
     """
-    Gets the loss config object. If a tuned loss is provided this will return the base loss config.
+    Gets the loss config object.
 
     Parameters
     ----------
@@ -199,7 +199,7 @@ def get_loss_config(config):
         The loss config object.
     """
     if type(config) != str:
-        return safe_get_config(config)
+        return config
     else:
 
         return loss_str2obj[config.lower()]

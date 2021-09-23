@@ -1,4 +1,4 @@
-from ya_glm.config.base import Config, safe_get_config
+from ya_glm.config.base import Config
 from ya_glm.autoassign import autoassign
 
 
@@ -89,7 +89,7 @@ class Rank(ConstraintConfig):
 
 def get_constraint_config(config):
     """
-    Gets the constraint config object. If a tuned constrainted is provided this will return the base constraint config.
+    Gets the constraint config object.
 
     Parameters
     ----------
@@ -102,7 +102,7 @@ def get_constraint_config(config):
         The constraint config object.
     """
     if type(config) != str:
-        return safe_get_config(config)
+        return config
     else:
         return constraint_str2obj[config.lower()]
 
