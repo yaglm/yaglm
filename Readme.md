@@ -24,6 +24,9 @@ python setup.py install
 
 # Examples
 
+`ya_glm` should feel a lot like sklearn -- particularly [LassoCV](https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LassoCV.html). The major difference is that we make extensive use of config objects to specify the loss, penalty, penalty flavor, constraint, and solver.
+
+
 ```python
 from ya_glm.toy_data import sample_sparse_lin_reg
 
