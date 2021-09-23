@@ -6,8 +6,8 @@ General
 - compare fits to sklearn baseline
 
 
-Losses to add
--------------
+Losses
+------
 - Cox
 - Gamma
 - Hindge
@@ -51,6 +51,7 @@ Tuning
 Solvers
 -------
 - probably make solvers use update_weights() and update_pen_val() instead of update_penalty()
+- add numeric proxs for smooth loss functions (so they work with ADMM)
 - re-add cvxpy backend
 - re-add andersonCD backend
 - re-add Linear and Quadartic program solvers for quantile
