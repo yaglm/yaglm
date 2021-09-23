@@ -8,7 +8,7 @@ from ya_glm.opt.utils import safe_concat
 def solve_lla(sub_prob, penalty_func,
               init, init_upv=None,
               sp_init=None, sp_upv_init=None, sp_other_data=None,
-              transform=abs,
+              transform=abs, objective=None,
               n_steps=1, xtol=1e-4, atol=None, rtol=None,
               tracking_level=1, verbosity=0):
     """
@@ -39,6 +39,9 @@ def solve_lla(sub_prob, penalty_func,
 
     transform: callable
         Transforms the penalized variable into the object whom we apply the concave penalty to.
+
+    objective: None, callable(value, upv) -> float
+        (Optinoal) Evaluates the full objective function.
 
     n_steps: int
         Number of LLA steps to take.
@@ -103,13 +106,10 @@ def solve_lla(sub_prob, penalty_func,
         tracking_level = 1
 
     if tracking_level >= 1:
-        # opt_info['init'] = deepcopy(init)
-        obj, base_loss, pen_loss = \
-            sub_prob.eval_objective(value=current, upv=current_upv)
+        if objective is None:
+            raise ValueError("The objective function must be provided")
 
-        opt_info['base_loss'] = [base_loss]  # the base loss fucntion
-        opt_info['pen_loss'] = [pen_loss]  # penaltyloss
-        opt_info['obj'] = [obj]  # loss + penalty
+        opt_info['obj'] = [objective(value=current, upv=current_upv)]
 
     if tracking_level >= 2:
         if xtol is not None:
@@ -160,13 +160,7 @@ def solve_lla(sub_prob, penalty_func,
 
         # track objective function data
         if tracking_level >= 1:
-
-            obj, base_loss, pen_loss = \
-                sub_prob.eval_objective(value=current, upv=current_upv)
-
-            opt_info['obj'].append(obj)
-            opt_info['base_loss'].append(base_loss)
-            opt_info['pen_loss'].append(pen_loss)
+            opt_info['obj'].append(objective(value=current, upv=current_upv))
 
         # x change criteria
         if xtol is not None:
@@ -239,27 +233,5 @@ class WeightedProblemSolver(object):
         Output
         ------
         solution, upv_solution, other_data
-        """
-        raise NotImplementedError
-
-    def eval_objective(self, value, upv=None):
-        """
-        Parameters
-        ----------
-        value:
-            The current value of the penalized variable.
-
-        upv:
-            (Optional) The current value of the unpenalized variable.
-
-        Output
-        ------
-        obj, base_loss, pen_loss
-
-        base_loss: float
-            The base loss objective function value.
-
-        pen_loss: float
-            The penalized lsos objective function value.
         """
         raise NotImplementedError
