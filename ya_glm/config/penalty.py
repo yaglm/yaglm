@@ -1,15 +1,9 @@
-from functools import partial
-
-from ya_glm.config.base import safe_get_config
-from ya_glm.config.penalty_base import PenaltyConfig, PenSeqTunerMixin, \
-    FlavoredMixin
+from ya_glm.config.base_penalty import PenaltyConfig, WithPenSeqConfig, \
+    WithFlavorPenSeqConfig
 
 from ya_glm.pen_max.ridge import get_ridge_pen_max
 from ya_glm.pen_max.lasso import get_lasso_pen_max
 
-from ya_glm.transforms import entrywise_abs_transform,\
-    multi_task_lasso_transform, group_transform, sval_transform,\
-    fused_lasso_transform, generalized_lasso_transform
 from ya_glm.autoassign import autoassign
 
 
@@ -17,11 +11,11 @@ class NoPenalty(PenaltyConfig):
     """
     Represents no penalty.
     """
-    def is_smooth(self):
-        return True
+    def get_func_info(self):
+        return {'smooth': True, 'proximable': True, 'lin_proximable': True}
 
 
-class Ridge(PenSeqTunerMixin, PenaltyConfig):
+class Ridge(WithPenSeqConfig):
     """
     Ridge penalty with optional weights.
 
@@ -39,6 +33,9 @@ class Ridge(PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, pen_val=1, weights=None): pass
 
+    def get_func_info(self):
+        return {'smooth': True, 'proximable': True, 'lin_proximable': True}
+
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
                         sample_weight=None):
 
@@ -49,11 +46,8 @@ class Ridge(PenSeqTunerMixin, PenaltyConfig):
                                  targ_ubd=1,
                                  norm_by_dim=True)
 
-    def is_smooth(self):
-        return True
 
-
-class GeneralizedRidge(PenSeqTunerMixin, PenaltyConfig):
+class GeneralizedRidge(WithPenSeqConfig):
     """
     Generalized ridge penalty with a matrix transform i.e.
 
@@ -71,15 +65,11 @@ class GeneralizedRidge(PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, pen_val=1, mat=None): pass
 
-    @property
-    def is_proximable(self):
-        return False
-
-    def is_smooth(self):
-        return True
+    def get_func_info(self):
+        return {'smooth': True, 'proximable': False, 'lin_proximable': True}
 
 
-class Lasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
+class Lasso(WithFlavorPenSeqConfig):
     """
     Entrywise non-smooth penalty e.g. a lasso, adapative lasso or entrywise SCAD.
 
@@ -101,6 +91,9 @@ class Lasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
 
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
+
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
 
@@ -109,12 +102,9 @@ class Lasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight)
 
-    def get_non_smooth_transforms(self):
-        return entrywise_abs_transform
-
 
 # TODO: add default weights
-class GroupLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
+class GroupLasso(WithFlavorPenSeqConfig):
     """
     Group penalty e.g. group lasso, adaptive group lasso, or group non-convex.
 
@@ -144,6 +134,9 @@ class GroupLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, groups, pen_val=1, weights=None, flavor=None): pass
 
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
+
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
 
@@ -153,14 +146,11 @@ class GroupLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight)
 
-    def get_non_smooth_transforms(self):
-        return partial(group_transform, groups=self.groups)
-
 
 # TODO: add flavor
 # TODO: add weights -- should we have both entrywise and group?
 # perhaps default gives group lasso weights
-class ExclusiveGroupLasso(PenSeqTunerMixin, PenaltyConfig):
+class ExclusiveGroupLasso(WithFlavorPenSeqConfig):
     """
     Exclusive group lasso.
 
@@ -183,8 +173,11 @@ class ExclusiveGroupLasso(PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, groups, pen_val=1): pass
 
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
-class MultiTaskLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
+
+class MultiTaskLasso(WithFlavorPenSeqConfig):
     """
     The multi-task lasso (including adaptive and non-convex flavors) for multiple response coefficients.
 
@@ -205,8 +198,8 @@ class MultiTaskLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
 
-    def get_non_smooth_transforms(self):
-        return multi_task_lasso_transform
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
@@ -218,7 +211,7 @@ class MultiTaskLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
                                  sample_weight=sample_weight)
 
 
-class NuclearNorm(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
+class NuclearNorm(WithFlavorPenSeqConfig):
     """
     Nuclear norm, adaptive nuclear norm or non-convex nuclear norm.
 
@@ -241,6 +234,9 @@ class NuclearNorm(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
 
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
+
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
 
@@ -250,11 +246,8 @@ class NuclearNorm(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight)
 
-    def get_non_smooth_transforms(self):
-        return sval_transform
 
-
-class FusedLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
+class FusedLasso(WithFlavorPenSeqConfig):
     """
     The graph fused lasso also known as graph trend filtering. The fused lasso (i.e. total-variation 1 penalty) is a special case when the graph is a chain graph. This penalty includes higher order trend filtering and can represent the adaptive an non-convex versions of the graph fused lasso.
 
@@ -297,18 +290,12 @@ class FusedLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
     def __init__(self, pen_val=1, edgelist='chain', order=1,
                  weights=None, flavor=None): pass
 
-    def get_non_smooth_transforms(self):
-        return partial(fused_lasso_transform,
-                       edgelist=self.edgelist,
-                       order=self.order)
-
-    @property
-    def is_proximable(self):
+    def get_func_info(self):
         # TODO: I'm pretty sure TV-1 is proximable
-        return False
+        return {'smooth': False, 'proximable': False, 'lin_proximable': True}
 
 
-class GeneralizedLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
+class GeneralizedLasso(WithFlavorPenSeqConfig):
     """
     The generalized lasso including the adaptive a non-convex versions.
 
@@ -338,12 +325,9 @@ class GeneralizedLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
     @autoassign
     def __init__(self, pen_val=1, mat=None, weights=None, flavor=None): pass
 
-    def get_non_smooth_transforms(self):
-        return partial(generalized_lasso_transform, mat=self.mat)
-
-    @property
-    def is_proximable(self):
-        return False
+    def get_func_info(self):
+        # TODO: I'm pretty sure TV-1 is proximable
+        return {'smooth': False, 'proximable': False, 'lin_proximable': True}
 
 # TODO: add multi-penalties
 # class ElasticNet: pass
@@ -355,7 +339,7 @@ class GeneralizedLasso(FlavoredMixin, PenSeqTunerMixin, PenaltyConfig):
 
 def get_penalty_config(config):
     """
-    Gets the penalty config object. If a tuned penalty is provided this will return the base penalty config.
+    Gets the penalty config object.
 
     Parameters
     ----------
@@ -368,7 +352,7 @@ def get_penalty_config(config):
         The penalty config object.
     """
     if type(config) != str:
-        return safe_get_config(config)
+        return config
     else:
 
         return penalty_str2obj[config.lower()]

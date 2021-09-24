@@ -1,8 +1,8 @@
-from ya_glm.config.base import Config
+from ya_glm.config.base_params import ParamConfig
 from ya_glm.autoassign import autoassign
 
 
-class ConstraintConfig(Config):
+class ConstraintConfig(ParamConfig):
     """
     Base constraint config object.
     """
@@ -93,12 +93,12 @@ def get_constraint_config(config):
 
     Parameters
     ----------
-    config: str, ConstraintConfig, or TunerConfig
+    config: str, ConstraintConfig, TunerConfig or None
         The constraint.
 
     Output
     ------
-    config: ConstraintConfig:
+    config: ConstraintConfig, None
         The constraint config object.
     """
     if type(config) != str:
