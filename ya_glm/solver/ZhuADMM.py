@@ -5,9 +5,9 @@ from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.autoassign import autoassign
 
 from ya_glm.opt.zhu_admm import solve
-from ya_glm.opt.glm_loss.from_config_input_loss import get_glm_input_loss
-from ya_glm.opt.penalty.from_config_mat_and_func import get_mat_and_func
-from ya_glm.opt.penalty.from_config import get_penalty_func
+from ya_glm.opt.from_config.input_loss import get_glm_input_loss
+from ya_glm.opt.from_config.mat_and_func import get_mat_and_func
+from ya_glm.opt.from_config.penalty import get_penalty_func
 
 from ya_glm.config.penalty import NoPenalty
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat, \
@@ -78,6 +78,7 @@ class ZhuADMM(GlmSolverWithPath):
         self.fit_intercept_ = fit_intercept
         # self.penalty_config_ = penalty
         self.coef_shape_, self.intercept_shape_ = get_shapes_from(X=X, y=y)
+        self.n_features_ = X.shape[1]
 
         # and identity respectively
         # get the linear transform matrix and the transformed penalty
@@ -85,7 +86,8 @@ class ZhuADMM(GlmSolverWithPath):
             penalty = NoPenalty()
         self.A2_, self.g2_config_ = get_mat_and_func(config=penalty,
                                                      n_features=X.shape[1])
-        self.g2_ = get_penalty_func(config=self.g2_config_)
+        self.g2_ = get_penalty_func(config=self.g2_config_,
+                                    n_features=self.n_features_)
         # TODO: let g2/A2 be None for the zero function
 
         # set the X transformation matrix
@@ -108,7 +110,8 @@ class ZhuADMM(GlmSolverWithPath):
         # TODO: this only updates the penalty that is applied to the
         # linear transformed coefficient. This is a bit misleading.
         self.g2_config_.set_params(**params)
-        self.g2_ = get_penalty_func(config=self.g2_config_)
+        self.g2_ = get_penalty_func(config=self.g2_config_,
+                                    n_features=self.n_features_)
 
     def solve(self, coef_init=None, intercept_init=None, other_init=None):
         """

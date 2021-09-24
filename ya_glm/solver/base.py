@@ -1,7 +1,7 @@
-from ya_glm.config.base import _Config
+from ya_glm.config.base import Config
 
 
-class GlmSolver(_Config):
+class GlmSolver(Config):
 
     def __init__(self): pass
 
@@ -25,7 +25,7 @@ class GlmSolver(_Config):
 
     def update_penalty(self, **params):
         """
-        Updates the penalty parameters.
+        Updates the penalty value.
         """
         raise NotImplementedError
 

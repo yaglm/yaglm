@@ -2,9 +2,9 @@ from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.autoassign import autoassign
 from ya_glm.opt.fista import solve_fista
 
-from ya_glm.opt.glm_loss.from_config import get_glm_loss_func
-from ya_glm.opt.penalty.from_config import get_penalty_func, wrap_intercept
-from ya_glm.opt.constraint.from_config import get_constraint_func
+from ya_glm.opt.from_config.loss import get_glm_loss_func
+from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept
+from ya_glm.opt.from_config.constraint import get_constraint_func
 
 from ya_glm.opt.base import Sum
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
@@ -71,6 +71,7 @@ class FISTA(GlmSolverWithPath):
         self.is_mr_ = is_multi_response(y)
         self.fit_intercept_ = fit_intercept
         self.penalty_config_ = penalty
+        self.n_features_ = X.shape[1]
 
         #################
         # Loss function #
@@ -102,7 +103,8 @@ class FISTA(GlmSolverWithPath):
                                       "constraint or a penalty, not both.")
 
         elif penalty is not None:
-            self.penalty_func_ = get_penalty_func(config=self.penalty_config_)
+            self.penalty_func_ = get_penalty_func(config=self.penalty_config_,
+                                                  n_features=self.n_features_)
 
         elif constraint is not None:
             self.constraint_func_ = get_constraint_func(config=constraint)
@@ -113,7 +115,8 @@ class FISTA(GlmSolverWithPath):
         """
 
         self.penalty_config_.set_params(**params)
-        self.penalty_func_ = get_penalty_func(config=self.penalty_config_)
+        self.penalty_func_ = get_penalty_func(config=self.penalty_config_,
+                                              n_features=self.n_features_)
 
     def solve(self, coef_init=None, intercept_init=None, other_init=None):
         """

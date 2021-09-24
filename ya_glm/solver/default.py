@@ -1,9 +1,10 @@
 from ya_glm.solver.FISTA import FISTA
 from ya_glm.solver.ZhuADMM import ZhuADMM
 
-solvers_str2obj = {'fista': FISTA(),
-                   'admm': ZhuADMM()}
-avail_solvers = list(solvers_str2obj.keys())
+from ya_glm.config.loss import get_loss_config
+from ya_glm.config.constraint import get_constraint_config
+from ya_glm.config.penalty import get_penalty_config
+from ya_glm.config.base_params import get_base_config
 
 
 def get_solver(solver, loss, penalty=None, constraint=None):
@@ -21,26 +22,35 @@ def get_solver(solver, loss, penalty=None, constraint=None):
     Output
     ------
     solver: GlmSolver
-
     """
+
+    # pull out base config objects
+    loss = get_base_config(get_loss_config(loss))
+    penalty = get_base_config(get_penalty_config(penalty))
+    constraint = get_base_config(get_constraint_config(constraint))
 
     if isinstance(solver, str):
 
-        if solver == 'default':
+        if solver == 'default':  # return default solver
 
+            # extract penalty function information
+            if penalty is not None:
+                pen_info = penalty.get_func_info()
+
+            # use FISTA for smooth loss + proximable penalty;
+            # otherwise fall back on ADMM
             if loss.name == 'quantile' or \
                     (penalty is not None and
-                        not penalty.is_smooth and
-                        not penalty.is_proximable):
+                        not pen_info['smooth'] and
+                        not pen_info['proximable']):
 
                 # default to ADMM for non-smooth losses or penalties that
                 # are neither smooth nor proximable
                 return ZhuADMM()
             else:
-                # TODO: return anderson CD when applicable
                 return FISTA()
 
-        else:
+        else:  # return user specified solver
             if solver.lower() not in avail_solvers:
                 raise ValueError("{} is not a valid solver string input, "
                                  "must be 'default' or one of {}".
@@ -50,3 +60,8 @@ def get_solver(solver, loss, penalty=None, constraint=None):
                 return solvers_str2obj[solver.lower()]
     else:
         return solver
+
+
+solvers_str2obj = {'fista': FISTA(),
+                   'admm': ZhuADMM()}
+avail_solvers = list(solvers_str2obj.keys())
