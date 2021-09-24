@@ -411,6 +411,20 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
 ###############
 
 def get_unflavored(config):
+    """
+    Returns an unflavored version of the penalty config object. If the config is not flavored just retursn the original config; otherwise returns a copy.
+
+    Parameters
+    ----------
+    config: PenaltyConfig
+        The possibly flavored penalty config.
+
+    Output
+    ------
+    config: PenaltyConfig
+        Either the original penalty or an unflavored copy of the penalty.
+
+    """
     if get_flavor_info(config) is not None:
         unflavored = deepcopy(config)
         unflavored.flavor = None
@@ -421,9 +435,17 @@ def get_unflavored(config):
 
 def get_flavor_info(config):
     """
+    Gets the penalty flavor
+
+    Parameters
+    ----------
+    config: PenaltyConfig, TunerConfig
+        The penalty config or a TunerConfig.
+
     Output
     ------
-    flavor_type
+    flavor_type: None, str
+        The flavor type e.g. None, 'adaptive', or 'non_convex'
     """
     base_config = get_base_config(config)
 
