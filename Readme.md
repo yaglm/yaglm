@@ -34,7 +34,7 @@ from ya_glm.GlmTuned import GlmCV, GlmTrainMetric
 
 from ya_glm.config.loss import Huber
 from ya_glm.config.penalty import Lasso, GroupLasso
-from ya_glm.config.flavor import Adaptive, NonConvexLLA
+from ya_glm.config.flavor import Adaptive, NonConvex
 from ya_glm.solver.FISTA import FISTA
 
 from ya_glm.metrics.info_criteria import InfoCriteria
@@ -53,7 +53,7 @@ GlmCV(loss='lin_reg',
 # fit an adaptive lasso tuned via cross-validation
 # initialized with a lasso tuned with cross-validation
 GlmCV(loss='lin_reg',
-      penalty=Lasso(flavor=Adaptive()), 
+      penalty=Lasso(flavor=Adaptive()),
       initializer='default'
       ).fit(X, y)
 
@@ -61,9 +61,9 @@ GlmCV(loss='lin_reg',
 # estimate the noise variance via a ridge-regression method
 GlmTrainMetric(loss='lin_reg',
                penalty=Lasso(flavor=Adaptive()),
-               
-               inferencer=Inferencer(scale=ViaRidge()), # noise variance estimator
-               scorer=InfoCriteria(crit='ebic') # Info criteria
+
+               inferencer=Inferencer(scale=ViaRidge()),  # noise variance estimator
+               scorer=InfoCriteria(crit='ebic')  # Info criteria
                ).fit(X, y)
 
 # fit a huber loss with a group SCAD penalty
@@ -72,12 +72,13 @@ GlmTrainMetric(loss='lin_reg',
 groups = [range(5), range(5, 10)]
 GlmCV(loss=Huber().tune(knot=range(1, 5)),
       penalty=GroupLasso(groups=groups,
-                         flavor=NonConvexLLA())
+                         flavor=NonConvex()),
+      lla=True, # we use the LLA algorithm by default. If lla=False, we would use FISTA
       ).fit(X, y)
 
 # supply your favorite optimization algorithm!
 solver = FISTA(max_iter=100)
-GlmCV(loss='lin_reg', penalty='lasso', solver= solver)
+GlmCV(loss='lin_reg', penalty='lasso', solver=solver)
 ```
 
 
