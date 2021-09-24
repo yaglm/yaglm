@@ -1,7 +1,7 @@
 import numpy as np
 
 from ya_glm.linalg_utils import leading_sval
-from ya_glm.opt.glm_loss.from_config import get_glm_loss_func
+from ya_glm.opt.from_config.loss import get_glm_loss_func
 
 
 def get_lasso_pen_max(X, y, loss, fit_intercept, weights=None,
