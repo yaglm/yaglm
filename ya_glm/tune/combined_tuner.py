@@ -1,7 +1,9 @@
 from copy import deepcopy
 from itertools import product
 
-from ya_glm.autoassign import autoassign
+from ya_glm.config.base_params import get_base_config
+from ya_glm.config.base_penalty import get_flavor_info
+from ya_glm.adaptive import set_adaptive_weights
 
 
 class PenaltyPerLossFlavorTuner:
@@ -33,8 +35,27 @@ class PenaltyPerLossFlavorTuner:
         The penalty TunerCongif config for each loss/flavor setting.
     """
 
-    @autoassign
-    def __init__(self, loss, penalty=None, flavor=None, constraint=None): pass
+    def __init__(self, loss, penalty=None, constraint=None):
+        # setup the tuned version of each config
+        self.loss = loss.tune()
+
+        self.penalty = None
+        self.flavor = None
+        self.constraint = None
+
+        # maybe set the pnealty/flavor
+        if penalty is not None:
+            self.penalty = penalty.tune()
+
+            # pull out flavor
+            base_pen = get_base_config(self.penalty)
+            flavor_kind = get_flavor_info(base_pen)
+            if flavor_kind is not None:
+                self.flavor = base_pen.flavor.tune()
+
+        # maybe set the constraint
+        if constraint is not None:
+            self.constraint = constraint.tume()
 
     def set_tuning_values(self, **penalty_kws):
         """
@@ -61,6 +82,16 @@ class PenaltyPerLossFlavorTuner:
                 # set flavor for this penalty
                 if 'flavor' in lf_configs:
                     pen_tuner.base.set_params(flavor=lf_configs['flavor'])
+
+                ########################
+                # Set adaptive weights #
+                ########################
+                if get_flavor_info(pen_tuner) == 'adaptive':
+                    base_penalty = get_base_config(pen_tuner)
+
+                    # set the adaptive weights in place
+                    set_adaptive_weights(penalty=base_penalty,
+                                         init_data=penalty_kws.get('init_data'))
 
                 # setup tuning parameter sequence
                 pen_tuner.set_tuning_values(loss=lf_configs['loss'],
