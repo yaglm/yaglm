@@ -88,18 +88,39 @@ def run_fit_and_score_jobs(job_configs,
             return results, None
 
 
-def get_cross_validation_jobs(raw_data, fold_iter, est, solver, tune_iter,
+def get_cross_validation_jobs(raw_data, est, solver, tune_iter, fold_iter,
                               path_algo=True, solver_init={}):
     """
     Iterates over all jobs for cross-validation with a double loop. The outer loop splits and processes each fold; the inner loop is over the parameter settings.
 
     Parameters
     ----------
+    raw_data: dict
+        A dict containing the raw data with keys ['X', 'y', 'sample_weights'].
+
+    est: Glm
+        The base estimator. This is used for preprocessing the CV training data and for computing evaluation metrics.
+
+    solver: GlmSolver
+        The solver to use.
+
+    tune_iter:
+        An object that iterates over all the tuning parameter settings e.g. PenaltyPerLossFlavorTuner().
+
+    fold_iter: iterable
+        Iterates over the cv folds e.g. the output of cv.split(X=X, y=y).
+
+
+    path_algo: bool
+        Whether or not to use the solver's path algorithm if it has one available.
+
+    solver_init: dict
+        Initialization for the solver.
 
     Yields
     ------
     job_configs: dict
-        TODO
+        Keyword arguments that will be passed to fit_and_score() through run_fit_and_score_jobs(). If a path algorithm is used, each dict represents one fold/path parameter setting. If a path algorithm is not used this represents one fold and one parameter setting.
     """
 
     # use a path algo if the solver has one available
@@ -139,16 +160,32 @@ def get_validation_jobs(raw_data, est, solver, tune_iter,
                         path_algo=True,
                         solver_init={}):
     """
-    Iterates over all jobs for training only tuning.
+    Iterates over all jobs for tuning with a validation set.
 
     Parameters
     ----------
+    raw_data: dict
+        A dict containing the raw data with keys ['X', 'y', 'sample_weights'].
 
+    est: Glm
+        The base estimator. This is used for preprocessing the CV training data and for computing evaluation metrics.
+
+    solver: GlmSolver
+        The solver to use.
+
+    tune_iter:
+        An object that iterates over all the tuning parameter settings e.g. PenaltyPerLossFlavorTuner().
+
+    path_algo: bool
+        Whether or not to use the solver's path algorithm if it has one available.
+
+    solver_init: dict
+        Initialization for the solver.
 
     Yields
     ------
     job_configs: dict
-        TODO
+        Keyword arguments that will be passed to fit_and_score() through run_fit_and_score_jobs(). If a path algorithm is used, each dict represents one path parameter setting. If a path algorithm is not used this represents one parameter setting.
     """
 
     # use a path algo if the solver has one available
@@ -188,11 +225,34 @@ def get_train_jobs(pro_data, raw_data, pre_pro_out,
 
     Parameters
     ----------
+    pro_data: dict
+        A dict containing the processed data with keys ['X', 'y', 'sample_weights'].
+
+    raw_data: dict
+        A dict containing the raw data with keys ['X', 'y', 'sample_weights'].
+
+    pre_pro_out: dict
+        The preprocessing output of the training data.
+
+    est: Glm
+        The base estimator. This is used for preprocessing the CV training data and for computing evaluation metrics.
+
+    solver: GlmSolver
+        The solver to use.
+
+    tune_iter:
+        An object that iterates over all the tuning parameter settings e.g. PenaltyPerLossFlavorTuner().
+
+    path_algo: bool
+        Whether or not to use the solver's path algorithm if it has one available.
+
+    solver_init: dict
+        Initialization for the solver.
 
     Yields
     ------
     job_configs: dict
-        TODO
+        Keyword arguments that will be passed to fit_and_score() through run_fit_and_score_jobs(). If a path algorithm is used, each dict represents one path parameter setting. If a path algorithm is not used this represents one parameter setting.
     """
 
     # processed data to be passed to the solver
@@ -342,7 +402,6 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
 
 
 # TODO: add store best estimator only functionality
-# TODO: finish documenting
 def fit_and_score(solver_data, solver, path_algo, solver_init,
                   tune_configs, tune_idx_outer,
 
@@ -357,28 +416,51 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
                   scorer=None,
                   fit_evals=None):
     """
-    Fits and scores an estimator for each a single parameter setting or a path of parameters given the processed data.
+    Fits and scores an estimator for either a single parameter setting or a path of parameters.
+
 
     Parameters
     -----------
     solver_data: dict
+        The input to solver.setup() excluding the config arguments e.g. has keys ['X', 'y', 'sample_weight', 'fit_intercept'].
 
-    solver:
+    solver: GlmSolver
+        The solver object that computes either a single solution of solution path.
 
     path_algo: bool
+        Whether or not to use the solver's path algorithm if it has one available.
 
     solver_init: dict
+        Initialization for the solver's algorithm see solver.solve() or solver.solve_penalty_path()
 
-    tune_configs:
+    tune_configs: tuple
+        For path algorithms this is a 3 tuple (configs, single_param_settings, penalty_path).
+
+        configs: dict
+            A dict containing the loss, penalty and constraint config objects.
+
+        single_param_settings: dict
+            The parameter settings all parameter not included in the path.
+
+        penalty_path: list of dicts
+            The penalty parameter path.
+
+        For non-path algorithms this is a 2 tuple (configs, tuned_params)
+
+        configs: dict
+            A dict containing the loss, penalty and constraint config objects for this tuning parameter setting.
+
+        tuned_params: dict
+            The values of the tuning parameters set here.
 
     tune_idx_outer: int
         The outer index of this tuning parameter setting. This only differs from the returned tune_idx_outer if the param settings contain path parameter settings.
 
     base_estimator: estimator
-        The base estimator we will use to set the fit from the solution.
+        The base estimator we will use to set the fit from the solution. We also use the inferencer object stored in this base_estimator if it has one e.g. for computing the degrees of freedom.
 
     pre_pro_out: dict
-        The pre-processing output need by base_estimator.set_fit.
+        The pre-processing output need by base_estimator._set_fit.
 
     X_train: array-like, shape (n_samples_train, n_features)
         The raw X training data.
@@ -442,6 +524,7 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
     #################################
     # TODO-ADD: we can avoid some repeated computation by more intelligently
     # doing solver.setup() before calling fit_and_score().
+    solver_init = {} if solver_init is None else solver_init
 
     if path_algo:
 
@@ -602,7 +685,22 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
 
 
 def format_tune_scores(results):
-    # TODO: document
+    """
+    Creates a tune_results dict from the output of get_tune_output_dol applied to the results output by fit_and_score.
+
+    This creates the proper score names e.g. train_score, test_score, etc. It also formats the tune parameter list.
+
+    Parameters
+    ----------
+    results: dict of lists
+        The dict of list version of the results from fit_and_score()
+
+    Output
+    ------
+    results; dict of lists
+        The formated results.
+
+    """
     new_results = {}
 
     if 'params' in results:
