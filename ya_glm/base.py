@@ -10,19 +10,17 @@ from ya_glm.autoassign import autoassign
 from ya_glm.processing import process_X, deprocess_fit, process_init_data
 from ya_glm.utils import fit_if_unfitted, get_coef_and_intercept, \
     is_str_and_matches, get_shapes_from
-from ya_glm.config.utils import is_flavored
 
 from ya_glm.config.loss import get_loss_config
 from ya_glm.config.constraint import get_constraint_config
-from ya_glm.config.flavor import get_flavor_config
 from ya_glm.config.penalty import get_penalty_config
+from ya_glm.config.base_penalty import get_flavor_info, get_unflavored
+from ya_glm.config.base_params import get_base_config
 from ya_glm.solver.default import get_solver
-from ya_glm.config.base import TunerConfig, safe_get_config
-from ya_glm.tune.backend import run_fit_and_score_jobs
+from ya_glm.solver.LLA import LLAFixedInit
 
-# TODO: rename
-from ya_glm.config.blah_penalty import get_flavor_info, set_adaptive_weights
-from ya_glm.solver.LLA import LLA
+from ya_glm.tune.backend import run_fit_and_score_jobs
+from ya_glm.tune.combined_tuner import PenaltyPerLossFlavorTuner
 
 
 class BaseGlm(BaseEstimator):
@@ -102,7 +100,7 @@ class BaseGlm(BaseEstimator):
         _estimator_type: str
             Either 'regressor' or 'classifier'.
         """
-        loss_config = get_loss_config(self.loss)
+        loss_config = get_base_config(get_loss_config(self.loss))
         return loss_config._estimator_type
 
     @property
@@ -158,7 +156,12 @@ class BaseGlm(BaseEstimator):
         # Initializer for flavored penalties #
         ######################################
 
-        flavor = get_flavor_info(self.penalty)
+        if self.penalty is not None:
+            # pull out the base flavor config object
+            flavor = get_flavor_info(get_base_config(self.penalty))
+            flavor = get_base_config(flavor)
+        else:
+            flavor = None
 
         # flavored penalties may require fitting an initializer
         if flavor is not None:
@@ -189,18 +192,21 @@ class BaseGlm(BaseEstimator):
 
                 init_data = {'coef': coef, 'intercept': intercept}
                 yes_pro_pro_init = False
+                init_est = None
 
             # if initializer is a dict, just return initializer
-            if isinstance(self.initializer, dict):
+            elif isinstance(self.initializer, dict):
                 init_data = self.initializer
 
                 # check whether or not we should apply the preprocessing
                 # to the init data
+                # TODO: document this!
                 yes_pro_pro_init = init_data.get('pre_pro', True)
+                init_est = None
 
             # user provided an initial estimator
             else:
-                init_est = self.initialzier
+                init_est = self.initializer
                 yes_pro_pro_init = True
 
             # Possibly fit initial estimator
@@ -382,52 +388,59 @@ class BaseGlm(BaseEstimator):
                    }
         # TODO: somewhere run get_flavor_config to setup penalty flavor from string
 
-        # maybe setup adaptive weights and optimzation initialization
-        flavor = get_flavor_info(configs['penalty'])
-        if flavor == 'adaptive':
-            configs['penalty'] = \
-                set_adaptive_weights(penalty=configs['penalty'],
-                                     init_data=init_data)
-
         ################
         # setup solver #
         ################
+        flavor_type = get_flavor_info(configs['penalty'])
 
-        if self.lla:
+        if flavor_type == 'non_convex' and self.lla:
+            # LLA algorithm
 
             # default LLA solver
             if type(self.lla) == bool:
-                solver = LLA(n_steps=1)
+                solver = LLAFixedInit(n_steps=1)
             else:
                 solver = self.lla  # TODO: should there be a copy or clone?
 
             # set subproblem solver
-            glm_solver = get_solver(self.solver)  # base
-            solver.set_sp_solver(glm_solver)
+            solver.set_sp_solver(get_solver(self.solver, **configs))
 
-            # set initialization
+            # set fixed initialization for the LLA algorithm
             solver.set_fixed_init(init_data)
 
         else:
-            # TODO: copy or clone?
-            solver = get_solver(self.solver)
-
-        # initialization for the solver
-        if flavor == 'non_convex' and not self.lla:
-            # non-convex direct solution
-            solver_init = init_data
-        else:
-            solver_init = None
-        # TODO: perhaps make this also the initializer for convex solvers?
+            # user specified solver!
+            solver = get_solver(self.solver, **configs)
 
         return pro_data, raw_data, pre_pro_out, \
-            configs, solver, solver_init, inferencer
+            configs, solver, init_data, inferencer
+
+    def _get_solver_init(self, init_data):
+        flavor = get_flavor_info(self.penalty)
+
+        if flavor == 'non_convex' and not self.lla:
+            # for non-convex direct we are allowed to specify the
+            # initial value for optimization.
+            # for the LLA algorithm this is specified somewhere else
+
+            if init_data is None:
+                return {}
+
+            else:
+                return {'coef_init': init_data.get('coef', None),
+                        'intercept_init': init_data.get('intercept', None)}
+        else:
+            return None
 
     def _fit_from_configs(self, pro_data, raw_data, configs, solver,
-                          pre_pro_out, solver_init=None):
+                          pre_pro_out, init_data=None):
         """
         TODO: document
         """
+
+        # set the solver initialization data
+        # only used for non-convex, non-lla algorithm
+        solver_init = self._get_solver_init(init_data)
 
         ##########
         # solve! #
@@ -439,6 +452,7 @@ class BaseGlm(BaseEstimator):
                      **configs,  # loss, penalty, constraint
                      )
 
+        solver_init = {} if solver_init is None else solver_init
         fit_out, _,  opt_info = solver.solve(**solver_init)
 
         ##################
@@ -681,6 +695,66 @@ class TunedGlm(BaseGlm):
     @property
     def _is_tuner(self):
         return True
+
+    def get_tuner(self, configs, pro_data, init_data):
+        """
+        Creates a tuner object for tuning over the loss, constraints, penalty and penalty flavors. Note the adaptive weights are also set here.
+
+        Parameters
+        ----------
+        configs: dict
+            A dict of the loss, penalty, and constraint configs.
+
+        pro_data: dict
+            The preprocessed X, y and sample_weight data.
+
+        init_data: dict
+            The initialization data for the solver. This i
+
+        Output
+        ------
+        tuner: PenaltyPerLossFlavorTuner
+            The tuner object with set_tuning_values() already called.
+        """
+
+        #
+        init_data = {} if init_data is None else init_data
+        init_data['lla'] = self.lla  # tell the init data if
+        # we are using the lla algorithm
+        # TODO-THINK-THROUGH: is this a bit of a cluncky place to
+        # say we are using the LLA algorith?
+
+        # setup tuning parameter grids from the data
+        tuner = PenaltyPerLossFlavorTuner(**configs)
+
+        # this creates all the tuning parameter grids
+        # the adaptive weights are set in this call too
+        # since they may vary if we tune over the adative expon
+        tuner.set_tuning_values(fit_intercept=self.fit_intercept,
+                                init_data=init_data,
+                                **pro_data)
+        return tuner
+
+    def get_unflavored_tunable(self):
+        """
+        Gets an unflavored version of this estimator.
+
+        Output
+        ------
+        est: Estimator
+            The same estimator but ensures the penalty is not flavored. Note this copies all the parameters of the estimator.
+        """
+
+        # TODO: possibly avoid copying the initializer?
+        est = deepcopy(self)
+
+        # set unflavored penalty
+        unflavored_penalty = get_unflavored(est.penalty)
+        est.set_params(penalty=unflavored_penalty)
+
+        est.set_params(initializer='default')  # no need for init
+
+        return est
 
     def _get_select_metric(self):
         """

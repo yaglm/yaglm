@@ -8,7 +8,6 @@ from time import time
 from ya_glm.base import TunedGlm
 from ya_glm.LossMixin import LossMixin
 
-from ya_glm.tune.combined_tuner import PenaltyPerLossFlavorTuner
 from ya_glm.tune.backend import get_cross_validation_jobs, \
     get_validation_jobs, get_train_jobs
 from ya_glm.tune.select import select_tune_param, cv_select_tune_param
@@ -55,7 +54,7 @@ class GlmCV(LossMixin, TunedGlm):
         # setup, preprocess, and prefitting routines #
         ##############################################
         pro_data, raw_data, pre_pro_out, \
-            configs, solver, solver_init, inferencer = \
+            configs, solver, init_data, inferencer = \
             self.setup_and_prefit(X, y, sample_weight)
 
         # store inferencer
@@ -66,20 +65,23 @@ class GlmCV(LossMixin, TunedGlm):
         ###############################
 
         # setup tuning parameter grids from the data
-        self.tuner_ = PenaltyPerLossFlavorTuner(**configs)
-        self.tuner_.set_tuning_values(fit_intercept=self.fit_intercept,
-                                      **pro_data)
+        self.tuner_ = self.get_tuner(configs=configs,
+                                     pro_data=pro_data,
+                                     init_data=init_data)
 
         tune_info['runtime']['prefit'] = time() - start_time
 
         ########################
         # run cross-validation #
         ########################
-
         start_time = time()
 
         # create CV folds
         cv = check_cv(cv=self.cv, y=y, classifier=is_classifier(self))
+
+        # set the solver initialization data
+        # only used for non-convex, non-lla algorithm
+        solver_init = self._get_solver_init(init_data)
 
         # setup generator iterating over all the folds + parameter settings
         job_configs =\
@@ -124,7 +126,7 @@ class GlmCV(LossMixin, TunedGlm):
                                configs=best_tune_configs,
                                solver=solver,
                                pre_pro_out=pre_pro_out,
-                               solver_init=solver_init)
+                               init_data=init_data)
 
         tune_info['runtime']['refit'] = time() - start_time
         self.tune_info_ = tune_info
@@ -167,7 +169,7 @@ class GlmValidation(LossMixin, TunedGlm):
         # setup, preprocess, and prefitting routines #
         ##############################################
         pro_data, raw_data, pre_pro_out, \
-            configs, solver, solver_init, inferencer = \
+            configs, solver, init_data, inferencer = \
             self.setup_and_prefit(X, y, sample_weight)
 
         # store inferencer
@@ -178,9 +180,10 @@ class GlmValidation(LossMixin, TunedGlm):
         ###############################
 
         # setup tuning parameter grids from the data
-        self.tuner_ = PenaltyPerLossFlavorTuner(**configs)
-        self.tuner_.set_tuning_values(fit_intercept=self.fit_intercept,
-                                      **pro_data)
+        self.tuner_ = self.get_tuner(configs=configs,
+                                     pro_data=pro_data,
+                                     init_data=init_data)
+
         tune_info['runtime']['prefit'] = time() - start_time
 
         ##################
@@ -202,6 +205,10 @@ class GlmValidation(LossMixin, TunedGlm):
             # user provided test set
             test = np.array(self.val)
             train = np.array(list(set(range(n_samples)).difference(test)))
+
+        # set the solver initialization data
+        # only used for non-convex, non-lla algorithm
+        solver_init = self._get_solver_init(init_data)
 
         # setup generator iterating over all the folds + parameter settings
         job_configs =\
@@ -237,7 +244,7 @@ class GlmValidation(LossMixin, TunedGlm):
                                configs=best_tune_configs,
                                solver=solver,
                                pre_pro_out=pre_pro_out,
-                               solver_init=solver_init)
+                               init_data=init_data)
 
         tune_info['runtime']['refit'] = time() - start_time
 
@@ -259,7 +266,7 @@ class GlmTrainMetric(LossMixin, TunedGlm):
         # setup, preprocess, and prefitting routines #
         ##############################################
         pro_data, raw_data, pre_pro_out, \
-            configs, solver, solver_init, inferencer = \
+            configs, solver, init_data, inferencer = \
             self.setup_and_prefit(X, y, sample_weight)
 
         # store inferencer
@@ -270,9 +277,9 @@ class GlmTrainMetric(LossMixin, TunedGlm):
         ###############################
 
         # setup tuning parameter grids from the data
-        self.tuner_ = PenaltyPerLossFlavorTuner(**configs)
-        self.tuner_.set_tuning_values(fit_intercept=self.fit_intercept,
-                                      **pro_data)
+        self.tuner_ = self.get_tuner(configs=configs,
+                                     pro_data=pro_data,
+                                     init_data=init_data)
 
         tune_info['runtime']['prefit'] = time() - start_time
 
@@ -281,6 +288,10 @@ class GlmTrainMetric(LossMixin, TunedGlm):
         #######################
 
         start_time = time()
+
+        # set the solver initialization data
+        # only used for non-convex, non-lla algorithm
+        solver_init = self._get_solver_init(init_data)
 
         # setup generator iterating over all the folds + parameter settings
         job_configs = get_train_jobs(pro_data=pro_data,

@@ -11,6 +11,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from scipy.special import expit
 
 from ya_glm.config.loss import get_loss_config
+from ya_glm.config.base_params import get_base_config
 from ya_glm.metrics.glm_other import poisson_dsq_score
 from ya_glm.metrics.glm_log_liks import gaussian, bernoulli, multinomial,\
      poisson
@@ -24,7 +25,7 @@ class LossMixin:
 
     def _process_y(self, X, y, sample_weight=None, copy=True, check_input=True):
 
-        loss_config = get_loss_config(self.loss)
+        loss_config = get_base_config(get_loss_config(self.loss))
 
         if loss_config.name in ['lin_reg', 'huber']:
             return process_y_lin_reg(X=X, y=y,
@@ -104,7 +105,7 @@ class LossMixin:
         """
 
         y_pred = self.predict(X)
-        loss_config = get_loss_config(self.loss)
+        loss_config = get_base_config(get_loss_config(self.loss))
 
         if loss_config.name in ['lin_reg', 'huber', 'quantile', 'poisson']:
             return r2_score(y_true=y, y_pred=y_pred,
@@ -133,7 +134,7 @@ class LossMixin:
             The probabilities either for class 1 (for logistic regression) or for all the classes (for multinomial.)
 
         """
-        loss_config = get_loss_config(self.loss)
+        loss_config = get_base_config(get_loss_config(self.loss))
         if loss_config.name not in ['log_reg', 'multinomial']:
             raise ValueError("{} does not support predict_proba".
                              format(loss_config.name))
@@ -174,7 +175,7 @@ class LossMixin:
         check_is_fitted(self)
 
         z = self.decision_function(X)
-        loss_config = get_loss_config(self.loss)
+        loss_config = get_base_config(get_loss_config(self.loss))
 
         if loss_config.name in ['lin_reg', 'huber', 'quantile', 'l2']:
             return z
@@ -208,7 +209,7 @@ class LossMixin:
         X: array-like, shape (n_samples, )
             The log-likelihood of each sample.
         """
-        loss_config = get_loss_config(self.loss)
+        loss_config = get_base_config(get_loss_config(self.loss))
         y_pred = self.predict_expected(X)
 
         # linear regression
