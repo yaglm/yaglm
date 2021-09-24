@@ -331,6 +331,10 @@ class GeneralizedLasso(Func):
     """
     f(x) = pen_val * ||mat @ x ||_1
 
+    or
+
+    pen_val * sum_j weights_j |mat[j, :].T @ x|
+
     Parameters
     ----------
     pen_val: float
@@ -339,32 +343,19 @@ class GeneralizedLasso(Func):
     mat: None, array-like
         The matrix transformation
     """
-    def __init__(self, pen_val=1.0, mat=None):
+    def __init__(self, pen_val=1.0, mat=None, weights=None):
 
-        self.pen_val = pen_val
         self.mat = mat
-
-        if mat is None:
-            self._grad_lip = pen_val
-        else:
-            # TODO: double check
-            self._grad_lip = pen_val * np.linalg.norm(mat, ord=2) ** 2
-
-            # cache this for gradient computations
-            # TODO: get this to work with sparse matrices
-            # TODO: prehaps allow precomputed mat_T_mat
-            self.mat_T_mat = self.mat.T @ self.mat
-
-    def _eval(self, x):
-
-        if self.mat is None:
-            norm_val = abs(x).sum()
-
-        else:
-            norm_val = abs(self.mat @ x).sum()
-
-        return 0.5 * self.pen_val * norm_val
+        self.lasso = Lasso(pen_val=pen_val, weights=weights)
 
     @property
     def is_smooth(self):
         return False
+
+    def _eval(self, x):
+        if self.mat is None:
+            z = x
+        else:
+            z = self.mat @ x
+
+        return self.lasso._eval(z)

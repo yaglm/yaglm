@@ -3,14 +3,13 @@ from scipy.linalg import svd
 
 from ya_glm.opt.base import Func
 from ya_glm.linalg_utils import euclid_norm
+from ya_glm.autoassign import autoassign
 
 
 class CompositeGroup(Func):
 
-    def __init__(self, groups, func):
-
-        self.func = func
-        self.groups = groups
+    @autoassign
+    def __init__(self, groups, func): pass
 
     @property
     def is_smooth(self):
@@ -45,8 +44,8 @@ class CompositeGroup(Func):
 
 class CompositeMultiTaskLasso(Func):
 
-    def __init__(self, func):
-        self.func = func
+    @autoassign
+    def __init__(self, func): pass
 
     @property
     def is_smooth(self):
@@ -73,8 +72,8 @@ class CompositeMultiTaskLasso(Func):
 class CompositeNuclearNorm(Func):
     # https://github.com/scikit-learn-contrib/lightning/blob/master/lightning/impl/penalty.py
 
-    def __init__(self, func):
-        self.func = func
+    @autoassign
+    def __init__(self, func): pass
 
     @property
     def is_smooth(self):
@@ -88,6 +87,22 @@ class CompositeNuclearNorm(Func):
         return np.dot(U, V)
 
     def _eval(self, x):
-
         U, s, V = svd(x, full_matrices=False)
         return self.func.eval(s)
+
+
+class CompositeGeneralizedLasso(Func):
+
+    def __init__(self, func, mat=None): pass
+
+    @property
+    def is_smooth(self):
+        return False
+
+    def _eval(self, x):
+        if self.mat is None:
+            z = x
+        else:
+            z = self.mat @ x
+
+        return self.func.eval(z)
