@@ -607,8 +607,9 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
 
         # run any statistical inference
         # TODO: be careful about passing the raw vs. processed data here
-        base_estimator.run_postfit_inference(X=X_train, y=y_train,
-                                             sample_weight=sample_weight_train)
+        base_estimator.\
+            run_after_fit_inference(X=X_train, y=y_train,
+                                    sample_weight=sample_weight_train)
 
         ###########################
         # score the fit estimator #

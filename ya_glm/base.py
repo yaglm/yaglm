@@ -470,7 +470,7 @@ class BaseGlm(BaseEstimator):
     def _fit_from_configs(self, pro_data, raw_data, configs, solver,
                           pre_pro_out, init_data=None):
         """
-        Fits the specified GLM. Possibly runs post fitting inferencer.
+        Fits the specified GLM. Possibly runs after fitting inference.
 
         Parameters
         ----------
@@ -511,8 +511,9 @@ class BaseGlm(BaseEstimator):
                       configs=configs,
                       opt_info=opt_info)
 
-        # run any post fitting statistical inference e.g. estimate number of DoF
-        self.run_postfit_inference(**raw_data)  # X, y, sample_weight
+        # run any after fitting statistical inference
+        # e.g. estimate number of DoF
+        self.run_after_fit_inference(**raw_data)  # X, y, sample_weight
 
         return self
 
@@ -664,7 +665,7 @@ class BaseGlm(BaseEstimator):
         else:
             return None
 
-    def run_postfit_inference(self, X, y, sample_weight=None):
+    def run_after_fit_inference(self, X, y, sample_weight=None):
         """
         Runs statistical inference procedures on the fitted model e.g. estimates the number of degrees of freedom. The inferencer_ attribute must first be set.
 
@@ -682,8 +683,8 @@ class BaseGlm(BaseEstimator):
         # right now this assumes inferencer_ has already been set in fit()
         # but this may be a bit unexpected
         if self.inferencer_ is not None:
-            self.inferencer_.post_fit(estimator=self, X=X, y=y,
-                                      sample_weight=sample_weight)
+            self.inferencer_.after_fit(estimator=self, X=X, y=y,
+                                       sample_weight=sample_weight)
 
         return self
 
