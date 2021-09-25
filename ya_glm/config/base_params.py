@@ -52,6 +52,8 @@ class TunerConfig(Config):
             The unique tuning parameters for this setting.
         """
         config = deepcopy(self.base)
+        config = tuners_to_base(config)  # flatten any tuner parameters
+
         for params in self.iter_params():
             config.set_params(**params)
 
@@ -114,12 +116,13 @@ class TunerWithPathMixin:
             The single parameter settings.
         """
         config = deepcopy(self.base)
+        config = tuners_to_base(config)  # flatten any tuner parameters
 
-        for single_param_settings, path_lod in self._iter_params_with_path():
-            config.set_params(**single_param_settings)
+        for sps, path_lod in self._iter_params_with_path():
+            config.set_params(**sps)
 
             if with_params:
-                yield config, single_param_settings, path_lod
+                yield config, sps, path_lod
             else:
                 yield config, path_lod
 
@@ -132,10 +135,9 @@ class TunerWithPathMixin:
         params: dict
             A dict containing the parameter values for this parameter setting.
         """
-        for to_yield, path_lod in self._iter_params_with_path():
+        for sps, path_lod in self._iter_params_with_path():
             for path_params in path_lod:
-                # to_yield.update(**path_params)
-                yield {**to_yield, **path_params}
+                yield {**sps, **path_params}
 
     def _iter_params_with_path(self):
         """
@@ -233,5 +235,37 @@ def get_base_config(config):
     """
     if isinstance(config, TunerConfig):
         return config.base
+    else:
+        return config
+
+
+def tuners_to_base(config):
+    """
+    For a config that is a TunerConfig or containts parameters that may be TunerConfigs
+    this function replaces all the TunerConfigs with their base ParamConfigs.
+
+    Note may modify the config object in place.
+
+    Parameters
+    ------
+    config: ParamConfig, TunerConfig
+        The config we want to modify.
+
+    Output
+    ------
+    config: ParamConfig
+        The modified config.
+    """
+    if isinstance(config, TunerConfig):
+        return tuners_to_base(config.base)
+
+    elif isinstance(config, ParamConfig):
+
+        # replace any TunerConfig params
+        for (k, v) in config.get_params(deep=False).items():
+            config.set_params(**{k: tuners_to_base(v)})
+
+        return config
+
     else:
         return config
