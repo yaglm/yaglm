@@ -115,6 +115,111 @@ class BaseGlm(BaseEstimator):
         """
         raise NotImplementedError("Subclass should overwrite")
 
+    def _validate_data(self, X, y, sample_weight=None, accept_sparse=True):
+        """
+        Validates the X/y data. This should not change the raw input data, but may reformat the data (e.g. convert pandas to numpy).
+
+        Parameters
+        ----------
+        X: array-like, shape (n_samples, n_features)
+            The covariate data.
+
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The response data.
+        """
+        X = check_array(X, accept_sparse=accept_sparse,
+                        dtype=FLOAT_DTYPES)
+
+        if sample_weight is not None:
+            sample_weight = _check_sample_weight(sample_weight, X,
+                                                 dtype=X.dtype)
+
+        # make sure y is numpy and of same dtype as X
+        # TODO: do we actually want this for log_reg/multinomial?
+        y = check_array(y, ensure_2d=False)
+
+        # make sure 1d input is actually a vector
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = y.reshape(-1)
+
+        # make sure X, y have same number of samples
+        if y.shape[0] != X.shape[0]:
+            raise ValueError("X and y must have the same number of rows!")
+
+        return X, y, sample_weight
+
+    def preprocess(self, X, y, sample_weight=None, copy=True, check_input=True):
+        """
+        Preprocesses the data for fitting.
+
+        If standardize=True then the coulmns are scaled to be unit norm. If additionally fit_intercept=True, the columns of X are first mean centered before scaling.
+
+        For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size).
+
+        Parameters
+        ----------
+        X: array-like, shape (n_samples, n_features)
+            The covariate data.
+
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The response data.
+
+        sample_weight: None or array-like,  shape (n_samples,)
+            Individual weights for each sample.
+
+        copy: bool
+            Whether or not to copy the X/y arrays or modify them in place.
+
+        Output
+        ------
+        pro_data, pre_pro_out
+
+        pro_data: dict
+            The processed data. Has keys
+
+            X: array-like, shape (n_samples, n_features)
+                The possibly transformed covariate data.
+
+            y: array-like, shape (n_samples, )
+                The possibly transformed response data.
+
+            sample_weight: None or array-like,  shape (n_samples,)
+                The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
+
+        pro_pro_out: dict
+            Data from preprocessing e.g. X_center, X_scale.
+        """
+
+        if sample_weight is not None:
+            if copy:
+                sample_weight = sample_weight.copy()
+
+        # possibly standarize X
+        X, out = process_X(X,
+                           standardize=self.standardize,
+                           fit_intercept=self.fit_intercept,
+                           sample_weight=sample_weight,
+                           copy=copy,
+                           check_input=check_input,
+                           accept_sparse=True)
+
+        # subclass should implement this
+        # possibly process y
+        y, sample_weight, y_out = \
+            self._process_y(X=X, y=y,
+                            sample_weight=sample_weight,
+                            copy=copy)
+
+        # ensure sum(sample_weight) = n_samples
+        if sample_weight is not None:
+            sample_weight *= len(sample_weight) / sample_weight.sum()
+
+        out.update(y_out)
+
+        pro_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
+        return pro_data, out
+
+
     def get_unflavored_tunable(self):
         """
         Returns an unflavored and tunable version of this estimator. If this estimator is not tunable, will return the cross-validation version by default.
@@ -237,118 +342,48 @@ class BaseGlm(BaseEstimator):
             init_data, init_est = None, None
             return init_data, init_est
 
-    def _validate_data(self, X, y, sample_weight=None, accept_sparse=True):
-        """
-        Validates the X/y data. This should not change the raw input data, but may reformat the data (e.g. convert pandas to numpy).
-
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The covariate data.
-
-        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
-            The response data.
-        """
-        X = check_array(X, accept_sparse=accept_sparse,
-                        dtype=FLOAT_DTYPES)
-
-        if sample_weight is not None:
-            sample_weight = _check_sample_weight(sample_weight, X,
-                                                 dtype=X.dtype)
-
-        # make sure y is numpy and of same dtype as X
-        # TODO: do we actually want this for log_reg/multinomial?
-        y = check_array(y, ensure_2d=False)
-
-        # make sure 1d input is actually a vector
-        if y.ndim == 2 and y.shape[1] == 1:
-            y = y.reshape(-1)
-
-        # make sure X, y have same number of samples
-        if y.shape[0] != X.shape[0]:
-            raise ValueError("X and y must have the same number of rows!")
-
-        return X, y, sample_weight
-
-    def preprocess(self, X, y, sample_weight=None, copy=True, check_input=True):
-        """
-        Preprocesses the data for fitting.
-
-        If standardize=True then the coulmns are scaled to be unit norm. If additionally fit_intercept=True, the columns of X are first mean centered before scaling.
-
-        For the group lasso penalty an additional scaling is applied that scales each variable by 1 / sqrt(group size).
-
-        Parameters
-        ----------
-        X: array-like, shape (n_samples, n_features)
-            The covariate data.
-
-        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
-            The response data.
-
-        sample_weight: None or array-like,  shape (n_samples,)
-            Individual weights for each sample.
-
-        copy: bool
-            Whether or not to copy the X/y arrays or modify them in place.
-
-        Output
-        ------
-        pro_data, pre_pro_out
-
-        pro_data: dict
-            The processed data. Has keys
-
-            X: array-like, shape (n_samples, n_features)
-                The possibly transformed covariate data.
-
-            y: array-like, shape (n_samples, )
-                The possibly transformed response data.
-
-            sample_weight: None or array-like,  shape (n_samples,)
-                The processed sample weights. Ensures sum(sample_weight) = n_samples. Possibly incorporate class weights.
-
-        pro_pro_out: dict
-            Data from preprocessing e.g. X_center, X_scale.
-        """
-
-        if sample_weight is not None:
-            if copy:
-                sample_weight = sample_weight.copy()
-
-        # possibly standarize X
-        X, out = process_X(X,
-                           standardize=self.standardize,
-                           fit_intercept=self.fit_intercept,
-                           sample_weight=sample_weight,
-                           copy=copy,
-                           check_input=check_input,
-                           accept_sparse=True)
-
-        # subclass should implement this
-        # possibly process y
-        y, sample_weight, y_out = \
-            self._process_y(X=X, y=y,
-                            sample_weight=sample_weight,
-                            copy=copy)
-
-        # ensure sum(sample_weight) = n_samples
-        if sample_weight is not None:
-            sample_weight *= len(sample_weight) / sample_weight.sum()
-
-        out.update(y_out)
-
-        pro_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
-        return pro_data, out
-
     def setup_and_prefit(self, X, y, sample_weight):
         """
-        TODO document
+        Runs various routines needed before fitting the GLM
+
+        - validate input data
+        - (possibly) run prefit inference (e.g. estimate scale parameter)
+        - preprocesses raw data (e.g. center/scale)
+        - (possibly) get initializer e.g. an initial estimator for adaptive/non-convex penalties
+        - setup loss, penalty, and constraint configs
+        - setup the solver. Note the LLA initializer is fixed here.
+
+
+        Note the adaptive weights are not computed here!
+
+        This method does not set any attributes.
 
         Output
         ------
         pro_data, raw_data, pre_pro_out,
-            configs, solver, solver_init, inferencer
+            configs, solver, init_data, inferencer
+
+
+        pro_data: dict
+            The processed data; has keys ['X', 'y', 'sample_weight']
+
+        raw_data: dict
+            The raw data; has keys ['X', 'y', 'sample_weight']
+
+        pre_pro_out: dict
+            The preprocessing output.
+
+        configs: dict
+            The loss, penalty and constraint configs; has keys ['loss', 'penalty', 'constraint'].
+
+        solver: GlmSolver
+            The initialized solver object.
+
+        init_data: dict
+            The initialization data.
+
+        inferencer: None, Inferencer
+            The inferencer object. Note the prefitting inference has been run.
         """
 
         #################
