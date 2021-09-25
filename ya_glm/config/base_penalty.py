@@ -238,6 +238,14 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
                                           format(self.base))
 
     def get_pen_val_seq(self):
+        """
+        Returns the penalty value sequence in decreasing order.
+
+        Output
+        ------
+        pen_val_seq: array-like, shape (n_pen_vals, )
+            The penalty value sequence in decreasing order.
+        """
 
         if hasattr(self, 'pen_val_max_'):
             max_val = self.pen_val_max_ * self.pen_max_mult
