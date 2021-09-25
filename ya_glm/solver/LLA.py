@@ -282,6 +282,8 @@ class ObjectiveFunc:
 
     def __call__(self, value, upv=None):
         """
+        Evaluates the objective function.
+
         Parameters
         ----------
         value:
@@ -292,13 +294,9 @@ class ObjectiveFunc:
 
         Output
         ------
-        obj, base_loss, pen_loss
+        obj: float
+            The objective function value.
 
-        base_loss: float
-            The base loss objective function value.
-
-        pen_loss: float
-            The penalized lsos objective function value.
         """
         if self.fit_intercept_:
             # return self.glm_loss.eval(np.concatenate([[upv], value]))
