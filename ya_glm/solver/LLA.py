@@ -296,7 +296,6 @@ class ObjectiveFunc:
         ------
         obj: float
             The objective function value.
-
         """
         if self.fit_intercept_:
             # return self.glm_loss.eval(np.concatenate([[upv], value]))
