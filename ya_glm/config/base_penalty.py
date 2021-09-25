@@ -73,25 +73,29 @@ class WithPenSeqConfig(PenaltyConfig):
         The penalty value.
     """
 
-    def tune(self, n_pen_vals=100, pen_val_seq=None,
-             pen_min_mult=1e-3, pen_spacing='log'):
+    def tune(self, n_pen_vals=100,
+             pen_min_mult=1e-3, pen_max_mult=1, pen_spacing='log',
+             pen_val_seq=None):
         """
         Returns the tuning object for this penalty.
 
         Parameters
         ----------
         n_pen_vals: int
-            Number of penalty values to try for automatically generated tuning parameter sequence.
-
-        pen_val_seq: None, array-like
-            (Optional) User provided penalty value sequence.
+            Number of penalty values to try for automatically generated tuning parameter sequence. The default sequence lives in [pen_min_mult * pen_max_val, pen_max_val * pen_max_mult] where pen_max_val is an automatically computed largest reasonable penalty values.
 
         pen_min_mult: float
-            Determines the smallest penalty value to try. The automatically generated penalty value squence lives in the interval [pen_min_mult * pen_max_val, pen_max_val] where pen_max_val is automatically determined.
+            Determines the smallest penalty value to try.
+
+        pen_max_mult: float
+            (Optional) Inflates the estimated largest reasonable penalty parameter value but a multiplicative factor. This is useful e.g. when the default estimated largest reasonable penalty parameter value is only an approximation.
 
         pen_spacing: str
             How the penalty values are spaced. Must be one of ['log', 'lin']
             for logarithmic and linear spacing respectively.
+
+        pen_val_seq: None, array-like
+            (Optional) User provided penalty value sequence.
 
         Output
         ------
@@ -184,17 +188,20 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
         The base penalty config.
 
     n_pen_vals: int
-        Number of penalty values to try for automatically generated tuning parameter sequence.
-
-    pen_val_seq: None, array-like
-        (Optional) User provided penalty value sequence.
+        Number of penalty values to try for automatically generated tuning parameter sequence. The default sequence lives in [pen_min_mult * pen_max_val, pen_max_val * pen_max_mult] where pen_max_val is an automatically computed largest reasonable penalty values.
 
     pen_min_mult: float
-        Determines the smallest penalty value to try. The automatically generated penalty value squence lives in the interval [pen_min_mult * pen_max_val, pen_max_val] where pen_max_val is automatically determined.
+        Determines the smallest penalty value to try.
+
+    pen_max_mult: float
+        (Optional) Inflates the estimated largest reasonable penalty parameter value but a multiplicative factor. This is useful e.g. when the default estimated largest reasonable penalty parameter value is only an approximation.
 
     pen_spacing: str
         How the penalty values are spaced. Must be one of ['log', 'lin']
         for logarithmic and linear spacing respectively.
+
+    pen_val_seq: None, array-like
+        (Optional) User provided penalty value sequence.
 
     Attributes
     ----------
@@ -204,8 +211,9 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
 
     @autoassign
     def __init__(self, base,
-                 n_pen_vals=100, pen_val_seq=None,
-                 pen_min_mult=1e-3, pen_spacing='log'): pass
+                 n_pen_vals=100,
+                 pen_min_mult=1e-3, pen_max_mult=1,
+                 pen_spacing='log', pen_val_seq=None): pass
 
     def set_tuning_values(self,  X, y, loss, fit_intercept=True,
                           sample_weight=None, init_data=None):
@@ -232,7 +240,7 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
     def get_pen_val_seq(self):
 
         if hasattr(self, 'pen_val_max_'):
-            max_val = self.pen_val_max_
+            max_val = self.pen_val_max_ * self.pen_max_mult
         else:
             max_val = None
 
@@ -259,151 +267,6 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
         """
         lod = [{'pen_val': pen_val} for pen_val in self.get_pen_val_seq()]
         yield {}, lod
-
-
-######################
-# Multiple penalties #
-######################
-
-# # TODO: do we need this super class?
-# class _AdditivePenaltyConfig(PenaltyConfig):
-#     """
-#     Base class for multiple added  penalties.
-
-#     Attributes
-#     ----------
-#     penalties_
-#     """
-#     def tune(self):
-
-#         # call tune for each penalty
-#         for i, pen in enumerate(self.penalties_):
-#             self.penalties_[i] = pen.tune()
-
-#         return AdditivePenaltyTuner(base=self)
-
-#     def get_base_configs(self):
-#         """
-#         Output
-#         ------
-#         penalties: list of PenaltyConfig's
-#         """
-#         raise NotImplementedError("Subclass should overwrite")
-
-
-# class OverlappingSumConfig(_AdditivePenaltyConfig):
-#     """
-#     Represents the sum of several penalties that are fully overlapping.
-#     """
-
-#     def get_func_info(self):
-
-#         infos = [pen.get_func_info() for pen in self.get_base_configs()]
-
-#         # smooth if all smooth
-#         smooth = all(info['smooth'] for info in infos)
-#         prox = False  # False by default -- this may be true for some subclasses
-
-#         # linear proximable if all
-#         lin_prox = all((info['proximable'] or info['lin_proximable'])
-#                        for info in infos)
-
-#         return {'smooth': smooth,
-#                 'proximable': prox,
-#                 'lin_proximable': lin_prox}
-
-
-# class InifmalSumConfig(_AdditivePenaltyConfig):
-#     """
-#     Represents the infimal sum of several penalties.
-#     """
-
-#     def get_func_info(self):
-
-#         infos = [pen.get_func_info() for pen in self.get_base_configs()]
-
-#         # smooth if all smooth
-#         smooth = all(info['smooth'] for info in infos)
-
-#         # proximable if all are proximable
-#         prox = all(info['proximable'] for info in infos)
-
-#         # linear proximable if all are lin proximable
-#         lin_prox = all((info['proximable'] or info['lin_proximable'])
-#                        for info in infos)
-
-#         return {'smooth': smooth,
-#                 'proximable': prox,
-#                 'lin_proximable': lin_prox}
-
-
-# class SeparableSumConfig(_AdditivePenaltyConfig):
-#     """
-#     Represents penalties that are separable sum of mutiple penalties.
-#     """
-#     def get_func_info(self):
-
-#         infos = [pen.get_func_info() for pen in self.get_base_configs()]
-
-#         # smooth if all smooth
-#         smooth = all(info['smooth'] for info in infos)
-
-#         # proximable if all are proximable
-#         prox = all(info['proximable'] for info in infos)
-
-#         # linear proximable if all are lin proximable
-#         lin_prox = all((info['proximable'] or info['lin_proximable'])
-#                        for info in infos)
-
-#         return {'smooth': smooth,
-#                 'proximable': prox,
-#                 'lin_proximable': lin_prox}
-
-
-# ################################
-# # Tuner for multiple penalties #
-# ################################
-
-# class AdditivePenaltyTuner(TunerConfig):
-#     """
-#     Tuner for additive penalties.
-#     """
-
-#     @autoassign
-#     def __init__(self, base): pass
-
-#     def set_tuning_values(self,  X, y, loss, fit_intercept=True,
-#                           sample_weight=None, init_data=None):
-#         kws = locals()
-#         kws.pop('self')
-
-#         # setup each tunable penalty
-#         for i, pen in enumerate(self.base.penalties_):
-
-#             # if a penalty is not a tuning object then skip it.
-#             if isinstance(pen, PenaltyTuner):
-#                 pen.set_tuning_values(**kws)
-#                 self.base.penalties_[i] = pen
-
-# ##############
-# # ElasticNet #
-# ##############
-
-
-# class ElasticNetConfig(PenaltyConfig):
-#     """
-#     Represents a penalty with an elastic net parameterization.
-#     """
-#     pass
-
-
-# class ElasticNetTuner(TunerConfig):
-#     """
-#     Tuner object for elastic net parameterized penalties.
-#     """
-#     def set_tuning_values(self,  X, y, loss, fit_intercept=True,
-#                           sample_weight=None, init_data=None):
-#         raise NotImplementedError("TODO: add")
 
 
 ###############
