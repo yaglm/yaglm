@@ -99,7 +99,11 @@ class LLAFixedInit(GlmSolverWithPath):
 
         # where we initialize the coefficient and intercept
         self.coef_init_lla_ = init_data['coef']
-        self.intercept_init_lla_ = init_data.get('intercept', None)
+
+        if self.sp_solver_.fit_intercept_:
+            self.intercept_init_lla_ = init_data.get('intercept', None)
+        else:
+            self.intercept_init_lla_ = None
 
     def solve(self, coef_init=None, intercept_init=None, other_init=None):
         """
@@ -125,17 +129,11 @@ class LLAFixedInit(GlmSolverWithPath):
         """
         # TODO-THINK-THROUGH: the initialization is a bit misleading here. For all other solvers coef_init is where we initializer the entire optimization algorithm, but here it is only the initialization for the first LLA sub-problem. The advantage of this current version is that it allows us to do warm starts for the LLA algorithm.
 
-        # LLA intercept initializer
-        if self.sp_solver_.fit_intercept_:
-            init_upv = self.intercept_init_lla_
-        else:
-            init_upv = None
-
         coef, intercept, sp_other_data, opt_info = \
             solve_lla(sub_prob=self.sp_solver_,
                       penalty_func=self.transf_penalty_func_,
                       init=self.coef_init_lla_,
-                      init_upv=init_upv,
+                      init_upv=self.intercept_init_lla_,
                       sp_init=coef_init,
                       sp_upv_init=intercept_init,
                       sp_other_data=other_init,
