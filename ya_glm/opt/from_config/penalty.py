@@ -30,6 +30,7 @@ from ya_glm.config.base_penalty import get_flavor_info
 
 def get_penalty_func(config, n_features=None):
     """
+    Gets a penalty function from a PenaltyConfig object.
 
     Parameters
     ----------
@@ -41,6 +42,8 @@ def get_penalty_func(config, n_features=None):
 
     Output
     ------
+    func: ya_glm.opt.base.Func
+        The penalty function
     """
 
     # no penalty!

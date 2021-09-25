@@ -837,7 +837,7 @@ class ElasticNetTuner(TunerWithPathMixin, PenaltyConfig):
 # Other utils #
 ###############
 
-
+# TODO: make this work for multi penalties
 def get_unflavored(config):
     """
     Returns an unflavored version of the penalty config object. If the config is not flavored just retursn the original config; otherwise returns a copy.
@@ -851,7 +851,6 @@ def get_unflavored(config):
     ------
     config: PenaltyConfig
         Either the original penalty or an unflavored copy of the penalty.
-
     """
     if get_flavor_info(config) is not None:
         unflavored = deepcopy(config)
@@ -860,7 +859,7 @@ def get_unflavored(config):
     else:
         return config
 
-
+# TODO: make this work for multi penalties
 def get_flavor_info(config):
     """
     Gets the penalty flavor

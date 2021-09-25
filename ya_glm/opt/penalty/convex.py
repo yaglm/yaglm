@@ -171,6 +171,9 @@ class GroupLasso(Func):
 
     Parameters
     ----------
+    groups: list of lists, None
+        The indices of the groups. If None, then puts everything in one group.
+
     pen_val: float
         The multiplicative penalty value.
 
@@ -179,6 +182,9 @@ class GroupLasso(Func):
     """
     def __init__(self, groups, pen_val=1.0, weights=None):
 
+        # if groups=None put everything ine one group
+        if groups is None:
+            groups = [...]
         self.groups = groups
 
         if weights is None:
@@ -201,8 +207,11 @@ class GroupLasso(Func):
             p = self.pen_funcs[g]._prox(x[grp_idxs], step=step)
 
             # put entries back into correct place
-            for p_idx, x_idx in enumerate(grp_idxs):
-                out[x_idx] = p[p_idx]
+            if grp_idxs == ...:  # group of everything
+                out = p
+            else:
+                for p_idx, x_idx in enumerate(grp_idxs):
+                    out[x_idx] = p[p_idx]
 
         return out
 
@@ -219,6 +228,10 @@ class ExclusiveGroupLasso(Func):
 
     Parameters
     ----------
+    groups: list of lists, None
+        The indices of the groups. If None, then puts everything in one group.
+
+
     pen_val: float
         The multiplicative penalty value.
 
@@ -233,7 +246,11 @@ class ExclusiveGroupLasso(Func):
     """
     def __init__(self, groups, pen_val=1.0):
 
+        # if groups=None put everything ine one group
+        if groups is None:
+            groups = [...]
         self.groups = groups
+
         self.pen_funcs = [SquaredL1(mult=pen_val)
                           for g in range(len(groups))]
 
@@ -250,8 +267,11 @@ class ExclusiveGroupLasso(Func):
             p = self.pen_funcs[g]._prox(x[grp_idxs], step=step)
 
             # put entries back into correct place
-            for p_idx, x_idx in enumerate(grp_idxs):
-                out[x_idx] = p[p_idx]
+            if grp_idxs == ...:  # group of everything
+                out = p
+            else:
+                for p_idx, x_idx in enumerate(grp_idxs):
+                    out[x_idx] = p[p_idx]
 
         return out
 
