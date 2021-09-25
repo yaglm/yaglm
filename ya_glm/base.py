@@ -174,7 +174,8 @@ class BaseGlm(BaseEstimator):
 
                 # by default adaptive and non-convex LLA algorithms
                 # use the unflavored estimator as a default initializer
-                if flavor == 'adaptive' or self.lla:
+                if flavor == 'adaptive' or \
+                        (flavor == 'non_convex' and self.lla):
                     init_est = self.get_unflavored_tunable()
                     yes_pro_pro_init = True
                 else:
