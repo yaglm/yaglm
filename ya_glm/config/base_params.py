@@ -4,8 +4,7 @@ from sklearn.model_selection import ParameterGrid
 from ya_glm.config.base import Config
 from ya_glm.autoassign import autoassign
 
-# TODO: probably rename this to something like TunableConfig
-# or GlmConfig
+
 class ParamConfig(Config):
     """
     Base class for tunable parameter configs.
