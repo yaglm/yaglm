@@ -219,6 +219,9 @@ class ManualTunerMixin:
         return ParamGridTuner(base=self, param_grid=params)
 
 
+#########
+# Utils #
+#########
 def get_base_config(config):
     """
     Safely returns the base config object when config maybe be either a config or a TunerConfig.
