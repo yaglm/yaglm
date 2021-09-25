@@ -1,5 +1,6 @@
 from ya_glm.config.base_penalty import PenaltyConfig, WithPenSeqConfig, \
-    WithFlavorPenSeqConfig
+    WithFlavorPenSeqConfig, ElasticNetConfig, \
+    SeparableSumConfig, InifmalSumConfig, OverlappingSumConfig
 
 from ya_glm.pen_max.ridge import get_ridge_pen_max
 from ya_glm.pen_max.lasso import get_lasso_pen_max
@@ -104,6 +105,7 @@ class Lasso(WithFlavorPenSeqConfig):
 
 
 # TODO: add default weights
+# TODO: add default to infimal option for overlapping
 class GroupLasso(WithFlavorPenSeqConfig):
     """
     Group penalty e.g. group lasso, adaptive group lasso, or group non-convex.
@@ -113,8 +115,8 @@ class GroupLasso(WithFlavorPenSeqConfig):
 
     Parameters
     ----------
-    groups: list
-        Indices of the groups.
+    groups: list, None
+        Indices of the groups. If None, then all features are put in a single group.
 
     pen_val: float
         The penalty parameter value.
@@ -132,7 +134,7 @@ class GroupLasso(WithFlavorPenSeqConfig):
     Breheny, P. and Huang, J., 2015. Group descent algorithms for nonconvex penalized linear and logistic regression models with grouped predictors. Statistics and computing, 25(2), pp.173-187.
     """
     @autoassign
-    def __init__(self, groups, pen_val=1, weights=None, flavor=None): pass
+    def __init__(self, groups=None, pen_val=1, weights=None, flavor=None): pass
 
     def get_func_info(self):
         return {'smooth': False, 'proximable': True, 'lin_proximable': True}
@@ -158,8 +160,8 @@ class ExclusiveGroupLasso(WithFlavorPenSeqConfig):
 
     Parameters
     ----------
-    groups: list
-        Indices of the groups.
+    groups: list, None
+        Indices of the groups. If None, then all features are put in a single group.
 
     pen_val: float
         The penalty parameter value.
@@ -171,7 +173,7 @@ class ExclusiveGroupLasso(WithFlavorPenSeqConfig):
     Zhou, Y., Jin, R. and Hoi, S.C.H., 2010, March. Exclusive lasso for multi-task feature selection. In Proceedings of the thirteenth international conference on artificial intelligence and statistics (pp. 988-995). JMLR Workshop and Conference Proceedings.
     """
     @autoassign
-    def __init__(self, groups, pen_val=1): pass
+    def __init__(self, groups=None, pen_val=1): pass
 
     def get_func_info(self):
         return {'smooth': False, 'proximable': True, 'lin_proximable': True}
@@ -329,13 +331,184 @@ class GeneralizedLasso(WithFlavorPenSeqConfig):
         # TODO: I'm pretty sure TV-1 is proximable
         return {'smooth': False, 'proximable': False, 'lin_proximable': True}
 
-# TODO: add multi-penalties
-# class ElasticNet: pass
-# class GroupElasticNet: pass
-# class MultiTaskElasticNet: pass
-# class SparseGroupLasso: pass
-# class SparseFusedLasso: pass
+########################
+# ElasticNet penalties #
+########################
 
+
+class ElasticNet(ElasticNetConfig):
+    """
+    Represents the ElasticNet penalty
+
+    pen_val * mix_val ||coef||_1 + 0.5 * pen_val * (1 - mix_val) * ||coef||_2^2
+
+    The Lasso may have weights (though not the ridge at this time) or may be flavored.
+    We define the non-convex elastic net as
+
+    non-convex_{pen_val * mix_val} (coef) + 0.5 * pen_val * (1 - mix_val) * ||coef||_2^2
+
+    Parameters
+    ----------
+    pen_val: float
+        The penalty strength.
+
+    mix_val: float
+        The mixing value between 0 and 1.
+
+    weights: None, array-like
+        (Optional) Weights for the Lasso.
+
+    flavor: None, FlavorConfig
+        (Optional) Flavor for the lasso penalty.
+    """
+    @autoassign
+    def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
+
+    def _get_sum_configs(self):
+        lasso_config = Lasso(pen_val=self.pen_val * self.mix_val,
+                             weights=self.weights,
+                             flavor=self.flavor)
+
+        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val))
+
+        return lasso_config, ridge_config
+
+
+# TODO: add default weights
+# TODO: add default to infimal for overlapping
+class GroupElasticNet(ElasticNetConfig):
+    """
+    Represents the group ElasticNet penalty
+
+    Parameters
+    ----------
+    pen_val: float
+        The penalty strength.
+
+    mix_val: float
+        The mixing value between 0 and 1.
+
+    weights: None, array-like
+        (Optional) Weights for the Lasso.
+
+    flavor: None, FlavorConfig
+        (Optional) Flavor for the lasso penalty.
+    """
+    @autoassign
+    def __init__(self, groups,
+                 pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
+
+    def _get_sum_configs(self):
+        lasso_config = GroupLasso(groups=self.groups,
+                                  pen_val=self.pen_val * self.mix_val,
+                                  weights=self.weights,
+                                  flavor=self.flavor)
+
+        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val))
+
+        return lasso_config, ridge_config
+
+
+class MultiTaskElasticNet(ElasticNetConfig):
+    """
+    Represents the group MultiTask ElasticNet penalty
+
+    Parameters
+    ----------
+    pen_val: float
+        The penalty strength.
+
+    mix_val: float
+        The mixing value between 0 and 1.
+
+    weights: None, array-like
+        (Optional) Weights for the Lasso.
+
+    flavor: None, FlavorConfig
+        (Optional) Flavor for the lasso penalty.
+    """
+    @autoassign
+    def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
+
+    def _get_sum_configs(self):
+        lasso_config = MultiTaskLasso(pen_val=self.pen_val * self.mix_val,
+                                      weights=self.weights,
+                                      flavor=self.flavor)
+
+        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val))
+
+        return lasso_config, ridge_config
+
+
+class SparseGroupLasso(ElasticNetConfig):
+    @autoassign
+    def __init__(self, groups=None, pen_val=1, mix_val=0.5,
+                 sparse_weights=None, sparse_flavor=None,
+                 group_weights=None, group_flavor=None): pass
+
+    def _get_sum_configs(self):
+        sparse_config = Lasso(pen_val=self.pen_val * self.mix_val,
+                              weights=self.sparse_weights,
+                              flavor=self.sparse_flavor)
+
+        group_config = GroupLasso(pen_val=self.pen_val * (1 - self.mix_val),
+                                  groups=self.groups,
+                                  weights=self.group_weights,
+                                  flavor=self.group_flavor)
+
+        return sparse_config, group_config
+
+
+###################################
+# Other overlapping sum penalties #
+###################################
+
+# TODO: add this
+# class SparseFusedLasso:
+#     def __init__(self, fused=FusedLasso(), sparse=Lasso()): pass
+
+#########################
+# Infimal Sum penalties #
+#########################
+# TODO: add these
+# TODO: think about best order for penalties
+
+# class LowRankPlusSparse(InifmalSumConfig):
+#     @autoassign
+#     def __init__(self, rank=NuclearNorm(), sparse=Lasso()): pass
+
+
+# class LowRankPlusRowSparse(InifmalSumConfig):
+#     @autoassign
+#     def __init__(self, rank=NuclearNorm(), sparse=MultiTaskLasso()): pass
+
+
+# class RowPlusEntrywiseSparse(InifmalSumConfig):
+#     @autoassign
+#     def __init__(self, row=MultiTaskLasso(), sparse=Lasso()): pass
+
+
+##############################
+# On the fly penalty configs #
+##############################
+# these are exactly the configs, but we rename them/store them here
+
+
+class SeparableSum(SeparableSumConfig):
+    pass
+
+
+class InifmalSum(InifmalSumConfig):
+    pass
+
+
+class OverlappingSum(OverlappingSumConfig):
+    pass
+
+
+#########
+# utils #
+#########
 
 def get_penalty_config(config):
     """
@@ -363,14 +536,24 @@ penalty_str2obj = {'none': NoPenalty(),
                    'gen_ridge': GeneralizedRidge(),
                    'lasso': Lasso(),
 
-                   # TODO: how to handle the positional init argument?
-                   'group': GroupLasso(groups=None),
-                   'exclusive_group': ExclusiveGroupLasso(groups=None),
+                   'group': GroupLasso(),
+                   'exclusive_group': ExclusiveGroupLasso(),
 
                    'multi_task': MultiTaskLasso(),
                    'nuc': NuclearNorm(),
                    'fused': FusedLasso(),
-                   'gen_lasso': GeneralizedLasso()
+                   'gen_lasso': GeneralizedLasso(),
+
+                   'enet': ElasticNet(),
+                   'group_enet': GroupElasticNet(),
+                   'multi_task_enet': MultiTaskElasticNet(),
+
+                   # 'sparse_group': SparseGroupLasso(),
+
+                   # 'sparse_fused': SparseFusedLasso(),
+                   # 'low_rank_plus_sparse': LowRankPlusSparse(),
+                   # 'low_rank_plus_row_sparse': LowRankPlusRowSparse(),
+                   # 'row_plus_entrywise_sparse': RowPlusEntrywiseSparse()
                    }
 
 avail_penalties = list(penalty_str2obj.keys())
