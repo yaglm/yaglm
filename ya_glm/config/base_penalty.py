@@ -1,9 +1,11 @@
+import numpy as np
 from copy import deepcopy
+
 from ya_glm.config.base_params import ParamConfig, TunerConfig, \
      TunerWithPathMixin, get_base_config
 
 from ya_glm.pen_max.non_convex import adjust_pen_max_for_non_convex
-from ya_glm.pen_seq import get_pen_val_seq
+from ya_glm.pen_seq import get_sequence_decr_max
 from ya_glm.autoassign import autoassign
 
 
@@ -247,17 +249,17 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
             The penalty value sequence in decreasing order.
         """
 
-        if hasattr(self, 'pen_val_max_'):
-            max_val = self.pen_val_max_ * self.pen_max_mult
+        if self.pen_val_seq is not None:
+            # ensure decreasing
+            return np.sort(self.pen_val_seq)[::-1]
         else:
-            max_val = None
+            max_val = self.pen_val_max_ * self.pen_max_mult
 
-        # get or standardize the penalty sequence.
-        return get_pen_val_seq(n_pen_vals=self.n_pen_vals,
-                               pen_vals=self.pen_val_seq,
-                               pen_val_max=max_val,
-                               pen_min_mult=self.pen_min_mult,
-                               pen_spacing=self.pen_spacing)
+            # create sequence
+            return get_sequence_decr_max(num=self.n_pen_vals,
+                                         max_val=max_val,
+                                         min_val_mult=self.pen_min_mult,
+                                         spacing=self.pen_spacing)
 
     def _iter_params_with_path(self):
         """
