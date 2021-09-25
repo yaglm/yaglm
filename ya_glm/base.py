@@ -363,7 +363,6 @@ class BaseGlm(BaseEstimator):
         pro_data, raw_data, pre_pro_out,
             configs, solver, init_data, inferencer
 
-
         pro_data: dict
             The processed data; has keys ['X', 'y', 'sample_weight']
 
@@ -471,7 +470,18 @@ class BaseGlm(BaseEstimator):
     def _fit_from_configs(self, pro_data, raw_data, configs, solver,
                           pre_pro_out, init_data=None):
         """
-        TODO: document
+        Fits the specified GLM. Possibly runs post fitting inferencer.
+
+        Parameters
+        ----------
+        configs: dict of ParamConfigs
+            The configs that specify the loss, penalty and constraint. Note these should be ParamConfig, not TunerConfigs.
+
+        see the output of self.setup_and_prefit()
+
+        Output
+        ------
+        self
         """
 
         # set the solver initialization data
