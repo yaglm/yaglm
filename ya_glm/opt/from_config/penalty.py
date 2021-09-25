@@ -61,7 +61,7 @@ def get_penalty_func(config, n_features=None):
     # Entrywise penalties e.g. lasso, SCAD, etc
     elif isinstance(config, LassoConfig):
         if flavor_type == 'non_convex':
-            return get_nonconvex_func_from(config)
+            return get_outer_nonconvex_func(config)
         else:
 
             return Lasso(pen_val=config.pen_val, weights=config.weights)
@@ -70,7 +70,7 @@ def get_penalty_func(config, n_features=None):
     elif isinstance(config, GroupLassoConfig):
         if flavor_type == 'non_convex':
             # get non-convex func
-            nc_func = get_nonconvex_func_from(config)
+            nc_func = get_outer_nonconvex_func(config)
             return CompositeGroup(groups=config.groups,
                                   func=nc_func)
         else:
@@ -91,7 +91,7 @@ def get_penalty_func(config, n_features=None):
 
         if flavor_type == 'non_convex':
             # get non-convex func
-            nc_func = get_nonconvex_func_from(config)
+            nc_func = get_outer_nonconvex_func(config)
             return CompositeMultiTaskLasso(func=nc_func)
         else:
             return MultiTaskLasso(pen_val=config.pen_val,
@@ -101,7 +101,7 @@ def get_penalty_func(config, n_features=None):
     elif isinstance(config, NuclearNormConfig):
         if flavor_type == 'non_convex':
             # get non-convex func
-            nc_func = get_nonconvex_func_from(config)
+            nc_func = get_outer_nonconvex_func(config)
             return CompositeNuclearNorm(func=nc_func)
 
         else:
@@ -118,7 +118,7 @@ def get_penalty_func(config, n_features=None):
             mat = config.mat
 
         if flavor_type == 'non_convex':
-            nc_func = get_nonconvex_func_from(config)
+            nc_func = get_outer_nonconvex_func(config)
             return CompositeGeneralizedLasso(func=nc_func, mat=mat)
         else:
             return GeneralizedLasso(pen_val=config.pen_val,
@@ -131,7 +131,7 @@ def get_penalty_func(config, n_features=None):
                                   format(config))
 
 
-def get_nonconvex_func_from(config):
+def get_outer_nonconvex_func(config):
     """
     Returns the non-convex function used in a non-convex penalty. If the overall penalty is a composition, p(coef) = non-convex(t(coef)), this returns the final non-convex function.
 

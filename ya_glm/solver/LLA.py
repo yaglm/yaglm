@@ -3,7 +3,7 @@ from copy import deepcopy
 from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.opt.lla import solve_lla, WeightedProblemSolver
 from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept,\
-    get_nonconvex_func_from
+    get_outer_nonconvex_func
 from ya_glm.opt.from_config.lla_structure import get_transform
 from ya_glm.opt.from_config.loss import get_glm_loss_func
 from ya_glm.opt.utils import safe_concat
@@ -83,7 +83,7 @@ class LLAFixedInit(GlmSolverWithPath):
 
         # the non-convex function applied to the transformed coefficient
         self.penalty_config_ = deepcopy(penalty)
-        self.transf_penalty_func_ = get_nonconvex_func_from(penalty)
+        self.transf_penalty_func_ = get_outer_nonconvex_func(penalty)
 
     def update_penalty(self, **params):
         """
@@ -93,9 +93,17 @@ class LLAFixedInit(GlmSolverWithPath):
 
         self.penalty_config_.set_params(**params)
         self.transf_penalty_func_ = \
-            get_nonconvex_func_from(self.penalty_config_)
+            get_outer_nonconvex_func(self.penalty_config_)
 
     def set_fixed_init(self, init_data):
+        """
+        Sets the fixed LLA initializer.
+
+        Parameters
+        ----------
+        init_data: dict
+            The initializer data; has keys ['coef', 'intercept'].
+        """
 
         # where we initialize the coefficient and intercept
         self.coef_init_lla_ = init_data['coef']
@@ -132,11 +140,16 @@ class LLAFixedInit(GlmSolverWithPath):
         coef, intercept, sp_other_data, opt_info = \
             solve_lla(sub_prob=self.sp_solver_,
                       penalty_func=self.transf_penalty_func_,
+
+                      # Actual LLA algorithm initialization
                       init=self.coef_init_lla_,
                       init_upv=self.intercept_init_lla_,
+
+                      # warm start the subproblem solver
                       sp_init=coef_init,
                       sp_upv_init=intercept_init,
                       sp_other_data=other_init,
+
                       transform=self.transform_,
                       objective=self.objective_,
                       **self.get_solve_kws())
