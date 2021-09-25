@@ -5,6 +5,8 @@ from numpy.linalg import norm
 
 import numpy as np
 
+# TODO: document these!!
+
 
 def safe_norm(X, ord=None, axis=0):
     if is_sparse_or_lin_op(X):
