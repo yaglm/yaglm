@@ -4,6 +4,7 @@ from scipy.linalg import svd
 from ya_glm.opt.base import Func
 from ya_glm.linalg_utils import euclid_norm
 from ya_glm.autoassign import autoassign
+from ya_glm.opt.penalty.convex import Ridge
 
 
 class CompositeGroup(Func):
@@ -106,3 +107,67 @@ class CompositeGeneralizedLasso(Func):
             z = self.mat @ x
 
         return self.func.eval(z)
+
+###########################
+# ElasticNet like classes #
+###########################
+
+
+class CompositWithRidgeMixin:
+    """
+    Represents the sum of some function with a ridge penalty.
+
+    Attributes
+    ----------
+    func:
+
+    ridge:
+    """
+
+    @property
+    def is_smooth(self):
+        return self.func.is_smooth
+
+    def _eval(self, x):
+        return self.func._eval(x) + self.ridge._eval(x)
+
+    def _grad(self, x):
+        return self.func._grad(x) + self.ridge._grad(x)
+
+    def _prox(self, x, step):
+        if self.ridge.weights is not None:
+            # TODO: figure this out. Not sure if this formula works in general
+            # for non-convex + weighted ridge
+            raise NotImplementedError("Does the prox decomposition "
+                                      "fomula work with non-convex plus "
+                                      "weighted ridge?")
+
+        y = self._ridge.prox(x, step=step)
+        return self.func._prox(y, step=step)
+
+
+class EntrywiseWithRidge(CompositWithRidgeMixin, Func):
+    def __init__(self, func, ridge_pen_val, ridge_weights=None):
+        self.func = func
+        self.ridge = Ridge(pen_val=ridge_pen_val, weights=ridge_weights)
+
+    def _prox(self, x, step):
+        # the prox-decomposition formula works for weighted ridge
+        # for entrywise penalties!
+        y = self._ridge.prox(x, step=step)
+        return self.func._prox(y, step=step)
+
+
+class CompositeGroupWithRidge(CompositWithRidgeMixin, Func):
+
+    @autoassign
+    def __init__(self, groups, func, ridge_pen_val, ridge_weights=None):
+        self.func = CompositeGroup(groups=groups, func=func)
+        self.ridge = Ridge(pen_val=ridge_pen_val, weights=ridge_weights)
+
+
+class CompositeMultiTaskLassoWithRidge(CompositWithRidgeMixin, Func):
+
+    def __init__(self, func, ridge_pen_val, ridge_weights=None):
+        self.func = CompositeMultiTaskLasso(func=func)
+        self.ridge = Ridge(pen_val=ridge_pen_val, weights=ridge_weights)
