@@ -121,6 +121,10 @@ class Zero(Func):
     def is_smooth(self):
         return True
 
+    @property
+    def grad_lip(self):
+        return 0
+
 
 class Sum(Func):
     """

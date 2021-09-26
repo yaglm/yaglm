@@ -183,7 +183,11 @@ def get_penalty_func(config, n_features=None):
             raise NotImplementedError("TODO")
 
         else:
-            return SparseGroupLasso
+            return SparseGroupLasso(groups=config.groups,
+                                    pen_val=config.pen_val,
+                                    mix_val=config.mix_val,
+                                    sparse_weights=config.sparse_weights,
+                                    group_weights=config.group_weights)
 
     else:
         raise NotImplementedError("{} is not currently supported by "
