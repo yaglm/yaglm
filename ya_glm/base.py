@@ -219,7 +219,6 @@ class BaseGlm(BaseEstimator):
         pro_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
         return pro_data, out
 
-
     def get_unflavored_tunable(self):
         """
         Returns an unflavored and tunable version of this estimator. If this estimator is not tunable, will return the cross-validation version by default.
@@ -781,6 +780,18 @@ class TunedGlm(BaseGlm):
                                 init_data=init_data,
                                 **pro_data)
         return tuner
+
+    def get_tune_param_seq(self):
+        """
+        Output
+        ------
+        tune_seq: pd.DataFrame of list of dicts
+            The tuning parameter settings.
+        """
+        if not hasattr(self, 'tune_results_'):
+            raise RuntimeError("No tuning parameter grid detected")
+
+        return self.tune_results_['params']
 
     def get_unflavored_tunable(self):
         """
