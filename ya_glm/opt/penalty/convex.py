@@ -415,7 +415,7 @@ class ElasticNetLikeMixinCooprativeProx:
 
     @property
     def is_smooth(self):
-        return self.lasso.pen_val == 0
+        return False  # self.lasso.pen_val == 0
 
     def _eval(self, x):
         return self.lasso._eval(x) + self.ridge._eval(x)
@@ -424,7 +424,8 @@ class ElasticNetLikeMixinCooprativeProx:
         return self.lasso._grad(x) + self.ridge._grad(x)
 
     def _prox(self, x, step):
-        # prox decomposition formula! works for weighted ridges and group lassos!
+        # prox decomposition formula! works for weighted ridges
+        # and group lassos!
         y = self.ridge._prox(x, step=step)
         return self.lasso._prox(y, step=step)
 
