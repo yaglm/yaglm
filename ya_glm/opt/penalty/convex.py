@@ -3,7 +3,8 @@ from scipy.linalg import svd
 
 from ya_glm.opt.base import Func, EntrywiseFunc
 from ya_glm.opt.convex_funcs import L2Norm, SquaredL1
-from ya_glm.opt.prox import soft_thresh, L2_prox
+from ya_glm.opt.prox import soft_thresh, L2_prox, prox_ridge_lasso, \
+    prox_ridge_perturb
 from ya_glm.linalg_utils import euclid_norm, leading_sval
 
 
@@ -379,3 +380,115 @@ class GeneralizedLasso(Func):
             z = self.mat @ x
 
         return self.lasso._eval(z)
+
+########################
+# ElasticNet Penalties #
+########################
+
+
+class ElasticNet(Func):
+
+    def __init__(self, pen_val=1, mix=0.5, lasso_weights=None,
+                 ridge_weights=None):
+
+        self.lasso = Lasso(pen_val=pen_val * mix, weights=lasso_weights)
+        self.ridge = Ridge(pen_val=pen_val * (1 - mix), weights=ridge_weights)
+
+    @property
+    def is_smooth(self):
+        return self.lasso.pen_val == 0
+
+    def _eval(self, x):
+        return self.lasso._eval(x) + self.ridge._eval(x)
+
+    def _grad(self, x):
+        return self.lasso._grad(x) + self.ridge._grad(x)
+
+    def _prox(self, x, step):
+        return prox_ridge_lasso(x=x,
+                                lasso_pen_val=self.lasso.pen_val,
+                                lasso_weights=self.lasso.weights,
+                                ridge_pen_val=self.ridge.pen_val,
+                                rige_weights=self.ridge.weights,
+                                step=step)
+
+
+class ElasticNetLikeMixin:
+    """
+    Mixin for elastic net like functions that look like a lasso + ridge.
+    Note this does not work with weighted ridge penalties.
+
+    TODO:read up on when the prox of sums is the coposition of proxes "An efficient Hessian based algorithm for solving
+large-scale sparse group Lasso problems"
+
+    Attributes
+    ----------
+    lasso: Func
+
+    ridge: Func
+    """
+
+    @property
+    def is_smooth(self):
+        return self.lasso.pen_val == 0
+
+    def _eval(self, x):
+        return self.lasso._eval(x) + self.ridge._eval(x)
+
+    def _grad(self, x):
+        return self.lasso._grad(x) + self.ridge._grad(x)
+
+    def _prox(self, x, step):
+        assert self.ridge.weights is None
+        # Note this does not work with weighted ridge penalties
+        return prox_ridge_perturb(x=x, prox=self.group_lasso._prox,
+                                  ridge_pen_val=self.ridge.pen_val)
+
+
+class GroupElasticNet(ElasticNetLikeMixin, Func):
+
+    def __init__(self, groups=None, pen_val=1, mix_val=1, lasso_weights=None):
+        self.lasso = GroupLasso(groups=groups,
+                                pen_val=pen_val * mix_val,
+                                weights=lasso_weights)
+
+        self.ridge = Ridge(pen_val=pen_val * (1 - mix_val))
+
+
+class MultiTaskElasticNet(ElasticNetLikeMixin, Func):
+
+    def __init__(self, pen_val=1, mix_val=1, lasso_weights=None):
+        self.lasso = MultiTaskLasso(pen_val=pen_val * mix_val,
+                                    weights=lasso_weights)
+
+        self.ridge = Ridge(pen_val=pen_val * (1 - mix_val))
+
+
+class SparseGroupLasso(Func):
+    """
+
+    References
+    ----------
+    Zhang, Y., Zhang, N., Sun, D. and Toh, K.C., 2020. An efficient Hessian based algorithm for solving large-scale sparse group Lasso problems. Mathematical Programming, 179(1), pp.223-263.
+    """
+
+    def __init__(self, groups=None, pen_val=1, mix_val=0.5,
+                 sparse_weights=None, group_weights=None):
+
+        self.sparse = Lasso(pen_val=pen_val * mix_val,
+                            weights=sparse_weights)
+
+        self.group = GroupLasso(groups=groups,
+                                pen_val=pen_val * (1 - mix_val),
+                                weights=group_weights)
+
+    @property
+    def is_smooth(self):
+        return False
+
+    def _eval(self, x):
+        return self.sparse._eval(x) + self.group._eval(x)
+
+    def _prox(self, x, step):
+        # TODO: double check in proof of Prop 2.1 from Zhang et al 2020 goes through with weights
+        return self.group._prox(self.sparse._prox(x, step=step), step=step)
