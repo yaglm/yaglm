@@ -364,6 +364,9 @@ class ElasticNet(ElasticNetConfig):
     @autoassign
     def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
 
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
+
     def _get_sum_configs(self):
         lasso_config = Lasso(pen_val=self.pen_val * self.mix_val,
                              weights=self.weights,
@@ -406,6 +409,9 @@ class GroupElasticNet(ElasticNetConfig):
     def __init__(self, groups=None,
                  pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
 
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
+
     def _get_sum_configs(self):
         lasso_config = GroupLasso(groups=self.groups,
                                   pen_val=self.pen_val * self.mix_val,
@@ -442,6 +448,9 @@ class MultiTaskElasticNet(ElasticNetConfig):
     """
     @autoassign
     def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
+
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_sum_configs(self):
         lasso_config = MultiTaskLasso(pen_val=self.pen_val * self.mix_val,
@@ -494,6 +503,9 @@ class SparseGroupLasso(ElasticNetConfig):
     def __init__(self, groups=None, pen_val=1, mix_val=0.5,
                  sparse_weights=None, sparse_flavor=None,
                  group_weights=None, group_flavor=None): pass
+
+    def get_func_info(self):
+        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_sum_configs(self):
         sparse_config = Lasso(pen_val=self.pen_val * self.mix_val,

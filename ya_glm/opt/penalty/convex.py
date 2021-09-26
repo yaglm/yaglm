@@ -432,12 +432,14 @@ class ElasticNetLikeMixinCooprativeProx:
 
 class ElasticNet(Func):
 
-    def __init__(self, pen_val=1, mix=0.5,
+    def __init__(self, pen_val=1, mix_val=0.5,
                  lasso_weights=None, ridge_weights=None):
 
-        self.lasso = Lasso(pen_val=pen_val * mix, weights=lasso_weights)
+        self.lasso = Lasso(pen_val=pen_val * mix_val,
+                           weights=lasso_weights)
 
-        self.ridge = Ridge(pen_val=pen_val * (1 - mix), weights=ridge_weights)
+        self.ridge = Ridge(pen_val=pen_val * (1 - mix_val),
+                           weights=ridge_weights)
 
 
 class GroupElasticNet(ElasticNetLikeMixinCooprativeProx, Func):

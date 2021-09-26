@@ -611,21 +611,21 @@ class ElasticNetConfig(PenaltyConfig):
         kws['base'] = kws.pop('self')
         return ElasticNetTuner(**kws)
 
-    def get_func_info(self):
+    # def get_func_info(self):
 
-        infos = [pen.get_func_info() for pen in self._get_sum_configs()]
+    #     infos = [pen.get_func_info() for pen in self._get_sum_configs()]
 
-        # smooth if all smooth
-        smooth = all(info['smooth'] for info in infos)
-        prox = False  # False by default -- this may be true for some subclasses
+    #     # smooth if all smooth
+    #     smooth = all(info['smooth'] for info in infos)
+    #     prox = False  # False by default -- this may be true for some subclasses
 
-        # linear proximable if all
-        lin_prox = all((info['proximable'] or info['lin_proximable'])
-                       for info in infos)
+    #     # linear proximable if all
+    #     lin_prox = all((info['proximable'] or info['lin_proximable'])
+    #                    for info in infos)
 
-        return {'smooth': smooth,
-                'proximable': prox,
-                'lin_proximable': lin_prox}
+    #     return {'smooth': smooth,
+    #             'proximable': prox,
+    #             'lin_proximable': lin_prox}
 
     def _get_sum_configs(self):
         """
