@@ -16,6 +16,10 @@ class CompositeGroup(Func):
     def is_smooth(self):
         return False
 
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable
+
     def eval(self, x):
         norms = np.array([euclid_norm(x[grp_idxs])
                          for grp_idxs in self.groups])
@@ -52,6 +56,10 @@ class CompositeMultiTaskLasso(Func):
     def is_smooth(self):
         return False
 
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable
+
     def _eval(self, x):
         norms = np.array([euclid_norm(x[r, :]) for r in range(x.shape[0])])
         return self.func.eval(norms)
@@ -80,6 +88,10 @@ class CompositeNuclearNorm(Func):
     def is_smooth(self):
         return False
 
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable
+
     def _prox(self, x, step=1):
 
         U, s, V = svd(x, full_matrices=False)
@@ -100,6 +112,10 @@ class CompositeGeneralizedLasso(Func):
     def is_smooth(self):
         return False
 
+    @property
+    def is_proximable(self):
+        return False
+
     def _eval(self, x):
         if self.mat is None:
             z = x
@@ -113,7 +129,7 @@ class CompositeGeneralizedLasso(Func):
 ###########################
 
 
-class CompositWithRidgeMixin:
+class CompositeWithRidgeMixin:
     """
     Represents the sum of some function with a ridge penalty.
 
@@ -127,6 +143,11 @@ class CompositWithRidgeMixin:
     @property
     def is_smooth(self):
         return self.func.is_smooth
+
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable \
+            and self.ridge.weights is not None  # TODO: see below
 
     def _eval(self, x):
         return self.func._eval(x) + self.ridge._eval(x)
@@ -146,10 +167,14 @@ class CompositWithRidgeMixin:
         return self.ridge._prox(y, step=step)
 
 
-class EntrywiseWithRidge(CompositWithRidgeMixin, Func):
+class EntrywiseWithRidge(CompositeWithRidgeMixin, Func):
     def __init__(self, func, ridge_pen_val, ridge_weights=None):
         self.func = func
         self.ridge = Ridge(pen_val=ridge_pen_val, weights=ridge_weights)
+
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable
 
     def _prox(self, x, step):
         # the prox-decomposition formula works for weighted ridge
@@ -158,7 +183,7 @@ class EntrywiseWithRidge(CompositWithRidgeMixin, Func):
         return self.ridge._prox(y, step=step)
 
 
-class CompositeGroupWithRidge(CompositWithRidgeMixin, Func):
+class CompositeGroupWithRidge(CompositeWithRidgeMixin, Func):
 
     @autoassign
     def __init__(self, groups, func, ridge_pen_val, ridge_weights=None):
@@ -166,7 +191,7 @@ class CompositeGroupWithRidge(CompositWithRidgeMixin, Func):
         self.ridge = Ridge(pen_val=ridge_pen_val, weights=ridge_weights)
 
 
-class CompositeMultiTaskLassoWithRidge(CompositWithRidgeMixin, Func):
+class CompositeMultiTaskLassoWithRidge(CompositeWithRidgeMixin, Func):
 
     def __init__(self, func, ridge_pen_val, ridge_weights=None):
         self.func = CompositeMultiTaskLasso(func=func)

@@ -5,6 +5,28 @@ class GlmSolver(Config):
 
     def __init__(self): pass
 
+    @classmethod
+    def is_applicable(self, loss, penalty=None, constraint=None):
+        """
+        Determines whether or not this solver is applicable to a given optimization problem.
+
+        Parameters
+        ----------
+        loss: LossConfig
+            The loss.
+
+        penalty: None, PenaltyConfig
+            The penalty.
+
+        constraint: None, ConstraintConfig
+
+        Output
+        ------
+        is_applicable: bool
+            Wheter or not this solver can be used.
+        """
+        raise NotImplementedError
+
     def get_solve_kws(self):
         """
         Returns the optimization config parameters need to solve each GLM problem.

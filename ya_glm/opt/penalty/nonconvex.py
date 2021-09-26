@@ -23,6 +23,10 @@ class SCAD(EntrywiseFunc):
         return False
 
     @property
+    def is_proximable(self):
+        return True
+
+    @property
     def fcp_data(self):
         """
         See Definition 3.1 of https://arxiv.org/pdf/2107.03494.pdf
@@ -47,6 +51,10 @@ class MCP(EntrywiseFunc):
     @property
     def is_smooth(self):
         return False
+
+    @property
+    def is_proximable(self):
+        return True
 
     @property
     def fcp_data(self):

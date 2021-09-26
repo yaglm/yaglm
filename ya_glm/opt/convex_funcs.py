@@ -22,6 +22,10 @@ class L2Norm(Func):
     def is_smooth(self):
         return False
 
+    @property
+    def is_proximable(self):
+        return True
+
 
 class SquaredL1(Func):
     """
@@ -61,3 +65,7 @@ class SquaredL1(Func):
     @property
     def is_smooth(self):
         return False
+
+    @property
+    def is_proximable(self):
+        return True

@@ -62,6 +62,10 @@ class Ridge(EntrywiseFunc):
     def is_smooth(self):
         return True
 
+    @property
+    def is_proximable(self):
+        return True
+
 
 class GeneralizedRidge(Func):
     """
@@ -115,6 +119,10 @@ class GeneralizedRidge(Func):
     def is_smooth(self):
         return True
 
+    @property
+    def is_proximable(self):
+        return False
+
 
 class Lasso(EntrywiseFunc):
     """
@@ -159,6 +167,10 @@ class Lasso(EntrywiseFunc):
     @property
     def is_smooth(self):
         return False
+
+    @property
+    def is_proximable(self):
+        return True
 
 
 class GroupLasso(Func):
@@ -218,6 +230,11 @@ class GroupLasso(Func):
     @property
     def is_smooth(self):
         return False
+
+    @property
+    def is_proximable(self):
+        # TODO: maybe check for overlapping groups?
+        return True
 
 
 class ExclusiveGroupLasso(Func):
@@ -279,6 +296,11 @@ class ExclusiveGroupLasso(Func):
     def is_smooth(self):
         return False
 
+    @property
+    def is_proximable(self):
+        # TODO: maybe check for overlapping groups?
+        return True
+
 
 class NuclearNorm(Func):
     # https://github.com/scikit-learn-contrib/lightning/blob/master/lightning/impl/penalty.py
@@ -314,6 +336,11 @@ class NuclearNorm(Func):
     def is_smooth(self):
         return False
 
+    @property
+    def is_proximable(self):
+        # TODO: maybe check the weights are ordered correctly
+        return True
+
 
 class MultiTaskLasso(Func):
     def __init__(self, pen_val=1, weights=None):
@@ -345,6 +372,10 @@ class MultiTaskLasso(Func):
     @property
     def is_smooth(self):
         return False
+
+    @property
+    def is_proximable(self):
+        return True
 
 
 class GeneralizedLasso(Func):
@@ -379,6 +410,10 @@ class GeneralizedLasso(Func):
             z = self.mat @ x
 
         return self.lasso._eval(z)
+
+    @property
+    def is_proximable(self):
+        return False
 
 ########################
 # ElasticNet Penalties #
@@ -416,6 +451,10 @@ class ElasticNetLikeMixinCooprativeProx:
     @property
     def is_smooth(self):
         return False  # self.lasso.pen_val == 0
+
+    @property
+    def is_proximable(self):
+        return True
 
     def _eval(self, x):
         return self.lasso._eval(x) + self.ridge._eval(x)
@@ -488,6 +527,10 @@ class SparseGroupLasso(Func):
     @property
     def is_smooth(self):
         return False
+
+    @property
+    def is_proximable(self):
+        return True
 
     def _eval(self, x):
         return self.sparse._eval(x) + self.group._eval(x)

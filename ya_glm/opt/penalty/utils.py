@@ -31,6 +31,10 @@ class WithIntercept(Func):
     def is_smooth(self):
         return self.func.is_smooth
 
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable
+
 
 class MatWithIntercept(Func):
     def __init__(self, func):
@@ -59,3 +63,7 @@ class MatWithIntercept(Func):
     @property
     def is_smooth(self):
         return self.func.is_smooth
+
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable

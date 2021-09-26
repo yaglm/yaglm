@@ -21,6 +21,10 @@ class Positive(Constraint):
         p[pos_mask] = x[pos_mask]
         return p
 
+    @property
+    def is_proximable(self):
+        return True
+
 
 class Simplex(Constraint):
 
@@ -32,6 +36,10 @@ class Simplex(Constraint):
         p = project_simplex(x.reshape(-1), z=self.mult)
         return p.reshape(x.shape)
 
+    @property
+    def is_proximable(self):
+        return True
+
 
 class L1Ball(Constraint):
 
@@ -41,6 +49,10 @@ class L1Ball(Constraint):
     def _prox(self, x, step=1):
         p = project_l1_ball(x.reshape(-1), z=self.mult)
         return p.reshape(x.shape)
+
+    @property
+    def is_proximable(self):
+        return True
 
 
 # See https://gist.github.com/mblondel/6f3b7aaad90606b98f71

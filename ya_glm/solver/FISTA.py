@@ -1,6 +1,14 @@
+import numpy as np
+
 from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.autoassign import autoassign
 from ya_glm.opt.fista import solve_fista
+
+from ya_glm.config.loss import get_loss_config
+from ya_glm.config.constraint import get_constraint_config
+from ya_glm.config.penalty import get_penalty_config
+from ya_glm.config.base_params import get_base_config
+
 
 from ya_glm.opt.from_config.loss import get_glm_loss_func
 from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept
@@ -8,7 +16,6 @@ from ya_glm.opt.from_config.constraint import get_constraint_func
 
 from ya_glm.opt.base import Sum
 from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
-
 from ya_glm.utils import is_multi_response
 
 
@@ -62,6 +69,70 @@ class FISTA(GlmSolverWithPath):
                  accel=True,
                  restart=True,
                  tracking_level=0): pass
+
+    @classmethod
+    def is_applicable(self, loss, penalty=None, constraint=None):
+        """
+        Determines whether or not this problem can be solved by FISTA i.e. if it is in the form
+
+        min L(coef) + p(coef)
+
+        where L is smooth and p is proximable.
+
+        Parameters
+        ----------
+        loss: LossConfig
+            The loss.
+
+        penalty: None, PenaltyConfig
+            The penalty.
+
+        constraint: None, ConstraintConfig
+
+        Output
+        ------
+        is_applicable: bool
+            Wheter or not this solver can be used.
+        """
+        loss = get_base_config(get_loss_config(loss))
+        penalty = get_base_config(get_penalty_config(penalty))
+
+        if constraint is not None:
+            constraint = get_base_config(get_constraint_config(constraint))
+
+        # make fake data just for getting functions
+        X = np.zeros((3, 2))
+        y = np.zeros(3)
+        n_features = 2
+
+        # get functions
+        loss_func = get_glm_loss_func(config=loss, X=X, y=y)
+        penalty_func = get_penalty_func(config=penalty, n_features=n_features)
+        if constraint is not None:
+            constraint_func = get_constraint_func(constraint)
+
+        # don't currently support penalty with constraint
+        if penalty is not None and constraint is not None:
+            # TODO: there are some special cases where this will work
+            return False
+
+        # don't support non-smooth loss functions
+        elif not loss_func.is_smooth:
+            # TODO: perhaps modify to work with smooth penalty and
+            # non-smooth loss e.g. quantile with ridge
+            return False
+
+        # don't support non-smoooth, non-proximable penalties
+        elif penalty is not None and \
+                not (penalty_func.is_smooth or penalty_func.is_proximable):
+            return False
+
+        # don't support non-proximable constraints
+        elif constraint is not None and not constraint_func.is_proximable:
+            return False
+
+        else:
+            return True
 
     def setup(self, X, y, loss, penalty, constraint=None,
               fit_intercept=True, sample_weight=None):

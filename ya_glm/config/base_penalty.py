@@ -25,29 +25,6 @@ class PenaltyConfig(ParamConfig):
         """
         return self
 
-    # TODO: perhaps remove this method since this information can be
-    # accessed implicitly through the ya_glm.opt module. We will need
-    # to modify ya_glm.opt a bit to make this in fact true.
-    def get_func_info(self):
-        """
-        Returns information for this function e.g. is it proximable, smooth, etc
-
-        Output
-        ------
-        info: dict
-            Returns a dictionary with keys
-
-            'smooth': bool
-                Whether or not this penalty function is smooth.
-
-            'proximable': bool
-                Whether or not this has an easy to evaluate proximal opterator.
-
-            'lin_proximable': bool
-                Whether or not this penalty is a linear transformation away from being proximable e.g. the genearlized Lasso.
-        """
-        raise NotImplementedError("Subclass should overwrite")
-
 
 class PenaltyTuner(TunerConfig):
     """
@@ -337,22 +314,6 @@ class OverlappingSumConfig(_AdditivePenaltyConfig):
     def get_penalties(self):
         return self.get_params(deep=False)
 
-    def get_func_info(self):
-
-        infos = [pen.get_func_info() for pen in self.get_penalties().values()]
-
-        # smooth if all smooth
-        smooth = all(info['smooth'] for info in infos)
-        prox = False  # False by default -- this may be true for some subclasses
-
-        # linear proximable if all
-        lin_prox = all((info['proximable'] or info['lin_proximable'])
-                       for info in infos)
-
-        return {'smooth': smooth,
-                'proximable': prox,
-                'lin_proximable': lin_prox}
-
 
 class InifmalSumConfig(_AdditivePenaltyConfig):
     """
@@ -382,24 +343,6 @@ class InifmalSumConfig(_AdditivePenaltyConfig):
 
     def get_penalties(self):
         return self.get_params(deep=False)
-
-    def get_func_info(self):
-
-        infos = [pen.get_func_info() for pen in self.get_penalties().values()]
-
-        # smooth if all smooth
-        smooth = all(info['smooth'] for info in infos)
-
-        # proximable if all are proximable
-        prox = all(info['proximable'] for info in infos)
-
-        # linear proximable if all are lin proximable
-        lin_prox = all((info['proximable'] or info['lin_proximable'])
-                       for info in infos)
-
-        return {'smooth': smooth,
-                'proximable': prox,
-                'lin_proximable': lin_prox}
 
 
 class SeparableSumConfig(_AdditivePenaltyConfig):
@@ -433,23 +376,6 @@ class SeparableSumConfig(_AdditivePenaltyConfig):
         params.pop('groups')
         return params
 
-    def get_func_info(self):
-
-        infos = [pen.get_func_info() for pen in self.get_penalties().values()]
-
-        # smooth if all smooth
-        smooth = all(info['smooth'] for info in infos)
-
-        # proximable if all are proximable
-        prox = all(info['proximable'] for info in infos)
-
-        # linear proximable if all are lin proximable
-        lin_prox = all((info['proximable'] or info['lin_proximable'])
-                       for info in infos)
-
-        return {'smooth': smooth,
-                'proximable': prox,
-                'lin_proximable': lin_prox}
 
 ################################
 # Tuner for multiple penalties #

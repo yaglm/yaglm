@@ -12,8 +12,7 @@ class NoPenalty(PenaltyConfig):
     """
     Represents no penalty.
     """
-    def get_func_info(self):
-        return {'smooth': True, 'proximable': True, 'lin_proximable': True}
+    pass
 
 
 class Ridge(WithPenSeqConfig):
@@ -33,9 +32,6 @@ class Ridge(WithPenSeqConfig):
     """
     @autoassign
     def __init__(self, pen_val=1, weights=None): pass
-
-    def get_func_info(self):
-        return {'smooth': True, 'proximable': True, 'lin_proximable': True}
 
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
                         sample_weight=None):
@@ -66,9 +62,6 @@ class GeneralizedRidge(WithPenSeqConfig):
     @autoassign
     def __init__(self, pen_val=1, mat=None): pass
 
-    def get_func_info(self):
-        return {'smooth': True, 'proximable': False, 'lin_proximable': True}
-
 
 class Lasso(WithFlavorPenSeqConfig):
     """
@@ -91,9 +84,6 @@ class Lasso(WithFlavorPenSeqConfig):
     """
     @autoassign
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
-
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
@@ -136,9 +126,6 @@ class GroupLasso(WithFlavorPenSeqConfig):
     @autoassign
     def __init__(self, groups=None, pen_val=1, weights=None, flavor=None): pass
 
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
-
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
 
@@ -175,9 +162,6 @@ class ExclusiveGroupLasso(WithPenSeqConfig):
     @autoassign
     def __init__(self, groups=None, pen_val=1): pass
 
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
-
 
 class MultiTaskLasso(WithFlavorPenSeqConfig):
     """
@@ -199,9 +183,6 @@ class MultiTaskLasso(WithFlavorPenSeqConfig):
     """
     @autoassign
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
-
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
@@ -235,9 +216,6 @@ class NuclearNorm(WithFlavorPenSeqConfig):
 
     @autoassign
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
-
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
                                  sample_weight=None):
@@ -292,10 +270,6 @@ class FusedLasso(WithFlavorPenSeqConfig):
     def __init__(self, pen_val=1, edgelist='chain', order=1,
                  weights=None, flavor=None): pass
 
-    def get_func_info(self):
-        # TODO: I'm pretty sure TV-1 is proximable
-        return {'smooth': False, 'proximable': False, 'lin_proximable': True}
-
 
 class GeneralizedLasso(WithFlavorPenSeqConfig):
     """
@@ -326,10 +300,6 @@ class GeneralizedLasso(WithFlavorPenSeqConfig):
     """
     @autoassign
     def __init__(self, pen_val=1, mat=None, weights=None, flavor=None): pass
-
-    def get_func_info(self):
-        # TODO: I'm pretty sure TV-1 is proximable
-        return {'smooth': False, 'proximable': False, 'lin_proximable': True}
 
 ########################
 # ElasticNet penalties #
@@ -363,9 +333,6 @@ class ElasticNet(ElasticNetConfig):
     """
     @autoassign
     def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
-
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_sum_configs(self):
         lasso_config = Lasso(pen_val=self.pen_val * self.mix_val,
@@ -409,9 +376,6 @@ class GroupElasticNet(ElasticNetConfig):
     def __init__(self, groups=None,
                  pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
 
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
-
     def _get_sum_configs(self):
         lasso_config = GroupLasso(groups=self.groups,
                                   pen_val=self.pen_val * self.mix_val,
@@ -448,9 +412,6 @@ class MultiTaskElasticNet(ElasticNetConfig):
     """
     @autoassign
     def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
-
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_sum_configs(self):
         lasso_config = MultiTaskLasso(pen_val=self.pen_val * self.mix_val,
@@ -503,9 +464,6 @@ class SparseGroupLasso(ElasticNetConfig):
     def __init__(self, groups=None, pen_val=1, mix_val=0.5,
                  sparse_weights=None, sparse_flavor=None,
                  group_weights=None, group_flavor=None): pass
-
-    def get_func_info(self):
-        return {'smooth': False, 'proximable': True, 'lin_proximable': True}
 
     def _get_sum_configs(self):
         sparse_config = Lasso(pen_val=self.pen_val * self.mix_val,

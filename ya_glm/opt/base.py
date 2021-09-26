@@ -55,29 +55,29 @@ class Func(object):
     # def eval_and_grad(self, x):
     #     return self.eval(x), self.grad(x)
 
-    def capabilities(self, x):
-        # TODO: do we actually need this???
+    # def capabilities(self, x):
+    #     # TODO: do we actually need this???
 
-        cap = ['EVAL', 'GRAD', 'PROX', 'GRAD_LIP']
-        try:
-            self.eval(x)
-        except NotImplementedError:
-            cap.remove('EVAL')
+    #     cap = ['EVAL', 'GRAD', 'PROX', 'GRAD_LIP']
+    #     try:
+    #         self.eval(x)
+    #     except NotImplementedError:
+    #         cap.remove('EVAL')
 
-        try:
-            self.grad(x)
-        except NotImplementedError:
-            cap.remove('GRAD')
+    #     try:
+    #         self.grad(x)
+    #     except NotImplementedError:
+    #         cap.remove('GRAD')
 
-        try:
-            self.prox(x, 1)
-        except NotImplementedError:
-            cap.remove('PROX')
+    #     try:
+    #         self.prox(x, 1)
+    #     except NotImplementedError:
+    #         cap.remove('PROX')
 
-        if self.grad_lip is None:
-            cap.remove('GRAD_LIP')
+    #     if self.grad_lip is None:
+    #         cap.remove('GRAD_LIP')
 
-        return cap
+    #     return cap
 
     @property
     def is_smooth(self):
@@ -85,6 +85,15 @@ class Func(object):
         Output
         ------
         Whether or not the function is smooth.
+        """
+        raise NotImplementedError
+
+    @property
+    def is_proximable(self):
+        """
+        Output
+        ------
+        Whether or not the function has an easy to evaulate proximal operator.
         """
         raise NotImplementedError
 
@@ -122,6 +131,10 @@ class Zero(Func):
         return True
 
     @property
+    def is_proximable(self):
+        return True
+
+    @property
     def grad_lip(self):
         return 0
 
@@ -155,6 +168,11 @@ class Sum(Func):
     @property
     def is_smooth(self):
         return all(f.is_smooth for f in self.funcs)
+
+    @property
+    def is_proximable(self):
+        # False by default, but can be true in special cases
+        return False
 
 
 def check_grad_impl(func, values, atol=1e-05, behavior='ret', verbosity=0):

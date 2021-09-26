@@ -54,6 +54,12 @@ class GlmInputLoss(Func):
                                  step=step / self.n_samples,
                                  **self.loss_kws)
 
+    @property
+    def is_proximable(self):
+        # if we have implemented the sample proxex then
+        # this should be proximable
+        return self.sample_proxs is not None
+
 
 class Glm(Func):
     """
@@ -83,6 +89,10 @@ class Glm(Func):
     @property
     def is_smooth(self):
         return self.glm_loss.is_smooth
+
+    @property
+    def is_proximable(self):
+        return False
 
     @property
     def y(self):
