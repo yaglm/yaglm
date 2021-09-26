@@ -644,7 +644,7 @@ class ElasticNetConfig(PenaltyConfig):
         raise NotImplementedError("Subclass should overwrite")
 
 
-class ElasticNetTuner(TunerWithPathMixin, PenaltyConfig):
+class ElasticNetTuner(TunerWithPathMixin, PenaltyTuner):
     """
     Tuner object for elastic net parameterized penalties.
 
