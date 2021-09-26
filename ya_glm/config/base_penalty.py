@@ -576,7 +576,16 @@ class ElasticNetConfig(PenaltyConfig):
     @autoassign
     def __init__(self, pen_val=1, mix_val=0.5): pass
 
-    def tune(self):
+    def tune(self,
+             n_pen_vals=100,
+             pen_min_mult=1e-3,
+             pen_max_mult=1,
+             pen_spacing='log',
+             pen_val_seq=None,
+
+             n_mix_vals=10,
+             mix_val_min=0.1,
+             mix_val_seq=None):
         """
         Returns an ElasticNetTuner object. Note both the pen_val and mix_val are tuned over by default.
 
@@ -610,22 +619,6 @@ class ElasticNetConfig(PenaltyConfig):
         kws = locals()
         kws['base'] = kws.pop('self')
         return ElasticNetTuner(**kws)
-
-    # def get_func_info(self):
-
-    #     infos = [pen.get_func_info() for pen in self._get_sum_configs()]
-
-    #     # smooth if all smooth
-    #     smooth = all(info['smooth'] for info in infos)
-    #     prox = False  # False by default -- this may be true for some subclasses
-
-    #     # linear proximable if all
-    #     lin_prox = all((info['proximable'] or info['lin_proximable'])
-    #                    for info in infos)
-
-    #     return {'smooth': smooth,
-    #             'proximable': prox,
-    #             'lin_proximable': lin_prox}
 
     def _get_sum_configs(self):
         """
