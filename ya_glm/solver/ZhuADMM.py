@@ -4,6 +4,11 @@ from scipy.sparse import csr_matrix
 from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.autoassign import autoassign
 
+from ya_glm.config.loss import get_loss_config
+from ya_glm.config.constraint import get_constraint_config
+from ya_glm.config.penalty import get_penalty_config
+from ya_glm.config.base_params import get_base_config
+
 from ya_glm.opt.zhu_admm import solve
 from ya_glm.opt.from_config.input_loss import get_glm_input_loss
 from ya_glm.opt.from_config.mat_and_func import get_mat_and_func
@@ -65,13 +70,65 @@ class ZhuADMM(GlmSolverWithPath):
                  max_iter=1000,
                  tracking_level=0): pass
 
+    @classmethod
+    def is_applicable(self, loss, penalty=None, constraint=None):
+        """
+        Determines whether or not this problem can be solved the ADMM algorithm i.e. if it is in the form of
+
+        min L(X @ coef) + p(mat @ coef)
+
+        where both L and p are proximable.
+
+        Parameters
+        ----------
+        loss: LossConfig
+            The loss.
+
+        penalty: None, PenaltyConfig
+            The penalty.
+
+        constraint: None, ConstraintConfig
+
+        Output
+        ------
+        is_applicable: bool
+            Wheter or not this solver can be used.
+        """
+
+        if constraint is not None:
+            raise NotImplementedError("TODO add this!")
+
+        # pull out base configs
+        loss = get_base_config(get_loss_config(loss))
+        penalty = get_base_config(get_penalty_config(penalty))
+        if constraint is not None:
+            constraint = get_base_config(get_constraint_config(constraint))
+
+        # make fake data just for getting functions
+        # X = np.zeros((3, 2))
+        y = np.zeros(3)
+        n_features = 2
+
+        # get g1 and g2 functions
+        g1 = get_glm_input_loss(config=loss, y=y)
+        g2_config = get_mat_and_func(config=penalty, n_features=n_features)[1]
+        g2 = get_penalty_func(g2_config, n_features=n_features)
+
+        if g1.is_proxiable and g2.is_proximable:
+            return True
+        else:
+            return False
+
     def setup(self, X, y, loss, penalty, constraint=None,
               fit_intercept=True, sample_weight=None):
         """
         Sets up anything the solver needs.
         """
-        if constraint is not None:
-            raise NotImplementedError("TODO add this!")
+        # make sure FISTA is applicable
+        if not self.is_applicable(loss, penalty, constraint):
+            raise ValueError("ADMM is not applicable to "
+                             "loss={}, penalty={}, constrain={}".
+                             format(loss, penalty, constraint))
 
         # store some data we need in solve()
         self.is_mr_ = is_multi_response(y)

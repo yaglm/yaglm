@@ -94,9 +94,10 @@ class FISTA(GlmSolverWithPath):
         is_applicable: bool
             Wheter or not this solver can be used.
         """
+
+        # pull out base configs
         loss = get_base_config(get_loss_config(loss))
         penalty = get_base_config(get_penalty_config(penalty))
-
         if constraint is not None:
             constraint = get_base_config(get_constraint_config(constraint))
 
@@ -139,6 +140,12 @@ class FISTA(GlmSolverWithPath):
         """
         Sets up anything the solver needs.
         """
+        # make sure FISTA is applicable
+        if not self.is_applicable(loss, penalty, constraint):
+            raise ValueError("FISTA is not applicable to "
+                             "loss={}, penalty={}, constrain={}".
+                             format(loss, penalty, constraint))
+
         self.is_mr_ = is_multi_response(y)
         self.fit_intercept_ = fit_intercept
         self.penalty_config_ = penalty
@@ -156,11 +163,6 @@ class FISTA(GlmSolverWithPath):
         # compute lipchtiz etc
         self.loss_func_.setup()
 
-        if not self.loss_func_.is_smooth:
-            raise NotImplementedError("The loss function must be smooth for"
-                                      " FISTA, but {} is not".
-                                      format(loss.name))
-
         ##########################
         # Penalty and constraint #
         ##########################
@@ -168,16 +170,11 @@ class FISTA(GlmSolverWithPath):
         self.penalty_func_ = None
         self.constraint_func_ = None
 
-        # get the penalty
-        if penalty is not None and constraint is not None:
-            raise NotImplementedError("FISTA can only handle either a "
-                                      "constraint or a penalty, not both.")
-
-        elif penalty is not None:
+        if penalty is not None:
             self.penalty_func_ = get_penalty_func(config=self.penalty_config_,
                                                   n_features=self.n_features_)
 
-        elif constraint is not None:
+        if constraint is not None:
             self.constraint_func_ = get_constraint_func(config=constraint)
 
     def update_penalty(self, **params):

@@ -31,8 +31,17 @@ def get_solver(solver, loss, penalty=None, constraint=None):
                                    constraint=constraint):
 
                 return FISTA()
-            else:
+
+            # back up with ZhuADMM
+            elif ZhuADMM.is_applicable(loss=loss,
+                                       penalty=penalty,
+                                       constraint=constraint):
                 return ZhuADMM()
+
+            else:
+                raise ValueError("No available solver found for "
+                                 "loss={}, penalty={}, constrain={}".
+                                 format(loss, penalty, constraint))
 
         else:  # return user specified solver
             if solver.lower() not in avail_solvers:
