@@ -441,6 +441,7 @@ class MultiTaskElasticNet(ElasticNetConfig):
 
 
 class SparseGroupLasso(ElasticNetConfig):
+    # Simon, N., Friedman, J., Hastie, T. and Tibshirani, R., 2013. A sparse-group lasso. Journal of computational and graphical statistics, 22(2), pp.231-245.
     @autoassign
     def __init__(self, groups=None, pen_val=1, mix_val=0.5,
                  sparse_weights=None, sparse_flavor=None,
@@ -548,7 +549,7 @@ penalty_str2obj = {'none': NoPenalty(),
                    'group_enet': GroupElasticNet(),
                    'multi_task_enet': MultiTaskElasticNet(),
 
-                   # 'sparse_group': SparseGroupLasso(),
+                   'sparse_group': SparseGroupLasso(),
 
                    # 'sparse_fused': SparseFusedLasso(),
                    # 'low_rank_plus_sparse': LowRankPlusSparse(),
