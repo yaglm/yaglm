@@ -152,7 +152,7 @@ class GroupLasso(WithFlavorPenSeqConfig):
 # TODO: add flavor
 # TODO: add weights -- should we have both entrywise and group?
 # perhaps default gives group lasso weights
-class ExclusiveGroupLasso(WithFlavorPenSeqConfig):
+class ExclusiveGroupLasso(WithPenSeqConfig):
     """
     Exclusive group lasso.
 
