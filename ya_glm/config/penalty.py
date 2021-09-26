@@ -381,8 +381,15 @@ class GroupElasticNet(ElasticNetConfig):
     """
     Represents the group ElasticNet penalty
 
+    pen_val * mix_val * gruop_lasso(coef; groups) + pen_val * (1 - mix_val) * ridge(coef)
+
+    non_convex-group_{pen_val * mix_val}(coef; groups) + pen_val * (1 - mix_val) * ridge(coef)
+
     Parameters
     ----------
+    groups: list, None
+        Indices of the groups. If None, then all features are put in a single group.
+
     pen_val: float
         The penalty strength.
 
@@ -396,7 +403,7 @@ class GroupElasticNet(ElasticNetConfig):
         (Optional) Flavor for the lasso penalty.
     """
     @autoassign
-    def __init__(self, groups,
+    def __init__(self, groups=None,
                  pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
 
     def _get_sum_configs(self):
@@ -414,6 +421,10 @@ class GroupElasticNet(ElasticNetConfig):
 class MultiTaskElasticNet(ElasticNetConfig):
     """
     Represents the group MultiTask ElasticNet penalty
+
+    pen_val * mix_val * multi-task(coef) + pen_val * (1 - mix_val) * ridge(coef)
+
+    non-convex-multi-task_{pen_val * mix_val}(coef) + pen_val * (1 - mix_val) * ridge(coef)
 
     Parameters
     ----------
@@ -442,8 +453,37 @@ class MultiTaskElasticNet(ElasticNetConfig):
         return lasso_config, ridge_config
 
 
+# TODO: add default weights for group
 class SparseGroupLasso(ElasticNetConfig):
     """
+    Represents the sparse group lasso penalty.
+
+    pen_val * mix_val * ||coef||_1 + pen_val * (1 - mix_val) * group_lasso(coef; groups)
+
+    non-convex_{pen_val*mix_val}(coef) + pen_val * (1 - mix_val) * group_lasso(coef; groups)
+
+    Parameters
+    ----------
+    groups: list, None
+        Indices of the groups. If None, then all features are put in a single group.
+
+    pen_val: float
+        The penalty strength.
+
+    mix_val: float
+        The mixing value between 0 and 1.
+
+    sparse_weights: None, array-like shape (n_features, ) or (n_features, n_responses)
+        (Optional) Weights for the entrywise lasso.
+
+    sparse_flavor: None, FlavorConfig
+        (Optional) Flavoring for the entrywise penalty.
+
+    group_weights: None, array-like shape (n_groups)
+        (Optional) Weights for the group penalty.
+
+    sparse_flavor: None, FlavorConfig
+        (Optional) Flavoring for the group penalty.
 
     References
     ----------
