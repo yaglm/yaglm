@@ -142,8 +142,8 @@ class CompositWithRidgeMixin:
                                       "fomula work with non-convex plus "
                                       "weighted ridge?")
 
-        y = self._ridge.prox(x, step=step)
-        return self.func._prox(y, step=step)
+        y = self.func.prox(x, step=step)
+        return self.ridge._prox(y, step=step)
 
 
 class EntrywiseWithRidge(CompositWithRidgeMixin, Func):
@@ -154,8 +154,8 @@ class EntrywiseWithRidge(CompositWithRidgeMixin, Func):
     def _prox(self, x, step):
         # the prox-decomposition formula works for weighted ridge
         # for entrywise penalties!
-        y = self._ridge.prox(x, step=step)
-        return self.func._prox(y, step=step)
+        y = self.func.prox(x, step=step)
+        return self.ridge._prox(y, step=step)
 
 
 class CompositeGroupWithRidge(CompositWithRidgeMixin, Func):

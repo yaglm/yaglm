@@ -426,11 +426,11 @@ class ElasticNetLikeMixinCooprativeProx:
     def _prox(self, x, step):
         # prox decomposition formula! works for weighted ridges
         # and group lassos!
-        y = self.ridge._prox(x, step=step)
-        return self.lasso._prox(y, step=step)
+        y = self.lasso._prox(x, step=step)
+        return self.ridge._prox(y, step=step)
 
 
-class ElasticNet(Func):
+class ElasticNet(ElasticNetLikeMixinCooprativeProx, Func):
 
     def __init__(self, pen_val=1, mix_val=0.5,
                  lasso_weights=None, ridge_weights=None):
@@ -444,7 +444,7 @@ class ElasticNet(Func):
 
 class GroupElasticNet(ElasticNetLikeMixinCooprativeProx, Func):
 
-    def __init__(self, groups=None, pen_val=1, mix_val=1,
+    def __init__(self, groups=None, pen_val=1, mix_val=0.5,
                  lasso_weights=None, ridge_weights=None):
 
         self.lasso = GroupLasso(groups=groups,
@@ -457,7 +457,7 @@ class GroupElasticNet(ElasticNetLikeMixinCooprativeProx, Func):
 
 class MultiTaskElasticNet(ElasticNetLikeMixinCooprativeProx, Func):
 
-    def __init__(self, pen_val=1, mix_val=1,
+    def __init__(self, pen_val=1, mix_val=0.5,
                  lasso_weights=None, ridge_weights=None):
 
         self.lasso = MultiTaskLasso(pen_val=pen_val * mix_val,
@@ -495,5 +495,5 @@ class SparseGroupLasso(Func):
     def _prox(self, x, step):
         # prox decomposition
         # Prop 2.1 from Zhang et al 2020 goes through with weights
-        y = self.sparse._prox(x, step=step)
-        return self.group._prox(y, step=step)
+        y = self.group._prox(x, step=step)
+        return self.sparse._prox(y, step=step)
