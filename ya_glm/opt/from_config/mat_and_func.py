@@ -79,4 +79,7 @@ def get_mat_and_func(config, n_features):
         # get trend filtering difference matrix
         mat = get_fused_lasso_diff_mat(config, n_nodes=n_features)
 
+    else:
+        raise NotImplementedError("Not available for {}".format(config))
+
     return mat, func_config

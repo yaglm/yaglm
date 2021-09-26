@@ -21,14 +21,13 @@ from ya_glm.config.penalty import SparseGroupLasso as SparseGroupLassoConfig
 
 # from ya_glm.config.penalty import SeparableSum as SeparableSumConfig
 # from ya_glm.config.penalty import InifmalSum as InifmalSumConfig
-# from ya_glm.config.penalty import OverlappingSum as OverlappingSumConfig
+from ya_glm.config.penalty import OverlappingSum as OverlappingSumConfig
 
-from ya_glm.opt.base import Zero
+from ya_glm.opt.base import Zero, Sum
 from ya_glm.opt.penalty.convex import Ridge, GeneralizedRidge,\
      Lasso, GroupLasso, ExclusiveGroupLasso, \
      MultiTaskLasso, NuclearNorm, GeneralizedLasso, \
      ElasticNet, GroupElasticNet, MultiTaskElasticNet, SparseGroupLasso
-
 
 from ya_glm.opt.penalty.nonconvex import get_nonconvex_func
 from ya_glm.opt.penalty.composite_structured import CompositeGroup, \
@@ -188,6 +187,12 @@ def get_penalty_func(config, n_features=None):
                                     mix_val=config.mix_val,
                                     sparse_weights=config.sparse_weights,
                                     group_weights=config.group_weights)
+
+    # Overlapping sum
+    elif isinstance(config, OverlappingSumConfig):
+        funcs = [get_penalty_func(c, n_features)
+                 for c in config.get_penalties().values()]
+        return Sum(funcs=funcs)
 
     else:
         raise NotImplementedError("{} is not currently supported by "
