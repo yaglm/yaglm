@@ -7,22 +7,34 @@ from ya_glm.config.penalty import GroupLasso as GroupLassoConfig
 from ya_glm.config.penalty import \
      ExclusiveGroupLasso as ExclusiveGroupLassoConfig
 
+from ya_glm.config.penalty import MultiTaskLasso as MultiTaskLassoConfig
+from ya_glm.config.penalty import NuclearNorm as NuclearNormConfig
+
 from ya_glm.config.penalty import FusedLasso as FusedLassoConfig
 from ya_glm.config.penalty import GeneralizedLasso as GeneralizedLassoConfig
 
-from ya_glm.config.penalty import MultiTaskLasso as MultiTaskLassoConfig
-from ya_glm.config.penalty import NuclearNorm as NuclearNormConfig
+from ya_glm.config.penalty import ElasticNet as ElasticNetConfig
+from ya_glm.config.penalty import GroupElasticNet as GroupElasticNetConfig
+from ya_glm.config.penalty import MultiTaskElasticNet as \
+    MultiTaskElasticNetConfig
+from ya_glm.config.penalty import SparseGroupLasso as SparseGroupLassoConfig
+
+# from ya_glm.config.penalty import SeparableSum as SeparableSumConfig
+# from ya_glm.config.penalty import InifmalSum as InifmalSumConfig
+# from ya_glm.config.penalty import OverlappingSum as OverlappingSumConfig
 
 from ya_glm.opt.base import Zero
 from ya_glm.opt.penalty.convex import Ridge, GeneralizedRidge,\
      Lasso, GroupLasso, ExclusiveGroupLasso, \
-     MultiTaskLasso, NuclearNorm, GeneralizedLasso
+     MultiTaskLasso, NuclearNorm, GeneralizedLasso, \
+     ElasticNet, GroupElasticNet, MultiTaskElasticNet, SparseGroupLasso
+
 
 from ya_glm.opt.penalty.nonconvex import get_nonconvex_func
 from ya_glm.opt.penalty.composite_structured import CompositeGroup, \
     CompositeMultiTaskLasso, CompositeNuclearNorm, CompositeGeneralizedLasso
 
-from ya_glm.opt.penalty.with_intercept import MatWithIntercept, WithIntercept
+from ya_glm.opt.penalty.utils import MatWithIntercept, WithIntercept
 from ya_glm.utils import is_str_and_matches
 from ya_glm.trend_filtering import get_tf_mat, get_graph_tf_mat
 from ya_glm.config.base_penalty import get_flavor_info
@@ -127,6 +139,51 @@ def get_penalty_func(config, n_features=None):
             return GeneralizedLasso(pen_val=config.pen_val,
                                     mat=mat,
                                     weights=config.weights)
+
+    # Elastic Net
+    elif isinstance(config, ElasticNetConfig):
+
+        if flavor_type == 'non_convex':
+            raise NotImplementedError("TODO: add")
+
+        else:
+
+            return ElasticNet(pen_val=config.pen_val,
+                              mix_val=config.mix_val,
+                              lasso_weights=config.weights
+                              )
+
+    # Group Elastic net
+    elif isinstance(config, GroupElasticNetConfig):
+        if flavor_type == 'non_convex':
+            raise NotImplementedError("TODO: add")
+
+        else:
+            return GroupElasticNet(groups=config.groups,
+                                   pen_val=config.pen_val,
+                                   mix_val=config.mix_val,
+                                   lasso_weights=config.weights
+                                   )
+
+    # Multi-task elastic net
+    elif isinstance(config, MultiTaskElasticNetConfig):
+        if flavor_type == 'non_convex':
+            raise NotImplementedError("TODO: add")
+
+        else:
+            return MultiTaskElasticNet(pen_val=config.pen_val,
+                                       mix_val=config.mix_val,
+                                       lasso_weights=config.weights
+                                       )
+
+    # Sparse group lasso
+    elif isinstance(config, SparseGroupLassoConfig):
+
+        if flavor_type == 'non_convex':
+            raise NotImplementedError("TODO")
+
+        else:
+            return SparseGroupLasso
 
     else:
         raise NotImplementedError("{} is not currently supported by "
