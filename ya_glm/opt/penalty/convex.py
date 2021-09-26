@@ -3,8 +3,7 @@ from scipy.linalg import svd
 
 from ya_glm.opt.base import Func, EntrywiseFunc
 from ya_glm.opt.convex_funcs import L2Norm, SquaredL1
-from ya_glm.opt.prox import soft_thresh, L2_prox, prox_ridge_lasso, \
-    prox_ridge_perturb
+from ya_glm.opt.prox import soft_thresh, L2_prox
 from ya_glm.linalg_utils import euclid_norm, leading_sval
 
 
@@ -386,46 +385,32 @@ class GeneralizedLasso(Func):
 ########################
 
 
-class ElasticNet(Func):
-
-    def __init__(self, pen_val=1, mix=0.5, lasso_weights=None,
-                 ridge_weights=None):
-
-        self.lasso = Lasso(pen_val=pen_val * mix, weights=lasso_weights)
-        self.ridge = Ridge(pen_val=pen_val * (1 - mix), weights=ridge_weights)
-
-    @property
-    def is_smooth(self):
-        return self.lasso.pen_val == 0
-
-    def _eval(self, x):
-        return self.lasso._eval(x) + self.ridge._eval(x)
-
-    def _grad(self, x):
-        return self.lasso._grad(x) + self.ridge._grad(x)
-
-    def _prox(self, x, step):
-        return prox_ridge_lasso(x=x,
-                                lasso_pen_val=self.lasso.pen_val,
-                                lasso_weights=self.lasso.weights,
-                                ridge_pen_val=self.ridge.pen_val,
-                                rige_weights=self.ridge.weights,
-                                step=step)
-
-
-class ElasticNetLikeMixin:
+class ElasticNetLikeMixinCooprativeProx:
     """
-    Mixin for elastic net like functions that look like a lasso + ridge.
-    Note this does not work with weighted ridge penalties.
+    Mixin for elastic net like functions that look like lasso + ridge where lasso is either the entrywise or a group lasso.
 
-    TODO:read up on when the prox of sums is the coposition of proxes "An efficient Hessian based algorithm for solving
-large-scale sparse group Lasso problems"
+    For these functions we tend to have a nice formula for the prox, namely
+
+    prox_{lasso + ridge}(x) = prox_{lasso}(prox_{ridge}(x))
+
+    This "prox decomposition" formula applies to functions that "get along well" e.g. in the sense of Theorem 1 of (Yu, 2013). This formula does not hold in general so be careful about applying it!
+
+    While the original references work with unweighted ridges, we can verify the formula holds  with a weighted ridge by Theorem 1 of (Yu, 2013). E.g. follow the short proof of Proposition 2.1 in (Zhang et al, 2020).
+
 
     Attributes
     ----------
     lasso: Func
+        The lasso/group Lasso
 
     ridge: Func
+        The ridge.
+
+    References
+    ----------
+    Yu, Y., 2013, December. On decomposing the proximal map. In Proceedings of the 26th International Conference on Neural Information Processing Systems-Volume 1 (pp. 91-99).
+
+    Zhang, Y., Zhang, N., Sun, D. and Toh, K.C., 2020. An efficient Hessian based algorithm for solving large-scale sparse group Lasso problems. Mathematical Programming, 179(1), pp.223-263.
     """
 
     @property
@@ -439,29 +424,44 @@ large-scale sparse group Lasso problems"
         return self.lasso._grad(x) + self.ridge._grad(x)
 
     def _prox(self, x, step):
-        assert self.ridge.weights is None
-        # Note this does not work with weighted ridge penalties
-        return prox_ridge_perturb(x=x, prox=self.group_lasso._prox,
-                                  ridge_pen_val=self.ridge.pen_val)
+        # prox decomposition formula! works for weighted ridges and group lassos!
+        y = self.ridge._prox(x, step=step)
+        return self.lasso._prox(y, step=step)
 
 
-class GroupElasticNet(ElasticNetLikeMixin, Func):
+class ElasticNet(Func):
 
-    def __init__(self, groups=None, pen_val=1, mix_val=1, lasso_weights=None):
+    def __init__(self, pen_val=1, mix=0.5,
+                 lasso_weights=None, ridge_weights=None):
+
+        self.lasso = Lasso(pen_val=pen_val * mix, weights=lasso_weights)
+
+        self.ridge = Ridge(pen_val=pen_val * (1 - mix), weights=ridge_weights)
+
+
+class GroupElasticNet(ElasticNetLikeMixinCooprativeProx, Func):
+
+    def __init__(self, groups=None, pen_val=1, mix_val=1,
+                 lasso_weights=None, ridge_weights=None):
+
         self.lasso = GroupLasso(groups=groups,
                                 pen_val=pen_val * mix_val,
                                 weights=lasso_weights)
 
-        self.ridge = Ridge(pen_val=pen_val * (1 - mix_val))
+        self.ridge = Ridge(pen_val=pen_val * (1 - mix_val),
+                           weights=ridge_weights)
 
 
-class MultiTaskElasticNet(ElasticNetLikeMixin, Func):
+class MultiTaskElasticNet(ElasticNetLikeMixinCooprativeProx, Func):
 
-    def __init__(self, pen_val=1, mix_val=1, lasso_weights=None):
+    def __init__(self, pen_val=1, mix_val=1,
+                 lasso_weights=None, ridge_weights=None):
+
         self.lasso = MultiTaskLasso(pen_val=pen_val * mix_val,
                                     weights=lasso_weights)
 
-        self.ridge = Ridge(pen_val=pen_val * (1 - mix_val))
+        self.ridge = Ridge(pen_val=pen_val * (1 - mix_val),
+                           weights=ridge_weights)
 
 
 class SparseGroupLasso(Func):
@@ -490,5 +490,7 @@ class SparseGroupLasso(Func):
         return self.sparse._eval(x) + self.group._eval(x)
 
     def _prox(self, x, step):
-        # TODO: double check in proof of Prop 2.1 from Zhang et al 2020 goes through with weights
-        return self.group._prox(self.sparse._prox(x, step=step), step=step)
+        # prox decomposition
+        # Prop 2.1 from Zhang et al 2020 goes through with weights
+        y = self.sparse._prox(x, step=step)
+        return self.group._prox(y, step=step)
