@@ -376,6 +376,7 @@ class ElasticNet(ElasticNetConfig):
 
 # TODO: add default weights
 # TODO: add default to infimal for overlapping
+# TODO: should we allow ridge weights?
 class GroupElasticNet(ElasticNetConfig):
     """
     Represents the group ElasticNet penalty
@@ -409,6 +410,7 @@ class GroupElasticNet(ElasticNetConfig):
         return lasso_config, ridge_config
 
 
+# TODO: should we allow ridge weights?
 class MultiTaskElasticNet(ElasticNetConfig):
     """
     Represents the group MultiTask ElasticNet penalty
@@ -441,7 +443,13 @@ class MultiTaskElasticNet(ElasticNetConfig):
 
 
 class SparseGroupLasso(ElasticNetConfig):
-    # Simon, N., Friedman, J., Hastie, T. and Tibshirani, R., 2013. A sparse-group lasso. Journal of computational and graphical statistics, 22(2), pp.231-245.
+    """
+
+    References
+    ----------
+    Simon, N., Friedman, J., Hastie, T. and Tibshirani, R., 2013. A sparse-group lasso. Journal of computational and graphical statistics, 22(2), pp.231-245.
+    """
+
     @autoassign
     def __init__(self, groups=None, pen_val=1, mix_val=0.5,
                  sparse_weights=None, sparse_flavor=None,
