@@ -837,27 +837,6 @@ class ElasticNetTuner(TunerWithPathMixin, PenaltyConfig):
 # Other utils #
 ###############
 
-# TODO: make this work for multi penalties
-def get_unflavored(config):
-    """
-    Returns an unflavored version of the penalty config object. If the config is not flavored just retursn the original config; otherwise returns a copy.
-
-    Parameters
-    ----------
-    config: PenaltyConfig
-        The possibly flavored penalty config.
-
-    Outputd
-    ------
-    config: PenaltyConfig
-        Either the original penalty or an unflavored copy of the penalty.
-    """
-    if get_flavor_info(config) is not None:
-        unflavored = deepcopy(config)
-        unflavored.set_params(flavor=None)
-        return unflavored
-    else:
-        return config
 
 # TODO: make this work for multi penalties
 def get_flavor_info(config):
@@ -876,8 +855,85 @@ def get_flavor_info(config):
     """
     base_config = get_base_config(config)
 
-    if not isinstance(base_config, WithFlavorPenSeqConfig) \
-            or base_config.flavor is None:
-        return None
+    # ElasticNet Case
+    if isinstance(base_config, ElasticNetConfig):
+        # get flavors of component models
+        flavors = [get_flavor_info(config)
+                   for config in base_config._get_sum_configs()]
+
+        # pull out the designated flavor
+        return _flavor_from_multiple(flavors)
+
+    # Additive Penalty case
+    elif isinstance(base_config, _AdditivePenaltyConfig):
+
+        # get flavors of component models
+        flavors = [get_flavor_info(config)
+                   for config in base_config.get_penalties().values()]
+
+        # pull out the designated flavor
+        return _flavor_from_multiple(flavors)
+
+    # Single penalty case
     else:
-        return get_base_config(base_config.flavor).name
+
+        if isinstance(base_config, WithFlavorPenSeqConfig):
+            # a flavorable penalty
+            if base_config.flavor is None:
+                return None
+            else:
+                return get_base_config(base_config.flavor).name
+        else:
+            # a non-flavorable penalty
+            return None
+
+
+def _flavor_from_multiple(flavors):
+    """
+    Given a list of flavors returns the desired flavor. We cannot mix flavors that are not None.
+
+    Parameters
+    ----------
+    flavors: list
+        The input flavors.
+
+    Output
+    ------
+    flavor: None, str
+        The flavor.
+    """
+    # remove None from flavors
+    flavors = set(flavors).difference([None])
+    if len(flavors) == 0:  # no flavors
+        return None
+    elif len(flavors) == 1:
+        return list(flavors)[0]
+    else:
+        raise RuntimeError("Cannont mix non-None flavors!")
+
+
+# TODO: make this work for multi penalties
+def get_unflavored(config):
+    """
+    Returns an unflavored version of the penalty config object. If the config is not flavored just retursn the original config; otherwise returns a copy.
+
+    Parameters
+    ----------
+    config: PenaltyConfig
+        The possibly flavored penalty config.
+
+    Outputd
+    ------
+    config: PenaltyConfig
+        Either the original penalty or an unflavored copy of the penalty.
+    """
+    if isinstance(config, (ElasticNetConfig, _AdditivePenaltyConfig)):
+        raise NotImplementedError("TODO: add this!")
+
+    if get_flavor_info(config) is not None:
+        unflavored = deepcopy(config)
+
+        unflavored.set_params(flavor=None)
+        return unflavored
+    else:
+        return config
