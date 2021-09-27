@@ -277,7 +277,7 @@ def get_shapes(n_features, n_responses):
     """
     if n_responses == 1:
         coef_shape = (n_features, )
-        intercept_shape = (0, )
+        intercept_shape = ()
     else:
         coef_shape = (n_features, n_responses)
         intercept_shape = (n_responses, )

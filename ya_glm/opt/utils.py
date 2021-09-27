@@ -152,12 +152,13 @@ def process_zero_init(coef_shape, intercept_shape,
         intercept_init = None
 
     elif intercept_init is None:
-        if intercept_shape[0] == 0:
+        if len(intercept_shape) == 0:
             intercept_init = 0
         else:
             intercept_init = np.zeros(intercept_shape)
 
     return coef_init, intercept_init
+
 
 def sign_never_0(x):
     """
