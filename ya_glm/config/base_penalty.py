@@ -372,10 +372,28 @@ class SeparableSumConfig(_AdditivePenaltyConfig):
     def __init__(self, groups, **penalties): pass
 
     def get_penalties(self):
+        """
+        Returns the configs for each penalty.
+
+        Output
+        ------
+        penalties: dict
+            A dict containing the individual penalty configs.
+        """
         params = self.get_params(deep=False)
         params.pop('groups')
         return params
 
+    def get_groups(self):
+        """
+        Returns the group indices.
+
+        Output
+        ------
+        groups: dict
+            A dict containing the group indices. The keys are ordered according to get_penalties().keys()
+        """
+        return {k: self.groups[k] for k in self.get_penalties().keys()}
 
 ################################
 # Tuner for multiple penalties #
