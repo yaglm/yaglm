@@ -137,6 +137,10 @@ class ZhuADMM(GlmSolverWithPath):
         self.coef_shape_, self.intercept_shape_ = get_shapes_from(X=X, y=y)
         self.n_features_ = X.shape[1]
 
+        ###############################
+        # setup penalty function data #
+        ###############################
+
         # and identity respectively
         # get the linear transform matrix and the transformed penalty
         if penalty is None:
@@ -147,6 +151,9 @@ class ZhuADMM(GlmSolverWithPath):
                                     n_features=self.n_features_)
         # TODO: let g2/A2 be None for the zero function
 
+        ############################
+        # setup loss function data #
+        ############################
         # set the X transformation matrix
         if fit_intercept:
             ones_col = np.ones(X.shape[0]).reshape(-1, 1)
