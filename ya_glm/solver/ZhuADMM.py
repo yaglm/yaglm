@@ -114,7 +114,7 @@ class ZhuADMM(GlmSolverWithPath):
         g2_config = get_mat_and_func(config=penalty, n_features=n_features)[1]
         g2 = get_penalty_func(g2_config, n_features=n_features)
 
-        if g1.is_proxiable and g2.is_proximable:
+        if g1.is_proximable and g2.is_proximable:
             return True
         else:
             return False
