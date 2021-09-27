@@ -1,45 +1,40 @@
 from ya_glm.config.penalty import NoPenalty
 from ya_glm.config.penalty import Ridge as RidgeConfig
 from ya_glm.config.penalty import GeneralizedRidge as GeneralizedRidgeConfig
-
 from ya_glm.config.penalty import Lasso as LassoConfig
 from ya_glm.config.penalty import GroupLasso as GroupLassoConfig
 from ya_glm.config.penalty import \
      ExclusiveGroupLasso as ExclusiveGroupLassoConfig
-
 from ya_glm.config.penalty import MultiTaskLasso as MultiTaskLassoConfig
 from ya_glm.config.penalty import NuclearNorm as NuclearNormConfig
-
 from ya_glm.config.penalty import FusedLasso as FusedLassoConfig
 from ya_glm.config.penalty import GeneralizedLasso as GeneralizedLassoConfig
-
 from ya_glm.config.penalty import ElasticNet as ElasticNetConfig
 from ya_glm.config.penalty import GroupElasticNet as GroupElasticNetConfig
 from ya_glm.config.penalty import MultiTaskElasticNet as \
     MultiTaskElasticNetConfig
 from ya_glm.config.penalty import SparseGroupLasso as SparseGroupLassoConfig
-
-# from ya_glm.config.penalty import SeparableSum as SeparableSumConfig
+from ya_glm.config.penalty import SeparableSum as SeparableSumConfig
 # from ya_glm.config.penalty import InifmalSum as InifmalSumConfig
 from ya_glm.config.penalty import OverlappingSum as OverlappingSumConfig
 
 from ya_glm.opt.base import Zero, Sum
+from ya_glm.opt.BlockSeparable import BlockSeparable
 from ya_glm.opt.penalty.convex import Ridge, GeneralizedRidge,\
      Lasso, GroupLasso, ExclusiveGroupLasso, \
      MultiTaskLasso, NuclearNorm, GeneralizedLasso, \
      ElasticNet, GroupElasticNet, MultiTaskElasticNet, SparseGroupLasso
-
 from ya_glm.opt.penalty.nonconvex import get_nonconvex_func
 from ya_glm.opt.penalty.composite_structured import CompositeGroup, \
     CompositeMultiTaskLasso, CompositeNuclearNorm, CompositeGeneralizedLasso
-
 from ya_glm.opt.penalty.utils import MatWithIntercept, WithIntercept
+
 from ya_glm.utils import is_str_and_matches
 from ya_glm.trend_filtering import get_tf_mat, get_graph_tf_mat
 from ya_glm.config.base_penalty import get_flavor_info
 
 
-def get_penalty_func(config, n_features=None):
+def get_penalty_func(config, n_features=None, n_responses=None):
     """
     Gets a penalty function from a PenaltyConfig object.
 
@@ -49,7 +44,7 @@ def get_penalty_func(config, n_features=None):
         The penalty congig object.
 
     n_features: None, int
-        (Optional) Number of features the penalty will be applied to. This is only needed for the fused Lasso.
+        (Optional) Number of features the penalty will be applied to. This is only needed for the fused Lasso and the
 
     Output
     ------
@@ -193,6 +188,15 @@ def get_penalty_func(config, n_features=None):
         funcs = [get_penalty_func(c, n_features)
                  for c in config.get_penalties().values()]
         return Sum(funcs=funcs)
+
+    # Separable sum
+    elif isinstance(config, SeparableSumConfig):
+        funcs = [get_penalty_func(c, n_features)
+                 for c in config.get_penalties().values()]
+
+        groups = [grp_idxs for grp_idxs in config.get_groups().values()]
+
+        return BlockSeparable(funcs=funcs, groups=groups)
 
     else:
         raise NotImplementedError("{} is not currently supported by "
