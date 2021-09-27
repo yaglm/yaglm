@@ -1,4 +1,6 @@
-from scipy.sparse import identity
+from scipy.sparse import identity, csr_matrix, bmat, eye
+import numpy as np
+
 from ya_glm.opt.from_config.penalty import get_fused_lasso_diff_mat
 
 from ya_glm.config.penalty import \
@@ -8,9 +10,16 @@ from ya_glm.config.penalty import \
     Lasso,\
     GroupLasso,\
     ExclusiveGroupLasso,\
+    MultiTaskLasso,\
     NuclearNorm,\
     FusedLasso,\
-    GeneralizedLasso
+    GeneralizedLasso,\
+    ElasticNet,\
+    GroupElasticNet,\
+    MultiTaskElasticNet,\
+    SparseGroupLasso,\
+    SeparableSum, \
+    OverlappingSum  # InifmalSum,
 
 
 def get_mat_and_func(config, n_features):
@@ -46,10 +55,21 @@ def get_mat_and_func(config, n_features):
     """
 
     # TODO: perhaps for NoPenalty return zero
+    if isinstance(config, NoPenalty):
+        func_config = config
+        mat = csr_matrix((n_features, n_features))
 
     # identify transform
-    if isinstance(config, (NoPenalty, Ridge, Lasso, GroupLasso,
-                           ExclusiveGroupLasso, NuclearNorm)):
+    if isinstance(config, (Ridge, Lasso,
+                           GroupLasso,
+                           ExclusiveGroupLasso,
+                           MultiTaskLasso, NuclearNorm,
+                           ElasticNet,
+                           GroupElasticNet,
+                           MultiTaskElasticNet,
+                           SparseGroupLasso,
+                           SeparableSum)):
+
         func_config = config
         mat = identity(n_features)
 
@@ -79,7 +99,56 @@ def get_mat_and_func(config, n_features):
         # get trend filtering difference matrix
         mat = get_fused_lasso_diff_mat(config, n_nodes=n_features)
 
+    # overlaping sum
+    elif isinstance(config, OverlappingSum):
+
+        # Our ADMM formulation converts an overlapping sum to a separable sum
+        # by creating a new coefficient for each penalty by stacking identities
+
+        # pull out penalties
+        penalties = config.get_penalties()
+
+        # stack identities on top of each other
+        n_funcs = len(penalties)
+        mat = bmat([[eye(n_features)] for b in range(n_funcs)])
+
+        # group indices are consecutive blocks
+        groups = get_consecutive_groups(n_features=n_features,
+                                        n_groups=len(penalties))
+
+        groups = {name: groups[idx]  # convert to a dict
+                  for (idx, name) in enumerate(penalties.keys())}
+
+        # convert overlapping sum to separable sum
+        func_config = SeparableSum(groups=groups, **penalties)
+
     else:
         raise NotImplementedError("Not available for {}".format(config))
 
     return mat, func_config
+
+
+def get_consecutive_groups(n_features, n_groups):
+    """
+    Gets groups of consecutive indices.
+
+    Parameters
+    ----------
+    n_features: int
+        Number of features (length of each group).
+
+    n_groups: int
+        Number of groups.
+
+    Output
+    ------
+    groups: list of array-like
+        The group indices.
+    """
+    groups = []
+    left, right = 0, 0
+    for _ in range(n_groups):
+        right += n_features
+        groups.append(np.arange(left, right))
+        left += n_features
+    return groups
