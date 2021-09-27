@@ -145,8 +145,9 @@ class ZhuADMM(GlmSolverWithPath):
         # get the linear transform matrix and the transformed penalty
         if penalty is None:
             penalty = NoPenalty()
-        self.A2_, self.g2_config_ = get_mat_and_func(config=penalty,
-                                                     n_features=X.shape[1])
+        self.A2_, self.g2_config_ = \
+            get_mat_and_func(config=penalty, n_features=self.n_features_)
+
         self.g2_ = get_penalty_func(config=self.g2_config_,
                                     n_features=self.n_features_)
         # TODO: let g2/A2 be None for the zero function
