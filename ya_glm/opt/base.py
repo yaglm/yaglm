@@ -52,6 +52,24 @@ class Func(object):
         else:
             return None
 
+    @property
+    def is_smooth(self):
+        """
+        Output
+        ------
+        Whether or not the function is smooth.
+        """
+        raise NotImplementedError
+
+    @property
+    def is_proximable(self):
+        """
+        Output
+        ------
+        Whether or not the function has an easy to evaulate proximal operator.
+        """
+        raise NotImplementedError
+
     # def eval_and_grad(self, x):
     #     return self.eval(x), self.grad(x)
 
@@ -78,24 +96,6 @@ class Func(object):
     #         cap.remove('GRAD_LIP')
 
     #     return cap
-
-    @property
-    def is_smooth(self):
-        """
-        Output
-        ------
-        Whether or not the function is smooth.
-        """
-        raise NotImplementedError
-
-    @property
-    def is_proximable(self):
-        """
-        Output
-        ------
-        Whether or not the function has an easy to evaulate proximal operator.
-        """
-        raise NotImplementedError
 
 
 class EntrywiseFunc(Func):
