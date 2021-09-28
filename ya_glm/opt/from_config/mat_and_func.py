@@ -60,15 +60,15 @@ def get_mat_and_func(config, n_features):
         mat = csr_matrix((n_features, n_features))
 
     # identify transform
-    if isinstance(config, (Ridge, Lasso,
-                           GroupLasso,
-                           ExclusiveGroupLasso,
-                           MultiTaskLasso, NuclearNorm,
-                           ElasticNet,
-                           GroupElasticNet,
-                           MultiTaskElasticNet,
-                           SparseGroupLasso,
-                           SeparableSum)):
+    elif isinstance(config, (Ridge, Lasso,
+                             GroupLasso,
+                             ExclusiveGroupLasso,
+                             MultiTaskLasso, NuclearNorm,
+                             ElasticNet,
+                             GroupElasticNet,
+                             MultiTaskElasticNet,
+                             SparseGroupLasso,
+                             SeparableSum)):
 
         func_config = config
         mat = identity(n_features)
