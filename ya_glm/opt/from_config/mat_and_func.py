@@ -55,7 +55,7 @@ def get_mat_and_func(config, n_features):
     """
 
     # TODO: perhaps for NoPenalty return zero
-    if isinstance(config, NoPenalty):
+    if isinstance(config, NoPenalty) or config is None:
         func_config = config
         mat = csr_matrix((n_features, n_features))
 

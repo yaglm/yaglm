@@ -113,7 +113,7 @@ def get_penalty(coef, config):
     kws = {'coef': coef}
 
     # no penalty
-    if isinstance(config, NoPenalty):
+    if isinstance(config, NoPenalty) or config is None:
         func = zero
         weights = None
         pen_val = None
