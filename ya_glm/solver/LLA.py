@@ -113,11 +113,7 @@ class LLAFixedInit(GlmSolverWithPath):
 
         # where we initialize the coefficient and intercept
         self.coef_init_lla_ = init_data['coef']
-
-        if self.sp_solver_.fit_intercept_:
-            self.intercept_init_lla_ = init_data.get('intercept', None)
-        else:
-            self.intercept_init_lla_ = None
+        self.intercept_init_lla_ = init_data.get('intercept', None)
 
     def solve(self, coef_init=None, intercept_init=None, other_init=None):
         """

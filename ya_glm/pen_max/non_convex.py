@@ -26,11 +26,11 @@ def adjust_pen_max_for_non_convex(cvx_max_val, penalty, init_data):
         # gets around a circular import issue e.g. the from_config modules
         # import from base_penalty, but base_penalty imports this module
         # We should probably re-organize the code to get rid of this issue
-        from ya_glm.opt.from_config.penalty import get_nonconvex_func_from
+        from ya_glm.opt.from_config.penalty import get_outer_nonconvex_func
         from ya_glm.opt.from_config.lla_structure import get_transform
 
         transf = get_transform(penalty)
-        pen_func = get_nonconvex_func_from(penalty)
+        pen_func = get_outer_nonconvex_func(penalty)
         coef_init = init_data['coef']
 
         if not hasattr(pen_func, 'fcp_data'):

@@ -290,7 +290,7 @@ class BaseGlm(BaseEstimator):
             elif is_str_and_matches(self.initializer, 'zero'):
                 coef_shape, intercept_shape = get_shapes_from(X=X, y=y)
                 coef = np.zeros(coef_shape)
-                if intercept_shape[0] == 0:
+                if len(intercept_shape) == 0:
                     intercept = 0
                 else:
                     intercept = np.zeros(intercept_shape)
