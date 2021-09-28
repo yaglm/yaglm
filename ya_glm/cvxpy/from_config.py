@@ -373,6 +373,6 @@ def update_weights_and_pen_val_for_prod(pen_val, new_pen_val,
     Updates the cp.Parameter values for the weights and penalty value output by get_pen_val_and_weights_for_prod.
     """
     if new_weights is None:
-        pen_val.value = pen_val
+        pen_val.value = new_pen_val
     else:
         weights.value = new_pen_val * new_weights

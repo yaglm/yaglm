@@ -88,10 +88,10 @@ class Cvxpy(GlmSolverWithPath):
         """
         Updates the penalty parameters.
         """
-        self.penalty_config_.set_params(params)
+        self.penalty_config_.set_params(**params)
         update_pen_val_and_weights(config=self.penalty_config_,
                                    pen_val=self.pen_val_,
-                                   weights=self.weigths_)
+                                   weights=self.weights_)
 
     def solve(self, coef_init=None, intercept_init=None, other_init=None):
 
