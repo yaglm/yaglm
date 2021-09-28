@@ -15,6 +15,10 @@ opt
 ---
 Built in optimization library including FISTA, ADMM, and LLA algorithms. Comes with support for GLM loss functions, penalties and constraints.
 
+cvxpy
+-----
+Support for cvxpy based solvers.
+
 pen_max
 -------
 Computes the largest reasonable penalty value for combinations of loss + penalties.
