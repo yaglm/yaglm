@@ -35,6 +35,8 @@ class Glm(LossMixin, BaseGlm):
             Fitted estimator.
         """
 
+        # TODO: make sure none of the configs are tuners
+
         ##############################################
         # setup, preprocess, and prefitting routines #
         ##############################################
@@ -46,13 +48,11 @@ class Glm(LossMixin, BaseGlm):
         # Set adaptive weights #
         ########################
 
-        penalty = configs['penalty']
-        if get_flavor_info(penalty) == 'adaptive':
-            base_penalty = get_base_config(penalty)
-
-            # set the adaptive weights in place
-            set_adaptive_weights(penalty=base_penalty,
-                                 init_data=init_data)
+        if get_flavor_info(configs['penalty']) == 'adaptive':
+            # set the adaptive weights
+            configs['penalty'] = \
+                set_adaptive_weights(penalty=configs['penalty'],
+                                     init_data=init_data)
 
         #########################
         # solve and set the fit #

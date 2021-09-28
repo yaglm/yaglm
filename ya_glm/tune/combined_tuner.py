@@ -78,20 +78,25 @@ class PenaltyPerLossFlavorTuner:
             # iterate over loss/flavor combinations
             for lf_configs in self._iter_loss_flavor_configs():
                 pen_tuner = deepcopy(self.penalty)
+                base_pen = pen_tuner.base
 
                 # set flavor for this penalty
                 if 'flavor' in lf_configs:
-                    pen_tuner.base.set_params(flavor=lf_configs['flavor'])
+                    base_pen.set_params(flavor=lf_configs['flavor'])
 
                 ########################
                 # Set adaptive weights #
                 ########################
-                if get_flavor_info(pen_tuner) == 'adaptive':
-                    base_penalty = get_base_config(pen_tuner)
+                if get_flavor_info(base_pen) == 'adaptive':
 
-                    # set the adaptive weights in place
-                    set_adaptive_weights(penalty=base_penalty,
-                                         init_data=penalty_kws.get('init_data'))
+                    init_data = penalty_kws.get('init_data')
+
+                    # set the adaptive weights
+                    base_pen = set_adaptive_weights(penalty=base_pen,
+                                                    init_data=init_data)
+
+                # update penalty tuner
+                pen_tuner.set_params(base=base_pen)
 
                 # setup tuning parameter sequence
                 pen_tuner.set_tuning_values(loss=lf_configs['loss'],

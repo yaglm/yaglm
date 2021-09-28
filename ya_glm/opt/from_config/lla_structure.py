@@ -46,7 +46,7 @@ def get_transform(config):
                        edgelist=config.edgelist,
                        order=config.order)
 
-    # genralized Lasso
+    # Generalized Lasso
     elif isinstance(config, GeneralizedLasso):
         return partial(generalized_lasso_transform, config=config.mat)
 

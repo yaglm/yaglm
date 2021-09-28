@@ -1,7 +1,8 @@
 import numpy as np
 
 from ya_glm.opt.from_config.lla_structure import get_transform
-from ya_glm.config.base_penalty import get_flavor_info
+from ya_glm.config.base_penalty import get_flavor_info, ElasticNetConfig
+from ya_glm.config.penalty import OverlappingSum, SeparableSum, InfimalSum
 
 
 def get_adaptive_weights(coef_init, expon=1,
@@ -76,19 +77,53 @@ def set_adaptive_weights(penalty, init_data):
 
     # double check penalty is adaptive
     flavor_type = get_flavor_info(penalty)
+
     if flavor_type != 'adaptive':
-        raise ValueError("Attempting to set adaptive weights for"
-                         "non-adaptive penalty!")
+        return penalty
 
-    # get the transformation
-    transform = get_transform(penalty)
+    elif isinstance(penalty, OverlappingSum):
+        # set adaptive weights for each penalty in the sum
+        new_penalties = {}
+        for name, pen in penalty.get_penalties().items():
+            pen = set_adaptive_weights(penalty=pen, init_data=init_data)
+            new_penalties[name] = pen
+        penalty.set_params(**new_penalties)
 
-    adpt_weights = get_adaptive_weights(coef_init=init_data['coef'],
-                                        expon=penalty.flavor.expon,
-                                        pertub_init=penalty.flavor.pertub_init,
-                                        n_samples=init_data['n_samples'],
-                                        transform=transform)
+    elif isinstance(penalty, SeparableSum):
+        # set adaptive weights for each penalty in the sum
 
-    penalty.set_params(weights=adpt_weights)
+        groups = penalty.get_groups()
+        new_penalties = {}
+        for name, pen in penalty.get_penalties().items():
+
+            # subset init data coef
+            grp_idxs = groups[name]
+            _init_data = {**init_data}
+            _init_data['coef'] = init_data['coef'][grp_idxs]
+
+            pen = set_adaptive_weights(penalty=pen,
+                                       init_data=_init_data)
+            new_penalties[name] = pen
+
+        penalty.set_params(**new_penalties)
+
+    elif isinstance(penalty, InfimalSum):
+        raise NotImplementedError("TODO: add!")
+
+    elif isinstance(penalty, ElasticNetConfig):
+        raise NotImplementedError("TODO: add!")
+
+    else:
+
+        # get the transformation
+        transform = get_transform(penalty)
+
+        adpt_weights = get_adaptive_weights(coef_init=init_data['coef'],
+                                            expon=penalty.flavor.expon,
+                                            pertub_init=penalty.flavor.pertub_init,
+                                            n_samples=init_data['n_samples'],
+                                            transform=transform)
+
+        penalty.set_params(weights=adpt_weights)
 
     return penalty
