@@ -315,7 +315,7 @@ class OverlappingSumConfig(_AdditivePenaltyConfig):
         return self.get_params(deep=False)
 
 
-class InifmalSumConfig(_AdditivePenaltyConfig):
+class InfimalSumConfig(_AdditivePenaltyConfig):
     """
     Represents the infimal sum of several penalties.
 
@@ -327,7 +327,7 @@ class InifmalSumConfig(_AdditivePenaltyConfig):
 
     If flavored penalties are provided the flavors should not be mixed.
 
-    For iterating over tuning grids we iterate over the penalties in order in which they appear. For path algorithms, the last penalty with a TunerConfig is used for the Path. For example, InifmalSumConfig(ridge=Ridge(), lasso=Lasso()) would use the Lasso for the path algorithm.
+    For iterating over tuning grids we iterate over the penalties in order in which they appear. For path algorithms, the last penalty with a TunerConfig is used for the Path. For example, InfimalSumConfig(ridge=Ridge(), lasso=Lasso()) would use the Lasso for the path algorithm.
 
     Parameters
     ----------
@@ -351,7 +351,7 @@ class SeparableSumConfig(_AdditivePenaltyConfig):
 
     If flavored penalties are provided, the flavors should not be mixed.
 
-    For iterating over tuning grids we iterate over the penalties in order in which they appear. For path algorithms, the last penalty with a TunerConfig is used for the Path. For example, InifmalSumConfig(ridge=Ridge(), lasso=Lasso()) would use the Lasso for the path algorithm.
+    For iterating over tuning grids we iterate over the penalties in order in which they appear. For path algorithms, the last penalty with a TunerConfig is used for the Path. For example, InfimalSumConfig(ridge=Ridge(), lasso=Lasso()) would use the Lasso for the path algorithm.
 
     Parameters
     ----------
