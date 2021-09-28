@@ -52,14 +52,14 @@ def get_penalty_func(config, n_features=None, n_responses=None):
         The penalty function
     """
 
+    flavor_type = get_flavor_info(config)
+
     # no penalty!
     if config is None or isinstance(config, NoPenalty):
         return Zero()
 
-    flavor_type = get_flavor_info(config)
-
     # Ridge penalty
-    if isinstance(config, RidgeConfig):
+    elif isinstance(config, RidgeConfig):
         return Ridge(pen_val=config.pen_val, weights=config.weights)
 
     # Generalized ridge penalty
