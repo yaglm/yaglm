@@ -8,10 +8,10 @@ class Func(object):
 
     # TODO: do we want to do all this numpy conversion automatically?
     def eval(self, x):
-        return self._eval(np.array(x))
+        return self._eval(np.array(x, copy=False))
 
     def grad(self, x):
-        return self._grad(np.array(x))
+        return self._grad(np.array(x, copy=False))
 
     def prox(self, x, step=1):
         """
@@ -34,7 +34,8 @@ class Func(object):
 
         prox_{s f^*}(y) = y - s prox_{f/s}(y/s)
         """
-        return np.array(x) - step * self.prox(x=x / step, step=1/step)
+        return np.array(x, copy=False) - step * self.prox(x=x / step,
+                                                          step=1/step)
 
     def _eval(self, x):
         raise NotImplementedError
@@ -103,27 +104,28 @@ class EntrywiseFunc(Func):
     Represents a function applied entrywise to the input whether the input is a float, vector or array
     """
     def eval(self, x):
-        return self._eval(np.array(x).reshape(-1))
+        x = np.array(x, copy=False)
+        return self._eval(x.reshape(-1))
 
     def grad(self, x):
-        x = np.array(x)
+        x = np.array(x, copy=False)
         g = self._grad(x.reshape(-1))
         return g.reshape(x.shape)
 
     def prox(self, x, step=1):
-        x = np.array(x)
+        x = np.array(x, copy=False)
         p = self._prox(x.reshape(-1), step=step)
         return p.reshape(x.shape)
 
 
 class Zero(Func):
-    def eval(self, x):
+    def _eval(self, x):
         return 0
 
-    def grad(self, x):
+    def _grad(self, x):
         return np.zeros_like(x)
 
-    def prox(self, x, step=1):
+    def _prox(self, x, step=1):
         return x
 
     @property
