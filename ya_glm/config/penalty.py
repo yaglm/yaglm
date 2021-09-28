@@ -1,6 +1,6 @@
 from ya_glm.config.base_penalty import PenaltyConfig, WithPenSeqConfig, \
     WithFlavorPenSeqConfig, ElasticNetConfig, \
-    SeparableSumConfig, InifmalSumConfig, OverlappingSumConfig
+    SeparableSumConfig, InfimalSumConfig, OverlappingSumConfig
 
 from ya_glm.pen_max.ridge import get_ridge_pen_max
 from ya_glm.pen_max.lasso import get_lasso_pen_max
@@ -492,17 +492,17 @@ class SparseGroupLasso(ElasticNetConfig):
 # TODO: add these
 # TODO: think about best order for penalties
 
-# class LowRankPlusSparse(InifmalSumConfig):
+# class LowRankPlusSparse(InfimalSumConfig):
 #     @autoassign
 #     def __init__(self, rank=NuclearNorm(), sparse=Lasso()): pass
 
 
-# class LowRankPlusRowSparse(InifmalSumConfig):
+# class LowRankPlusRowSparse(InfimalSumConfig):
 #     @autoassign
 #     def __init__(self, rank=NuclearNorm(), sparse=MultiTaskLasso()): pass
 
 
-# class RowPlusEntrywiseSparse(InifmalSumConfig):
+# class RowPlusEntrywiseSparse(InfimalSumConfig):
 #     @autoassign
 #     def __init__(self, row=MultiTaskLasso(), sparse=Lasso()): pass
 
@@ -517,7 +517,7 @@ class SeparableSum(SeparableSumConfig):
     pass
 
 
-class InifmalSum(InifmalSumConfig):
+class InfimalSum(InfimalSumConfig):
     pass
 
 
