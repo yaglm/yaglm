@@ -193,6 +193,7 @@ def safe_entrywise_mult(A, B):
     """
     if issparse(A):
         return A.multiply(B)
+
     elif issparse(B):
         return B.multiply(A)
     else:

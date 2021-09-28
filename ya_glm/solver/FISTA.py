@@ -4,11 +4,6 @@ from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.autoassign import autoassign
 from ya_glm.opt.fista import solve_fista
 
-from ya_glm.config.loss import get_loss_config
-from ya_glm.config.constraint import get_constraint_config
-from ya_glm.config.penalty import get_penalty_config
-from ya_glm.config.base_params import get_base_config
-
 
 from ya_glm.opt.from_config.loss import get_glm_loss_func
 from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept
@@ -71,7 +66,7 @@ class FISTA(GlmSolverWithPath):
                  tracking_level=0): pass
 
     @classmethod
-    def is_applicable(self, loss, penalty=None, constraint=None):
+    def _is_applicable(self, loss, penalty=None, constraint=None):
         """
         Determines whether or not this problem can be solved by FISTA i.e. if it is in the form
 
@@ -94,12 +89,6 @@ class FISTA(GlmSolverWithPath):
         is_applicable: bool
             Wheter or not this solver can be used.
         """
-
-        # pull out base configs
-        loss = get_base_config(get_loss_config(loss))
-        penalty = get_base_config(get_penalty_config(penalty))
-        if constraint is not None:
-            constraint = get_base_config(get_constraint_config(constraint))
 
         # make fake data just for getting functions
         X = np.zeros((3, 2))

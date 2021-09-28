@@ -62,6 +62,12 @@ class LLAFixedInit(GlmSolverWithPath):
     def __init__(self, n_steps=1, xtol=1e-4, atol=None, rtol=None,
                  tracking_level=0, verbosity=0): pass
 
+    @classmethod
+    def _is_applicable(self, loss, penalty=None, constraint=None):
+        # perhaps make sure the flavor is non-convex?
+        # or at least not adaptive
+        return True
+
     def set_sp_solver(self, solver):
         self.sp_solver_ = WeightedGlmProblemSolver(solver=solver)
 

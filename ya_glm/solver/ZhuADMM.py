@@ -71,7 +71,7 @@ class ZhuADMM(GlmSolverWithPath):
                  tracking_level=0): pass
 
     @classmethod
-    def is_applicable(self, loss, penalty=None, constraint=None):
+    def _is_applicable(self, loss, penalty=None, constraint=None):
         """
         Determines whether or not this problem can be solved the ADMM algorithm i.e. if it is in the form of
 
@@ -97,12 +97,6 @@ class ZhuADMM(GlmSolverWithPath):
 
         if constraint is not None:
             raise NotImplementedError("TODO add this!")
-
-        # pull out base configs
-        loss = get_base_config(get_loss_config(loss))
-        penalty = get_base_config(get_penalty_config(penalty))
-        if constraint is not None:
-            constraint = get_base_config(get_constraint_config(constraint))
 
         # make fake data just for getting functions
         # X = np.zeros((3, 2))

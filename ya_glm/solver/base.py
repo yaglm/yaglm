@@ -1,12 +1,18 @@
 from ya_glm.config.base import Config
 
+from ya_glm.config.loss import get_loss_config
+from ya_glm.config.constraint import get_constraint_config
+from ya_glm.config.penalty import get_penalty_config
+from ya_glm.config.base_params import get_base_config
+from ya_glm.config.base_penalty import get_unflavored
+
 
 class GlmSolver(Config):
 
     def __init__(self): pass
 
     @classmethod
-    def is_applicable(self, loss, penalty=None, constraint=None):
+    def is_applicable(self, loss, penalty=None, constraint=None, lla=False):
         """
         Determines whether or not this solver is applicable to a given optimization problem.
 
@@ -19,13 +25,31 @@ class GlmSolver(Config):
             The penalty.
 
         constraint: None, ConstraintConfig
+            The constraint
+
+        lla: bool
+            Whether or not this solver will be used to solver LLA subproblems i.e. if it will only see convex versions of a non-convex penalty.
 
         Output
         ------
         is_applicable: bool
-            Wheter or not this solver can be used.
+            Whether or not this solver can be used.
         """
-        raise NotImplementedError
+        # pull out base configs
+        loss = get_base_config(get_loss_config(loss))
+        penalty = get_base_config(get_penalty_config(penalty))
+        if constraint is not None:
+            constraint = get_base_config(get_constraint_config(constraint))
+
+        # the LLA algorithm only sees unflavored versions of the penalty
+        if lla:
+            penalty = get_unflavored(penalty)
+
+        return self._is_applicable(loss, penalty, constraint)
+
+    @classmethod
+    def _is_applicable(self, loss, penalty=None, constraint=None):
+        raise NotImplementedError("Sub-class should overwrite")
 
     def get_solve_kws(self):
         """
