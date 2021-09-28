@@ -4,11 +4,6 @@ from scipy.sparse import csr_matrix
 from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.autoassign import autoassign
 
-from ya_glm.config.loss import get_loss_config
-from ya_glm.config.constraint import get_constraint_config
-from ya_glm.config.penalty import get_penalty_config
-from ya_glm.config.base_params import get_base_config
-
 from ya_glm.opt.zhu_admm import solve
 from ya_glm.opt.from_config.input_loss import get_glm_input_loss
 from ya_glm.opt.from_config.mat_and_func import get_mat_and_func
@@ -118,7 +113,7 @@ class ZhuADMM(GlmSolverWithPath):
         """
         Sets up anything the solver needs.
         """
-        # make sure FISTA is applicable
+        # make sure ADMM is applicable
         if not self.is_applicable(loss, penalty, constraint):
             raise ValueError("ADMM is not applicable to "
                              "loss={}, penalty={}, constrain={}".
