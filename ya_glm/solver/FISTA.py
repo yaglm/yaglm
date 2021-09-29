@@ -217,7 +217,7 @@ class FISTA(GlmSolverWithPath):
             split_smooth_and_non_smooth(self.penalty_func_)
 
         # maybe add an intercept to the penalty
-        if smooth_pen is  not None:
+        if smooth_pen is not None:
             smooth_pen = wrap_intercept(func=smooth_pen,
                                         fit_intercept=self.fit_intercept_,
                                         is_mr=self.is_mr_)
