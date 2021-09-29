@@ -6,7 +6,8 @@ from ya_glm.opt.fista import solve_fista
 
 
 from ya_glm.opt.from_config.loss import get_glm_loss_func
-from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept
+from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept, \
+    split_smooth_and_non_smooth
 from ya_glm.opt.from_config.constraint import get_constraint_func
 
 from ya_glm.opt.base import Sum
@@ -98,6 +99,10 @@ class FISTA(GlmSolverWithPath):
         # get functions
         loss_func = get_glm_loss_func(config=loss, X=X, y=y)
         penalty_func = get_penalty_func(config=penalty, n_features=n_features)
+
+        # split penalty into smooth and non-smooth
+        smooth_pen, non_smooth_pen = split_smooth_and_non_smooth(penalty_func)
+
         if constraint is not None:
             constraint_func = get_constraint_func(constraint)
 
@@ -113,8 +118,7 @@ class FISTA(GlmSolverWithPath):
             return False
 
         # don't support non-smoooth, non-proximable penalties
-        elif penalty is not None and \
-                not (penalty_func.is_smooth or penalty_func.is_proximable):
+        elif non_smooth_pen is not None and not non_smooth_pen.is_proximable:
             return False
 
         # don't support non-proximable constraints
@@ -208,25 +212,34 @@ class FISTA(GlmSolverWithPath):
         # Setup #
         #########
 
+        # split penalty into smooth and non-smooth parts
+        smooth_pen, non_smooth_pen = \
+            split_smooth_and_non_smooth(self.penalty_func_)
+
         # maybe add an intercept to the penalty
-        if self.penalty_func_ is not None:
-            penalty_func = wrap_intercept(func=self.penalty_func_,
-                                          fit_intercept=self.fit_intercept_,
-                                          is_mr=self.is_mr_)
-        else:
-            penalty_func = None
+        if smooth_pen is  not None:
+            smooth_pen = wrap_intercept(func=smooth_pen,
+                                        fit_intercept=self.fit_intercept_,
+                                        is_mr=self.is_mr_)
+
+        if non_smooth_pen is not None:
+            non_smooth_pen = wrap_intercept(func=non_smooth_pen,
+                                            fit_intercept=self.fit_intercept_,
+                                            is_mr=self.is_mr_)
 
         # set smooth/non-smooth functions
-        if penalty_func is None:
-            smooth_func = self.loss_func_
-            non_smooth_func = self.constraint_func_
-
-        elif penalty_func.is_smooth:
-            smooth_func = Sum([self.loss_func_, penalty_func])
-            non_smooth_func = None
+        # set smooth/non-smooth functions
+        if smooth_pen is not None:
+            smooth_func = Sum([self.loss_func_, smooth_pen])
         else:
             smooth_func = self.loss_func_
-            non_smooth_func = penalty_func
+
+        if self.constraint_func_ is not None:
+            assert non_smooth_pen is None
+            non_smooth_func = self.constraint_func_
+        else:
+            non_smooth_func = non_smooth_pen
+            non_smooth_func = self.constraint_func_
 
         # setup step size/backtracking
         if smooth_func.grad_lip is not None:
