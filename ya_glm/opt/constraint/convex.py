@@ -58,8 +58,9 @@ class L1Ball(Constraint):
 # See https://gist.github.com/mblondel/6f3b7aaad90606b98f71
 # for more algorithms.
 def project_simplex(v, z=1):
-    if np.sum(v) <= z:
-        return v
+    # z is what the entries need to add up to, e.g. z=1 for probability simplex
+    if np.sum(v) <= z:  # don't we want the simplex to mean sum == z not sum <= z?
+        return v        # also this doesn't work when v has, say, all negative entries
 
     n_features = v.shape[0]
     u = np.sort(v)[::-1]
