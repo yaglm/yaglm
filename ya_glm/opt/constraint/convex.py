@@ -75,3 +75,16 @@ def project_simplex(v, z=1):
 
 def project_l1_ball(v, z=1):
     return np.sign(v) * project_simplex(np.abs(v), z)
+
+class L2Ball(Constraint):
+
+    def __init__(self, mult=1):
+        assert mult > 0
+        self.mult = mult
+
+    def _prox(self, x, step=1):
+        return x / np.max([np.linalg.norm(x)/self.mult, 1])
+
+    @property
+    def is_proximable(self):
+        return True
