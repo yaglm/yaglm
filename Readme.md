@@ -77,7 +77,7 @@ GlmCV(loss=Huber().tune(knot=range(1, 5)),
       ).fit(X, y)
 ```
 
-We can bulid penalties out of existing ones e.g. via overlapping or separable sums of basic penalties.
+We can bulid new penalties out of existing ones e.g. via overlapping or separable sums of basic penalties.
 ```python
 from ya_glm.config.penalty import OverlappingSum, SeparableSum, \
       FusedLasso, NoPenalty
