@@ -23,8 +23,22 @@ from ya_glm.config.penalty import \
     GeneralizedLasso
 
 
-# TODO: document!!
 def get_non_smooth_transforms(config):
+    """
+    Gets the transformation function associated with this non-convex penalty. E.g. for the nuclear norm this would be the singular values of the coefficient.
+
+    This function only works for single penalties e.g. Lasso, Fused Lasso, ... but not multi-penalties like ElasticNet-like or Additive penalties. If the penalty is smooth (e.g. Ridge) it returns None.
+
+    Parameters
+    ----------
+    config: PenaltyConfig
+        The penalty config. Must be a single penalty.
+
+    Output
+    ------
+    transform: callable(coef) -> array-like
+        The transformation function associated with the penalty.
+    """
 
     # No transform for smooth penalties
     if isinstance(config, (NoPenalty, Ridge, GeneralizedRidge)) \
@@ -261,9 +275,16 @@ def wrap_group_subsetting(func, groups):
 
 def extract_grouping_info(penalties, keys):
     """
+    Pulls out the penalties whose parents are SuparableSums and the corresponding group indices.
+
     Parameters
     ----------
-    TODO:
+    penalties: list of PenaltyConfig, PenaltyTuner
+        The penalties to look over.
+
+    keys: list of str
+        The keys for each penalty
+
     Output
     ------
     keys, groups
@@ -287,11 +308,15 @@ def extract_grouping_info(penalties, keys):
 
     sep_sum_map = {k: sep_sum_pens[idx] for idx, k in enumerate(sep_sum_keys)}
 
-    # pull out all the penalties whose are children of a separable sum
+    # pull out all the penalties who are children of a separable sum
     # and the corresponding groups
     groups = []
     children_keys = []
     for idx, key in enumerate(keys):
+
+        # if this is the top level penalty it can't be a child!
+        if key == '':
+            continue
 
         # if the parent is a separable sum pull out the groups
         parent_key = get_parent_key(key)
