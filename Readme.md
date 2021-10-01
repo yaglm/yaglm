@@ -76,16 +76,16 @@ groups = [range(5), range(5, 10)]
 GlmCV(loss=Huber().tune(knot=range(1, 5)),
       penalty=GroupLasso(groups=groups,
                          flavor=NonConvex()),
-      lla=True, # we use the LLA algorithm by default. If lla=False, we would use FISTA
+      lla=True,  # we use the LLA algorithm by default. If lla=False, we would use FISTA
       ).fit(X, y)
 
-# Fit the sparse fused lasso using the OverlappingSum() class
+# Fit an adaptive sparse-fused lasso using the OverlappingSum() class
 # note we have to manually specify the tuning sequence for the fused lasso
 pen_val_seq = get_sequence_decr_max(max_val=1, num=10)
-fused_config = FusedLasso().tune(pen_val_seq=pen_val_seq)
+fused_config = FusedLasso(flavor=Adaptive()).tune(pen_val_seq=pen_val_seq)
 
 est = GlmCV(penalty=OverlappingSum(fused=fused_config,
-                                   sparse=Lasso()
+                                   sparse=Lasso(flavor=Adaptive())
                                    )
             ).fit(X, y)
 
@@ -96,7 +96,7 @@ groups = {'no_pen': range(5),  # don't penalized the first 5 features!
           }
 est = GlmCV(penalty=SeparableSum(groups=groups,
                                  no_pen=NoPenalty(),
-                                 sparse=Lasso()
+                                 sparse=Lasso(flavor=NonConvex())
                                  )
             ).fit(X, y)
 
