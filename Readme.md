@@ -77,7 +77,7 @@ GlmCV(loss=Huber().tune(knot=range(1, 5)),
       ).fit(X, y)
 ```
 
-We can use the basic penalties as building blocks to create new onew e.g. via overlapping or separable sums of penalties. For example, we might want to penalized some features while leaving others unpenalized.
+We can use the basic penalties as building blocks to create new ones e.g. via overlapping or separable sums of penalties. For example, we might want to penalized some features while leaving others unpenalized.
 ```python
 from ya_glm.config.penalty import OverlappingSum, SeparableSum, \
       FusedLasso, NoPenalty
