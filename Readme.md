@@ -33,13 +33,16 @@ from ya_glm.toy_data import sample_sparse_lin_reg
 from ya_glm.GlmTuned import GlmCV, GlmTrainMetric
 
 from ya_glm.config.loss import Huber
-from ya_glm.config.penalty import Lasso, GroupLasso
+from ya_glm.config.penalty import Lasso, GroupLasso, FusedLasso, \
+      OverlappingSum, SeparableSum, NoPenalty
 from ya_glm.config.flavor import Adaptive, NonConvex
 from ya_glm.solver.FISTA import FISTA
+from ya_glm.pen_seq import get_sequence_decr_max
 
 from ya_glm.metrics.info_criteria import InfoCriteria
 from ya_glm.infer.Inferencer import Inferencer
 from ya_glm.infer.lin_reg_noise_var import ViaRidge
+
 
 # sample sparse linear regression data
 X, y, _ = sample_sparse_lin_reg(n_samples=100, n_features=10)
@@ -75,6 +78,29 @@ GlmCV(loss=Huber().tune(knot=range(1, 5)),
                          flavor=NonConvex()),
       lla=True, # we use the LLA algorithm by default. If lla=False, we would use FISTA
       ).fit(X, y)
+
+# Fit the sparse fused lasso using the OverlappingSum() class
+# note we have to manually specify the tuning sequence for the fused lasso
+pen_val_seq = get_sequence_decr_max(max_val=1, num=10)
+fused_config = FusedLasso().tune(pen_val_seq=pen_val_seq)
+
+est = GlmCV(penalty=OverlappingSum(fused=fused_config,
+                                   sparse=Lasso()
+                                   )
+            ).fit(X, y)
+
+
+# Sometimes we want to put different penalties on different sets of features
+# this can be accomplished with the SeparableSum() class
+groups = {'no_pen': range(5),  # don't penalized the first 5 features!
+          'sparse': range(5, 10)
+          }
+est = GlmCV(penalty=SeparableSum(groups=groups,
+                                 no_pen=NoPenalty(),
+                                 sparse=Lasso()
+                                 )
+            ).fit(X, y)
+
 
 # supply your favorite optimization algorithm!
 solver = FISTA(max_iter=100)
