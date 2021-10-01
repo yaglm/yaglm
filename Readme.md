@@ -11,7 +11,7 @@ Parameter tuning methods including cross-validation, generalized cross-validatio
 `ya_glm` follows a sklearn compatible API, is highly customizable and was inspired by many existing packages including [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd), [picasso](https://github.com/jasonge27/picasso), [tick](https://github.com/X-DataInitiative/tick), [PyUNLocBoX](https://github.com/epfl-lts2/pyunlocbox), [regerg](https://github.com/regreg/regreg), [grpreg](https://github.com/pbreheny/grpreg), [ncreg](https://cran.r-project.org/web/packages/ncvreg/index.html), and [glmnet](https://glmnet.stanford.edu/articles/glmnet.html).
 
 
- **Beware**: This is a preliminary release of Version 0.3.1. Not all features have been fully added and it has not yet been rigorously tested.
+ **Beware**: This is a preliminary release of version 0.3.1. Not all features have been fully added and it has not yet been rigorously tested.
 
 
 # Installation
