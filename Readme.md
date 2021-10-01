@@ -89,7 +89,6 @@ est = GlmCV(penalty=OverlappingSum(fused=fused_config,
                                    )
             ).fit(X, y)
 
-
 # Sometimes we want to put different penalties on different sets of features
 # this can be accomplished with the SeparableSum() class
 groups = {'no_pen': range(5),  # don't penalized the first 5 features!
