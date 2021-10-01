@@ -110,7 +110,7 @@ You can employ your favoirite state of the art optimization algorithm by wrappin
 ```python
 from ya_glm.solver.FISTA import FISTA  # or your own solver!
 # supply your favorite optimization algorithm!
-solver = FISTA(max_iter=100)
+solver = FISTA(max_iter=100)  # specify optimzation parameters in the solvers' init
 GlmCV(loss='lin_reg', penalty='lasso', solver=solver)
 ```
 
