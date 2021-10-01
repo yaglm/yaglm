@@ -24,7 +24,7 @@ class BlockSeparable(Func):
         self.funcs = funcs
         self.groups = groups
 
-        # takes the consequitive concatenation of the blocks and maps
+        # takes the consecutive concatenation of the blocks and maps
         # them back to the proper order
         self.sort_idxs = np.argsort(np.concatenate(self.groups))
 

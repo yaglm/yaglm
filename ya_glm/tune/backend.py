@@ -418,7 +418,6 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
     """
     Fits and scores an estimator for either a single parameter setting or a path of parameters.
 
-
     Parameters
     -----------
     solver_data: dict
@@ -595,9 +594,20 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
             # set the penalty config to have this path elements's value
             penalty_params = {}
             for key, value in tuned_params[tune_idx_inner].items():
-                kind, name = key.split('__')
-                if kind == 'penalty':
+
+                # pull out the kind of this parameter (penalty, loss, constraint, flavot)
+                # the keys are formatted as KIND__p1__p2__....
+
+                splt = key.split('__')
+                KIND = splt[0]
+                name = '__'.join(splt[1:])  # name of the parameter
+
+                # set either penalty parameters or flavor parameters
+                # the flavor parameter's name should be relarive to the
+                # penalty's set_prams() function.
+                if KIND in ['penalty', 'flavor']:
                     penalty_params[name] = value
+
             configs['penalty'].set_params(**penalty_params)
 
         # set fit coef/intercept for base estimator

@@ -1,14 +1,15 @@
 from copy import deepcopy
 
+from warnings import warn
 from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.opt.lla import solve_lla, WeightedProblemSolver
-from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept,\
-    get_outer_nonconvex_func
-from ya_glm.opt.from_config.lla_structure import get_transform
+from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept
 from ya_glm.opt.from_config.loss import get_glm_loss_func
 from ya_glm.opt.utils import safe_concat
+from ya_glm.config.penalty_utils import get_flavor_kind
 
-from ya_glm.config.base_penalty import get_flavor_info, get_unflavored
+from ya_glm.opt.from_config.lla import get_lla_nonconvex_func, \
+    get_lla_subproblem_penalty, get_lla_transformer
 
 from ya_glm.autoassign import autoassign
 from ya_glm.utils import is_multi_response
@@ -16,7 +17,7 @@ from ya_glm.utils import is_multi_response
 
 class LLAFixedInit(GlmSolverWithPath):
     """
-    Solves a concave penalized GLM problem using the LLA algorithm initialized from a specified starting point.
+    Solves a foled concave penalized GLM problem using the LLA algorithm initialized from a specified starting point.
 
     Parameters
     ----------
@@ -52,10 +53,10 @@ class LLAFixedInit(GlmSolverWithPath):
     intercept_init_lla_:
         The intercept initializer for the LLA algorithm.
 
-    transform_: None, callable(coef) -> array-like
+    transform_:
         (Optional) The transformation applied to the coefficient.
 
-    transf_penalty_func_: ya_glm.opt.base.Func
+    transf_penalty_func_:
         The non-convex function applied to the transformed coefficient.
     """
     @autoassign
@@ -77,6 +78,12 @@ class LLAFixedInit(GlmSolverWithPath):
         kws = locals()
         kws.pop('self')
 
+        if get_flavor_kind(penalty) not in ['non_convex', 'mixed']:
+            warn("The LLA algorithm is being called on a "
+                 "non-non-convex problem! Perhaps something silently failed.")
+
+        self.penalty_config_ = deepcopy(penalty)
+
         # weighted subproblem solver
         self.sp_solver_.setup(**kws)
 
@@ -85,21 +92,33 @@ class LLAFixedInit(GlmSolverWithPath):
         self.objective_ = ObjectiveFunc(**kws)
 
         # set the coefficient transform
-        self.transform_ = get_transform(penalty)
+        self.transform_ = get_lla_transformer(self.penalty_config_)
 
         # the non-convex function applied to the transformed coefficient
-        self.penalty_config_ = deepcopy(penalty)
-        self.transf_penalty_func_ = get_outer_nonconvex_func(penalty)
+        # this function is designed so we can update the LLA subprobelm's
+        # penalty weights via self.solver_.update_penalty(**weights)
+        self.transf_penalty_func_ = get_lla_nonconvex_func(self.penalty_config_)
 
     def update_penalty(self, **params):
         """
         Updates the penalty.
         """
+        # TODO: i don't think we would ever update transform_
+
+        # update the subproblem solver e.g. if we changed
+        # a non-non-convex function's parameters
+        self.sp_solver_.update_penalty(**params)
+
+        # update the objective function
         self.objective_.update_penalty(**params)
 
+        # update non-convex function applied to the transformed coefficient
         self.penalty_config_.set_params(**params)
-        self.transf_penalty_func_ = \
-            get_outer_nonconvex_func(self.penalty_config_)
+        self.transf_penalty_func_ = get_lla_nonconvex_func(self.penalty_config_)
+
+    @property
+    def needs_fixed_init(self):
+        return True
 
     def set_fixed_init(self, init_data):
         """
@@ -154,6 +173,7 @@ class LLAFixedInit(GlmSolverWithPath):
 
                       transform=self.transform_,
                       objective=self.objective_,
+
                       **self.get_solve_kws())
 
         return {'coef': coef, 'intercept': intercept}, sp_other_data, opt_info
@@ -198,24 +218,28 @@ class WeightedGlmProblemSolver(WeightedProblemSolver):
         kws = locals()
         kws.pop('self')
 
-        flavor = get_flavor_info(penalty)
-        if flavor != 'non_convex':
-            raise NotImplementedError("The LLA algorithm is only applicable"
-                                      " to non-convex flavored penalties, not"
-                                      "flavor = {}".format(flavor))
-        # get base convex penalty
-        base_cvx_pen_config = get_unflavored(penalty)
-        base_cvx_pen_config.set_params(pen_val=1)  # ensure the multiplicative penalty value is 1
-        kws['penalty'] = base_cvx_pen_config
-        # TODO: better way of ensuring pen_val=1
-        #  e.g. think through multi penalties/elastic net
+        # penalty config for the overall problem
+        self.penalty_config_ = penalty
 
-        # set solver
+        # set solver with convex penalty config
+        sp_penalty = get_lla_subproblem_penalty(deepcopy(self.penalty_config_))
+
+        kws['penalty'] = sp_penalty
         self.solver_ = deepcopy(self.solver)
         self.solver_.setup(**kws)
         # TODO: do we want a copy/clone here?
 
         self.fit_intercept_ = fit_intercept
+
+    def update_penalty(self, **params):
+        """
+        updates the overall problem penalty
+        """
+        # TODO: document
+        # this will only update any non non-convex penalty parameters that were changed
+        self.penalty_config_.set_params(**params)
+        sp_penalty = get_lla_subproblem_penalty(self.penalty_config_)
+        self.solver_.update_penalty(**sp_penalty.get_params(deep=True))
 
     def solve(self, weights, sp_init=None,
               sp_upv_init=None, sp_other_data=None):
@@ -224,7 +248,7 @@ class WeightedGlmProblemSolver(WeightedProblemSolver):
 
         Parameters
         ----------
-        weights: array-like
+        weights: dict, array-like
             Weights for the weighted sup-problem.
 
         sp_init: None, array-like
@@ -242,7 +266,7 @@ class WeightedGlmProblemSolver(WeightedProblemSolver):
         """
 
         # update penalty weights
-        self.solver_.update_penalty(weights=weights)
+        self.solver_.update_penalty(**weights)
 
         soln, other_data, opt_info = \
             self.solver_.solve(coef_init=sp_init,

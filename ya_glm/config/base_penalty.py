@@ -1,5 +1,4 @@
 import numpy as np
-from copy import deepcopy
 from itertools import product
 
 from ya_glm.config.base_params import ParamConfig, TunerConfig, \
@@ -135,13 +134,14 @@ class WithFlavorPenSeqConfig(WithPenSeqConfig):
                                                 fit_intercept=fit_intercept,
                                                 sample_weight=sample_weight)
 
-        flavor_type = get_flavor_info(self)
-        if flavor_type == 'adaptive' and self.weights is None:
+        flav = get_base_config(self.flavor)
+        flavor_kind = flav.name if flav is not None else None
+        if flavor_kind == 'adaptive' and self.weights is None:
             raise RuntimeError("The adaptive weights must be set before"
                                "calling get_pen_val_max()")
 
         # possibly adjust pen val max for penalty flavoring
-        if flavor_type == 'non_convex':
+        if flavor_kind == 'non_convex':
             pen_max = adjust_pen_max_for_non_convex(pen_max,
                                                     penalty=self,
                                                     init_data=init_data)
@@ -393,6 +393,8 @@ class SeparableSumConfig(_AdditivePenaltyConfig):
         groups: dict
             A dict containing the group indices. The keys are ordered according to get_penalties().keys()
         """
+        # TODO: perhaps check to make sure the groups keys
+        # match up with the penalty keys
         return {k: self.groups[k] for k in self.get_penalties().keys()}
 
 ################################
@@ -414,16 +416,16 @@ class AdditivePenaltyTuner(TunerWithPathMixin, PenaltyTuner):
         kws.pop('self')
 
         # we may modify this below for separable sum penalties
-        X = kws.pop(X)
+        X = kws.pop('X')
 
         # setup each tunable penalty
-        for name, penalty in self.base.get_penalties():
+        for name, penalty in self.base.get_penalties().items():
 
             # if a penalty is not a tuning object then skip it.
             if isinstance(penalty, PenaltyTuner):
 
                 if isinstance(penalty.base, SeparableSumConfig):
-                    # Tor separable sum penalties pretend that the X data is
+                    # For separable sum penalties pretend that the X data is
                     # just the features corresponding to this group.
                     # This of course makes the pen_max computations
                     # only approximations!
@@ -459,15 +461,22 @@ class AdditivePenaltyTuner(TunerWithPathMixin, PenaltyTuner):
         # set path penalty, remove it from the penalties dict
         path_pen = penalties.pop(path_pen_name)
 
+        # pull out tunable penalties
+        tunable_penalties = []
+        tunable_names = []
+        for idx, (name, pen) in enumerate(penalties.items()):
+            if isinstance(pen, PenaltyTuner):
+                tunable_penalties.append(pen)
+                tunable_names.append(name)
+
         # iterate over grid of each non-path penalty
-        names = list(penalties.keys())
         for params in product(*list(pen.iter_params()
-                              for pen in penalties.values())):
+                                    for pen in tunable_penalties)):
             # params is a tuple of dicts
 
             # convert to a single dict
             sps = {}  # single parameter settings
-            for idx, name in enumerate(names):
+            for idx, name in enumerate(tunable_names):
                 sps.update({name + '__' + k: v
                             for (k, v) in params[idx].items()})
 
@@ -516,6 +525,9 @@ class ElasticNetConfig(PenaltyConfig):
     mix_val: float
         The mixing parameter; must live in [0, 1].
     """
+    # TODO: document this!
+    # Any weights parameters should be named like NAME_weights
+    # where NAME is from get_sum_names()
 
     @autoassign
     def __init__(self, pen_val=1, mix_val=0.5): pass
@@ -564,6 +576,37 @@ class ElasticNetConfig(PenaltyConfig):
         kws['base'] = kws.pop('self')
         return ElasticNetTuner(**kws)
 
+    def get_sum_configs(self, name=None):
+        """
+        Parameters
+        ----------
+        name: None, str
+            If None, returns both sum configs. If name is provided, returns only the corresponding sum config.
+
+        Output
+        ------
+        (config1, config2) or config
+
+        The sum configs.
+
+
+        """
+        if name is None:
+            return self._get_sum_configs()
+        else:
+            c1, c2 = self._get_sum_configs()
+            n1, n2 = self.get_sum_names()
+
+            if name == n1:
+                return c1
+
+            elif name == n2:
+                return c2
+
+            else:
+                raise ValueError("name must be one of [{}, {}], "
+                                 "not {}".format(n1, c2, name))
+
     def _get_sum_configs(self):
         """
         Gets the two penalty configs for the summed version e.g.
@@ -578,6 +621,10 @@ class ElasticNetConfig(PenaltyConfig):
         first_config: PenaltyConfig
             The penalty config for the first penalty.
         """
+        raise NotImplementedError("Subclass should overwrite")
+
+    def get_sum_names(self):
+        # TODO: document
         raise NotImplementedError("Subclass should overwrite")
 
 
@@ -636,7 +683,7 @@ class ElasticNetTuner(TunerWithPathMixin, PenaltyTuner):
         kws = locals()
         kws.pop('self')
 
-        first_config, second_config = self.base._get_sum_configs()
+        first_config, second_config = self.base.get_sum_configs()
 
         # compute the largest reaonable penalty value for the primary config
         self.pen_max_first_ = first_config.get_pen_val_max(**kws)
@@ -769,108 +816,3 @@ class ElasticNetTuner(TunerWithPathMixin, PenaltyTuner):
 
             pen_val_lod = [{'pen_val': pen_val} for pen_val in pen_val_seq]
             yield {}, pen_val_lod
-
-###############
-# Other utils #
-###############
-
-
-# TODO: make this work for multi penalties
-def get_flavor_info(config):
-    """
-    Gets the penalty flavor
-
-    Parameters
-    ----------
-    config: PenaltyConfig, TunerConfig
-        The penalty config or a TunerConfig.
-
-    Output
-    ------
-    flavor_type: None, str
-        The flavor type e.g. None, 'adaptive', or 'non_convex'
-    """
-    base_config = get_base_config(config)
-
-    # ElasticNet Case
-    if isinstance(base_config, ElasticNetConfig):
-        # get flavors of component models
-        flavors = [get_flavor_info(config)
-                   for config in base_config._get_sum_configs()]
-
-        # pull out the designated flavor
-        return _flavor_from_multiple(flavors)
-
-    # Additive Penalty case
-    elif isinstance(base_config, _AdditivePenaltyConfig):
-
-        # get flavors of component models
-        flavors = [get_flavor_info(config)
-                   for config in base_config.get_penalties().values()]
-
-        # pull out the designated flavor
-        return _flavor_from_multiple(flavors)
-
-    # Single penalty case
-    else:
-
-        if isinstance(base_config, WithFlavorPenSeqConfig):
-            # a flavorable penalty
-            if base_config.flavor is None:
-                return None
-            else:
-                return get_base_config(base_config.flavor).name
-        else:
-            # a non-flavorable penalty
-            return None
-
-
-def _flavor_from_multiple(flavors):
-    """
-    Given a list of flavors returns the desired flavor. We cannot mix flavors that are not None.
-
-    Parameters
-    ----------
-    flavors: list
-        The input flavors.
-
-    Output
-    ------
-    flavor: None, str
-        The flavor.
-    """
-    # remove None from flavors
-    flavors = set(flavors).difference([None])
-    if len(flavors) == 0:  # no flavors
-        return None
-    elif len(flavors) == 1:
-        return list(flavors)[0]
-    else:
-        raise RuntimeError("Cannont mix non-None flavors!")
-
-
-# TODO: make this work for multi penalties
-def get_unflavored(config):
-    """
-    Returns an unflavored version of the penalty config object. If the config is not flavored just retursn the original config; otherwise returns a copy.
-
-    Parameters
-    ----------
-    config: PenaltyConfig
-        The possibly flavored penalty config.
-
-    Outputd
-    ------
-    config: PenaltyConfig
-        Either the original penalty or an unflavored copy of the penalty.
-    """
-    if isinstance(config, (ElasticNetConfig, _AdditivePenaltyConfig)):
-        raise NotImplementedError("TODO: add this!")
-
-    if get_flavor_info(config) is not None:
-        unflavored = deepcopy(config)
-
-        unflavored.set_params(flavor=None)
-        return unflavored
-    else:
-        return config

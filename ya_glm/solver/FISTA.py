@@ -166,7 +166,6 @@ class FISTA(GlmSolverWithPath):
         if penalty is not None:
             self.penalty_func_ = get_penalty_func(config=self.penalty_config_,
                                                   n_features=self.n_features_)
-
         if constraint is not None:
             self.constraint_func_ = get_constraint_func(config=constraint)
 
@@ -239,7 +238,6 @@ class FISTA(GlmSolverWithPath):
             non_smooth_func = self.constraint_func_
         else:
             non_smooth_func = non_smooth_pen
-            non_smooth_func = self.constraint_func_
 
         # setup step size/backtracking
         if smooth_func.grad_lip is not None:

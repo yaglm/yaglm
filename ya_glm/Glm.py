@@ -3,8 +3,7 @@ from copy import deepcopy
 from ya_glm.base import BaseGlm
 from ya_glm.LossMixin import LossMixin
 from ya_glm.GlmTuned import GlmCV
-from ya_glm.config.base_penalty import get_unflavored, get_flavor_info
-from ya_glm.config.base_params import get_base_config
+from ya_glm.config.penalty_utils import get_unflavored, get_flavor_kind
 from ya_glm.adaptive import set_adaptive_weights
 
 
@@ -48,8 +47,7 @@ class Glm(LossMixin, BaseGlm):
         # Set adaptive weights #
         ########################
 
-        if get_flavor_info(configs['penalty']) == 'adaptive':
-            # set the adaptive weights
+        if get_flavor_kind(configs['penalty']) in ['adaptive', 'mixed']:
             configs['penalty'] = \
                 set_adaptive_weights(penalty=configs['penalty'],
                                      init_data=init_data)

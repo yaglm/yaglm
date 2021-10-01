@@ -34,7 +34,7 @@ class Ridge(WithPenSeqConfig):
     def __init__(self, pen_val=1, weights=None): pass
 
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
-                        sample_weight=None):
+                        sample_weight=None, init_data=None):
 
         return get_ridge_pen_max(X=X, y=y, loss=loss,
                                  weights=self.weights,
@@ -305,7 +305,7 @@ class GeneralizedLasso(WithFlavorPenSeqConfig):
 # ElasticNet penalties #
 ########################
 
-
+# TODO: maybe add ridge weights?
 class ElasticNet(ElasticNetConfig):
     """
     Represents the ElasticNet penalty
@@ -325,23 +325,32 @@ class ElasticNet(ElasticNetConfig):
     mix_val: float
         The mixing value between 0 and 1.
 
-    weights: None, array-like
-        (Optional) Weights for the Lasso.
+    lasso_weights: None, array-like
+        (Optional) Weights for the Lasso penalty.
 
-    flavor: None, FlavorConfig
+    lasso_flavor: None, FlavorConfig
         (Optional) Flavor for the lasso penalty.
+
+    ridge_weights: None, array-like
+        (Optional) Weights for the ridge penalty.
     """
     @autoassign
-    def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
+    def __init__(self, pen_val=1, mix_val=0.5,
+                 lasso_weights=None, lasso_flavor=None,
+                 ridge_weights=None): pass
 
     def _get_sum_configs(self):
         lasso_config = Lasso(pen_val=self.pen_val * self.mix_val,
-                             weights=self.weights,
-                             flavor=self.flavor)
+                             weights=self.lasso_weights,
+                             flavor=self.lasso_flavor)
 
-        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val))
+        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val),
+                             weights=self.ridge_weights)
 
         return lasso_config, ridge_config
+
+    def get_sum_names(self):
+        return ['lasso', 'ridge']
 
 
 # TODO: add default weights
@@ -366,25 +375,34 @@ class GroupElasticNet(ElasticNetConfig):
     mix_val: float
         The mixing value between 0 and 1.
 
-    weights: None, array-like
+    lasso_weights: None, array-like
         (Optional) Weights for the Lasso.
 
-    flavor: None, FlavorConfig
+    lasso_flavor: None, FlavorConfig
         (Optional) Flavor for the lasso penalty.
+
+    ridge_weights: None, array-like
+        (Optional) Weights for the ridge penalty.
     """
     @autoassign
     def __init__(self, groups=None,
-                 pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
+                 pen_val=1, mix_val=0.5,
+                 lasso_weights=None, lasso_flavor=None,
+                 ridge_weights=None): pass
 
     def _get_sum_configs(self):
         lasso_config = GroupLasso(groups=self.groups,
                                   pen_val=self.pen_val * self.mix_val,
-                                  weights=self.weights,
-                                  flavor=self.flavor)
+                                  weights=self.lasso_weights,
+                                  flavor=self.lasso_flavor)
 
-        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val))
+        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val),
+                             weights=self.ridge_weights)
 
         return lasso_config, ridge_config
+
+    def get_sum_names(self):
+        return ['lasso', 'ridge']
 
 
 # TODO: should we allow ridge weights?
@@ -404,24 +422,32 @@ class MultiTaskElasticNet(ElasticNetConfig):
     mix_val: float
         The mixing value between 0 and 1.
 
-    weights: None, array-like
+    lasso_weights: None, array-like
         (Optional) Weights for the Lasso.
 
-    flavor: None, FlavorConfig
+    lasso_flavor: None, FlavorConfig
         (Optional) Flavor for the lasso penalty.
+
+    ridge_weights: None, array-like
+        (Optional) Weights for the ridge penalty.
     """
     @autoassign
-    def __init__(self, pen_val=1, mix_val=0.5, weights=None, flavor=None): pass
+    def __init__(self, pen_val=1, mix_val=0.5,
+                 lasso_weights=None, lasso_flavor=None,
+                 ridge_weights=None): pass
 
     def _get_sum_configs(self):
         lasso_config = MultiTaskLasso(pen_val=self.pen_val * self.mix_val,
-                                      weights=self.weights,
-                                      flavor=self.flavor)
+                                      weights=self.lasso_weights,
+                                      flavor=self.lasso_flavor)
 
-        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val))
+        ridge_config = Ridge(pen_val=self.pen_val * (1 - self.mix_val),
+                             weights=self.ridge_weights)
 
         return lasso_config, ridge_config
 
+    def get_sum_names(self):
+        return ['lasso', 'ridge']
 
 # TODO: add default weights for group
 class SparseGroupLasso(ElasticNetConfig):
@@ -477,6 +503,8 @@ class SparseGroupLasso(ElasticNetConfig):
 
         return sparse_config, group_config
 
+    def get_sum_names(self):
+        return ['sparse', 'group']
 
 ###################################
 # Other overlapping sum penalties #

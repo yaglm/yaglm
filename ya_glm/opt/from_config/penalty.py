@@ -18,6 +18,8 @@ from ya_glm.config.penalty import SeparableSum as SeparableSumConfig
 # from ya_glm.config.penalty import InifmalSum as InifmalSumConfig
 from ya_glm.config.penalty import OverlappingSum as OverlappingSumConfig
 
+from ya_glm.config.base_penalty import WithFlavorPenSeqConfig
+
 from ya_glm.opt.base import Zero, Sum
 from ya_glm.opt.BlockSeparable import BlockSeparable
 from ya_glm.opt.penalty.convex import Ridge, GeneralizedRidge,\
@@ -31,7 +33,7 @@ from ya_glm.opt.penalty.utils import MatWithIntercept, WithIntercept
 
 from ya_glm.utils import is_str_and_matches
 from ya_glm.trend_filtering import get_tf_mat, get_graph_tf_mat
-from ya_glm.config.base_penalty import get_flavor_kind
+from ya_glm.config.penalty_utils import get_flavor_kind
 
 
 def get_penalty_func(config, n_features=None, n_responses=None):
@@ -41,7 +43,7 @@ def get_penalty_func(config, n_features=None, n_responses=None):
     Parameters
     ----------
     config: PenaltyConfig
-        The penalty congig object.
+        The penalty config object.
 
     n_features: None, int
         (Optional) Number of features the penalty will be applied to. This is only needed for the fused Lasso and the
@@ -138,10 +140,10 @@ def get_penalty_func(config, n_features=None, n_responses=None):
     elif isinstance(config, ElasticNetConfig):
 
         if flavor_kind == 'non_convex':
-            raise NotImplementedError("TODO: add")
+            # sums the two individual penalties
+            return get_enet_sum(config)
 
         else:
-
             return ElasticNet(pen_val=config.pen_val,
                               mix_val=config.mix_val,
                               lasso_weights=config.lasso_weights,
@@ -151,7 +153,8 @@ def get_penalty_func(config, n_features=None, n_responses=None):
     # Group Elastic net
     elif isinstance(config, GroupElasticNetConfig):
         if flavor_kind == 'non_convex':
-            raise NotImplementedError("TODO: add")
+            # sums the two individual penalties
+            return get_enet_sum(config)
 
         else:
             return GroupElasticNet(groups=config.groups,
@@ -164,7 +167,8 @@ def get_penalty_func(config, n_features=None, n_responses=None):
     # Multi-task elastic net
     elif isinstance(config, MultiTaskElasticNetConfig):
         if flavor_kind == 'non_convex':
-            raise NotImplementedError("TODO: add")
+            # sums the two individual penalties
+            return get_enet_sum(config)
 
         else:
             return MultiTaskElasticNet(pen_val=config.pen_val,
@@ -177,7 +181,8 @@ def get_penalty_func(config, n_features=None, n_responses=None):
     elif isinstance(config, SparseGroupLassoConfig):
 
         if flavor_kind == 'non_convex':
-            raise NotImplementedError("TODO")
+            # sums the two individual penalties
+            return get_enet_sum(config)
 
         else:
             return SparseGroupLasso(groups=config.groups,
@@ -207,6 +212,98 @@ def get_penalty_func(config, n_features=None, n_responses=None):
                                   format(config))
 
 
+def get_enet_sum(config):
+    # TODO: document
+    # This just sums the two elastic net terms
+    # TODO: are they any nice combined proxs for sums of non-convex?
+    # for non-convex versions of the elastic net I'm not sure we have
+    # the nice prox decomposition formulas for things like the sparse
+    # group lasso. If we do, then we can do something smarter than this
+
+    # pull out penalties for each term in the sum
+    sum_configs = config.get_sum_configs()
+    pen1 = get_penalty_func(sum_configs[0])
+    pen2 = get_penalty_func(sum_configs[1])
+    return Sum([pen1, pen2])
+
+
+def get_outer_nonconvex_func(config):
+    """
+    Returns the non-convex function used in a non-convex penalty. If the overall penalty is a composition, p(coef) = non-convex(t(coef)), this returns the final non-convex function.
+
+    Parameters
+    ----------
+    config: PenaltyConfig
+        A non-convex penalty config.
+
+    Output
+    ------
+    func: ya_glm.opt.base.func
+        The non-convex function.
+    """
+
+    if isinstance(config, WithFlavorPenSeqConfig):
+        if config.flavor is None:
+            return None
+
+        return get_nonconvex_func(name=config.flavor.pen_func,
+                                  pen_val=config.pen_val,
+                                  second_param=config.flavor.
+                                  second_param_val)
+
+    else:
+        raise RuntimeError("Unable to get outer non-convex function")
+
+
+def wrap_intercept(func, fit_intercept, is_mr):
+    """
+
+    Parameters
+    ----------
+    config: PenaltyConfig
+        The penalty congig object.
+    """
+
+    if fit_intercept:
+        if is_mr:
+            return MatWithIntercept(func=func)
+
+        else:
+            return WithIntercept(func=func)
+
+    else:
+        return func
+
+
+def get_fused_lasso_diff_mat(config, n_nodes):
+    """
+    Returns the generalized lasso difference matrix for the fused lasso.
+
+    Parameters
+    ----------
+    config: FusedLasso
+        The fused lasso config.
+
+    n_nodes: int
+        The number of nodes in the graph.
+
+    Output
+    ------
+    mat: array-like, (n_rows, n_nodes)
+        The difference matrix as a sparse matrix.
+    """
+
+    assert isinstance(config, FusedLassoConfig)
+
+    if is_str_and_matches(config.edgelist, 'chain'):
+        return get_tf_mat(d=n_nodes, k=config.order)
+    else:
+        return get_graph_tf_mat(edgelist=config.edgelist,
+                                n_nodes=n_nodes,
+                                k=config.order)
+
+
+# TODO: make this recursive for additive penalties
 def split_smooth_and_non_smooth(func):
     """
     Splits a penalty function into smooth and non-smooth functions.
@@ -220,7 +317,11 @@ def split_smooth_and_non_smooth(func):
     ------
     smooth, non_smooth
     """
-    if isinstance(func, Sum):
+
+    if func is None:
+        return None, None
+
+    elif isinstance(func, Sum):
 
         # pull apart smooth and non-smooth functions
         smooth_funcs = [f for f in func.funcs if f.is_smooth]
@@ -281,81 +382,10 @@ def split_smooth_and_non_smooth(func):
     else:
         smooth = None
         non_smooth = None
-        # smooth = Zero()
-        # non_smooth = Zero()
 
         if func.is_smooth:
             smooth = func
+        else:
+            non_smooth = func
 
         return smooth, non_smooth
-
-
-def get_outer_nonconvex_func(config):
-    """
-    Returns the non-convex function used in a non-convex penalty. If the overall penalty is a composition, p(coef) = non-convex(t(coef)), this returns the final non-convex function.
-
-    Parameters
-    ----------
-    config: PenaltyConfig
-        A non-convex penalty config.
-
-    Output
-    ------
-    func: ya_glm.opt.base.func
-        The non-convex function.
-    """
-    if get_flavor_kind(config) != 'non_convex':
-        raise ValueError("Penalty is not non_convex")
-
-    return get_nonconvex_func(name=config.flavor.pen_func,
-                              pen_val=config.pen_val,
-                              second_param=config.flavor.
-                              second_param_val)
-
-
-def wrap_intercept(func, fit_intercept, is_mr):
-    """
-
-    Parameters
-    ----------
-    config: PenaltyConfig
-        The penalty congig object.
-    """
-
-    if fit_intercept:
-        if is_mr:
-            return MatWithIntercept(func=func)
-
-        else:
-            return WithIntercept(func=func)
-
-    else:
-        return func
-
-
-def get_fused_lasso_diff_mat(config, n_nodes):
-    """
-    Returns the generalized lasso difference matrix for the fused lasso.
-
-    Parameters
-    ----------
-    config: FusedLasso
-        The fused lasso config.
-
-    n_nodes: int
-        The number of nodes in the graph.
-
-    Output
-    ------
-    mat: array-like, (n_rows, n_nodes)
-        The difference matrix as a sparse matrix.
-    """
-
-    assert isinstance(config, FusedLassoConfig)
-
-    if is_str_and_matches(config.edgelist, 'chain'):
-        return get_tf_mat(d=n_nodes, k=config.order)
-    else:
-        return get_graph_tf_mat(edgelist=config.edgelist,
-                                n_nodes=n_nodes,
-                                k=config.order)
