@@ -424,12 +424,12 @@ class AdditivePenaltyTuner(TunerWithPathMixin, PenaltyTuner):
             # if a penalty is not a tuning object then skip it.
             if isinstance(penalty, PenaltyTuner):
 
-                if isinstance(penalty.base, SeparableSumConfig):
+                if isinstance(self.base, SeparableSumConfig):
                     # For separable sum penalties pretend that the X data is
                     # just the features corresponding to this group.
                     # This of course makes the pen_max computations
                     # only approximations!
-                    feat_idxs = penalty.base.groups[name]
+                    feat_idxs = self.base.groups[name]
                     penalty.set_tuning_values(X=X[:, feat_idxs], **kws)
 
                 else:
