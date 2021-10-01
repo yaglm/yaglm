@@ -33,11 +33,8 @@ from ya_glm.toy_data import sample_sparse_lin_reg
 from ya_glm.GlmTuned import GlmCV, GlmTrainMetric
 
 from ya_glm.config.loss import Huber
-from ya_glm.config.penalty import Lasso, GroupLasso, FusedLasso, \
-      OverlappingSum, SeparableSum, NoPenalty
+from ya_glm.config.penalty import Lasso, GroupLasso
 from ya_glm.config.flavor import Adaptive, NonConvex
-from ya_glm.solver.FISTA import FISTA
-from ya_glm.pen_seq import get_sequence_decr_max
 
 from ya_glm.metrics.info_criteria import InfoCriteria
 from ya_glm.infer.Inferencer import Inferencer
@@ -78,6 +75,14 @@ GlmCV(loss=Huber().tune(knot=range(1, 5)),
                          flavor=NonConvex()),
       lla=True,  # we use the LLA algorithm by default. If lla=False, we would use FISTA
       ).fit(X, y)
+```
+
+We can bulid penalties out of existing ones e.g. via overlapping or separable sums of basic penalties.
+```python
+from ya_glm.config.penalty import OverlappingSum, SeparableSum, \
+      FusedLasso, NoPenalty
+from ya_glm.pen_seq import get_sequence_decr_max
+
 
 # Fit an adaptive sparse-fused lasso using the OverlappingSum() class
 # note we have to manually specify the tuning sequence for the fused lasso
@@ -99,8 +104,11 @@ est = GlmCV(penalty=SeparableSum(groups=groups,
                                  sparse=Lasso(flavor=NonConvex())
                                  )
             ).fit(X, y)
+```
 
-
+You can employ your favoirite state of the art optimization algorithm by wrapping it in a solver config object. These objects can also be used to specify optimzation parameters (e.g. maximum number of iterations).
+```python
+from ya_glm.solver.FISTA import FISTA  # or your own solver!
 # supply your favorite optimization algorithm!
 solver = FISTA(max_iter=100)
 GlmCV(loss='lin_reg', penalty='lasso', solver=solver)
