@@ -1,5 +1,6 @@
 from ya_glm.solver.FISTA import FISTA
 from ya_glm.solver.ZhuADMM import ZhuADMM
+from ya_glm.solver.Cvxpy import Cvxpy
 
 
 def get_solver(solver='default', loss='lin_reg',
@@ -45,12 +46,12 @@ def get_solver(solver='default', loss='lin_reg',
                 return FISTA()
 
             # only import cvxpy if we need to!
-            cvxpy_solver = _safe_get_cvxpy()
-            if cvxpy_solver.is_applicable(loss=loss,
-                                          penalty=penalty,
-                                          constraint=constraint,
-                                          lla=lla):
-                return cvxpy_solver
+
+            if Cvxpy.is_applicable(loss=loss,
+                                   penalty=penalty,
+                                   constraint=constraint,
+                                   lla=lla):
+                return Cvxpy()
 
             # back up with ZhuADMM
             elif ZhuADMM.is_applicable(loss=loss,
@@ -76,16 +77,8 @@ def get_solver(solver='default', loss='lin_reg',
         return solver
 
 
-def _safe_get_cvxpy():
-    """
-    Returns the Cvxpy() solver object. Locally imports from ya_glm.solver.Cvxpy to avoid requiring the user to have cvxpy install.
-    """
-    from ya_glm.solver.Cvxpy import Cvxpy
-    return Cvxpy()
-
-
 solvers_str2obj = {'fista': FISTA(),
                    'admm': ZhuADMM(),
-                   'cvxpy': _safe_get_cvxpy()
+                   'cvxpy': Cvxpy()
                    }
 avail_solvers = list(solvers_str2obj.keys())
