@@ -77,22 +77,12 @@ GlmCV(loss=Huber().tune(knot=range(1, 5)),
       ).fit(X, y)
 ```
 
-We can bulid new penalties out of existing ones e.g. via overlapping or separable sums of basic penalties.
+We can use the basic penalties as building blocks to create new onew e.g. via overlapping or separable sums of penalties. For example, we might want to penalized some features while leaving others unpenalized.
 ```python
 from ya_glm.config.penalty import OverlappingSum, SeparableSum, \
       FusedLasso, NoPenalty
 from ya_glm.pen_seq import get_sequence_decr_max
 
-
-# Fit an adaptive sparse-fused lasso using the OverlappingSum() class
-# note we have to manually specify the tuning sequence for the fused lasso
-pen_val_seq = get_sequence_decr_max(max_val=1, num=10)
-fused_config = FusedLasso(flavor=Adaptive()).tune(pen_val_seq=pen_val_seq)
-
-est = GlmCV(penalty=OverlappingSum(fused=fused_config,
-                                   sparse=Lasso(flavor=Adaptive())
-                                   )
-            ).fit(X, y)
 
 # Sometimes we want to put different penalties on different sets of features
 # this can be accomplished with the SeparableSum() class
@@ -103,6 +93,16 @@ est = GlmCV(penalty=SeparableSum(groups=groups,
                                  no_pen=NoPenalty(),
                                  sparse=Lasso(flavor=NonConvex())
                                  )
+            ).fit(X, y)
+
+# Fit an adaptive sparse-fused lasso using the OverlappingSum() class
+# note we have to manually specify the tuning sequence for the fused lasso
+pen_val_seq = get_sequence_decr_max(max_val=1, num=10)
+fused_config = FusedLasso(flavor=Adaptive()).tune(pen_val_seq=pen_val_seq)
+
+est = GlmCV(penalty=OverlappingSum(fused=fused_config,
+                                   sparse=Lasso(flavor=Adaptive())
+                                   )
             ).fit(X, y)
 ```
 
