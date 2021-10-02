@@ -1,5 +1,5 @@
 import numpy as np
-
+from sklearn.isotonic import isotonic_regression
 from ya_glm.opt.base import Func
 
 
@@ -84,6 +84,21 @@ class L2Ball(Constraint):
 
     def _prox(self, x, step=1):
         return x / np.max([np.linalg.norm(x)/self.mult, 1])
+
+    @property
+    def is_proximable(self):
+        return True
+
+class Isotonic(Constraint):
+    """Constraint for x1 <= ... <= xn or
+    x1 >= ... >= xn """
+    def __init__(self, increasing=True):
+        self.increasing = increasing
+
+    def _prox(self, x, step=1):
+        # computes the projection of x onto the monotone cone
+        # using the PAVA algorithm
+        return isotonic_regression(x, increasing=self.increasing)
 
     @property
     def is_proximable(self):

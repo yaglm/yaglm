@@ -33,3 +33,24 @@ class TestProjectionsOnConstraints(TestCase):
         self.assert_arrays_close(cons4.prox([1,0,0]), [1,0,0])
         self.assert_arrays_close(cons4.prox([0.5,0,0]), [0.5,0,0])
         self.assert_arrays_close(cons4.prox([-4,3,0]), np.array([-4,3,0])/(5/4))
+
+    def test_Isotonic(self):
+        cons = convex.Isotonic(increasing=True)
+        for v in [
+                np.arange(5),
+                np.array([-1, 0, 2, 3, -2]),
+                np.array([-1, 3, 0, 3, 2])
+            ]:
+            result = cons.prox(v)
+            lags = result[1:] - result[:-1]
+            self.assertTrue((lags >= 0).all())
+
+        cons = convex.Isotonic(increasing=False)
+        for v in [
+                np.arange(5),
+                np.array([-1, 0, 2, 3, -2]),
+                np.array([-1, 3, 0, 3, 2])
+            ]:
+            result = cons.prox(v)
+            lags = result[1:] - result[:-1]
+            self.assertTrue((lags <= 0).all())
