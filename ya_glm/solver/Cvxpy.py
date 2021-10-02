@@ -4,7 +4,7 @@ from time import time
 from ya_glm.solver.base import GlmSolverWithPath
 from ya_glm.autoassign import autoassign
 from ya_glm.utils import is_multi_response, get_shapes_from, clip_zero
-from ya_glm.config.base_penalty import get_flavor_info
+from ya_glm.config.penalty_utils import get_flavor_kind
 
 from ya_glm.cvxpy.from_config import get_loss, get_penalty, get_constraints, \
     update_pen_val_and_weights
@@ -33,8 +33,7 @@ class Cvxpy(GlmSolverWithPath):
     @classmethod
     def _is_applicable(self, loss, penalty=None, constraint=None):
         # cvxpy is applicable to any convex penalty
-        flavor = get_flavor_info(penalty)
-        return flavor != 'non_convex'
+        return get_flavor_kind(penalty) not in ['non_convex', 'mixed']
 
     def setup(self, X, y, loss, penalty, constraint=None,
               fit_intercept=True, sample_weight=None):

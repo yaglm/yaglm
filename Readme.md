@@ -1,7 +1,7 @@
 # Yet another generalized linear model package
 
 
-`ya_glm` is a modern, comprehensive and flexible python package for fitting penalized generalized linear models and other supervised [M-estimators](https://en.wikipedia.org/wiki/M-estimator) in Python. It supports a wide variety of losses (linear, logistic, quantile, etc) combined with penalties and/or constraints. Beyond the basic lasso/ridge, `ya_glm` supports  **structured sparsity** penalties such as the nuclear norm and the [group](https://rss.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/j.1467-9868.2005.00532.x?casa_token=wN_F5iYwNK4AAAAA:4PVnAz4icP5hR9FIRviV0zqnp_QAibv55uYkptKQKezvDoqtMzrSpFyHh15lL4IO1yFJ3Sfl4OwOuA), [exclusive](https://projecteuclid.org/journals/electronic-journal-of-statistics/volume-11/issue-2/Within-group-variable-selection-through-the-Exclusive-Lasso/10.1214/17-EJS1317.full), [graph fused](https://arxiv.org/pdf/1505.06475.pdf), and [generalized lasso](https://www.stat.cmu.edu/~ryantibs/papers/genlasso.pdf). It also supports the more accurate **[adaptive](http://users.stat.umn.edu/~zouxx019/Papers/adalasso.pdf)** and **non-convex** (e.g. [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf)) *flavors* of these penalties that typically come with strong statistical guarantees at limited additional computational expense. 
+`ya_glm` is a modern, comprehensive and flexible python package for fitting and tuning penalized generalized linear models and other supervised [M-estimators](https://en.wikipedia.org/wiki/M-estimator) in Python. It supports a wide variety of losses (linear, logistic, quantile, etc) combined with penalties and/or constraints. Beyond the basic lasso/ridge, `ya_glm` supports  **structured sparsity** penalties such as the nuclear norm and the [group](https://rss.onlinelibrary.wiley.com/doi/pdfdirect/10.1111/j.1467-9868.2005.00532.x?casa_token=wN_F5iYwNK4AAAAA:4PVnAz4icP5hR9FIRviV0zqnp_QAibv55uYkptKQKezvDoqtMzrSpFyHh15lL4IO1yFJ3Sfl4OwOuA), [exclusive](https://projecteuclid.org/journals/electronic-journal-of-statistics/volume-11/issue-2/Within-group-variable-selection-through-the-Exclusive-Lasso/10.1214/17-EJS1317.full), [graph fused](https://arxiv.org/pdf/1505.06475.pdf), and [generalized lasso](https://www.stat.cmu.edu/~ryantibs/papers/genlasso.pdf). It also supports the more accurate **[adaptive](http://users.stat.umn.edu/~zouxx019/Papers/adalasso.pdf)** and **non-convex** (e.g. [SCAD](https://fan.princeton.edu/papers/01/penlike.pdf)) *flavors* of these penalties that typically come with strong statistical guarantees at limited additional computational expense.
 
 Parameter tuning methods including cross-validation, generalized cross-validation, and information criteria (e.g. AIC, BIC, [EBIC](https://www.jstor.org/stable/20441500)) come built-in. BIC-like information criteria are important for analysts interested in model selection [(Zhang et al, 2012)](https://www.tandfonline.com/doi/abs/10.1198/jasa.2009.tm08013); these are augmented with built-in linear regression noise variance estimators ([Reid et al, 2016](https://www.jstor.org/stable/pdf/24721190.pdf?casa_token=wVML37DFzk4AAAAA:PCPZH8z98S_ZDNMyFxtec9-ZsIx73xoxDgWJUEObeJooVLwMWhOAn_Tnf2GQGL3H36XAROk5P08aNGcDnJUG95ahVwe1F57AsJg0_kxntX4UIoSoEAk); [Yu and Bien, 2019](https://academic.oup.com/biomet/article/106/3/533/5498375?casa_token=MSUn8MK2SgYAAAAA:r1tkX7-qUE7RIndcJk4_mfKUcuo3SuPImBy8pLX7H5rTA8cp_-7pUn-XzZzpAJuT_Blr8xmLFjvd); [Liu et al, 2020](https://academic.oup.com/biomet/article/107/2/481/5716270?casa_token=EYC-Z7uyoScAAAAA:6kQhSHg6NJEDWKAgJobCfV_HwNxa5uSWD38hzjW8zUj33n8EUJgzPWuT6yiVUVwmgVMook0oUajW)). Tuning parameter grids are automatically created from the data whenever possible.
 
@@ -11,7 +11,7 @@ Parameter tuning methods including cross-validation, generalized cross-validatio
 `ya_glm` follows a sklearn compatible API, is highly customizable and was inspired by many existing packages including [sklearn](https://scikit-learn.org/stable/), [lightning](https://github.com/scikit-learn-contrib/lightning), [statsmodels](https://www.statsmodels.org/), [pyglmnet](https://github.com/glm-tools/pyglmnet), [celer](https://github.com/mathurinm/celer), [andersoncd](https://github.com/mathurinm/andersoncd), [picasso](https://github.com/jasonge27/picasso), [tick](https://github.com/X-DataInitiative/tick), [PyUNLocBoX](https://github.com/epfl-lts2/pyunlocbox), [regerg](https://github.com/regreg/regreg), [grpreg](https://github.com/pbreheny/grpreg), [ncreg](https://cran.r-project.org/web/packages/ncvreg/index.html), and [glmnet](https://glmnet.stanford.edu/articles/glmnet.html).
 
 
- **Beware**: This is a preliminary release of Version 0.3.0. Not all features have been fully added and it has not yet been rigorously tested.
+ **Beware**: This is a preliminary release of version 0.3.1. Not all features have been fully added and it has not yet been rigorously tested.
 
 
 # Installation
@@ -35,11 +35,11 @@ from ya_glm.GlmTuned import GlmCV, GlmTrainMetric
 from ya_glm.config.loss import Huber
 from ya_glm.config.penalty import Lasso, GroupLasso
 from ya_glm.config.flavor import Adaptive, NonConvex
-from ya_glm.solver.FISTA import FISTA
 
 from ya_glm.metrics.info_criteria import InfoCriteria
 from ya_glm.infer.Inferencer import Inferencer
 from ya_glm.infer.lin_reg_noise_var import ViaRidge
+
 
 # sample sparse linear regression data
 X, y, _ = sample_sparse_lin_reg(n_samples=100, n_features=10)
@@ -73,11 +73,44 @@ groups = [range(5), range(5, 10)]
 GlmCV(loss=Huber().tune(knot=range(1, 5)),
       penalty=GroupLasso(groups=groups,
                          flavor=NonConvex()),
-      lla=True, # we use the LLA algorithm by default. If lla=False, we would use FISTA
+      lla=True,  # we use the LLA algorithm by default. If lla=False, we would use FISTA
       ).fit(X, y)
+```
 
+We can use the basic penalties as building blocks to create new ones e.g. via overlapping or separable sums of penalties. For example, we might want to penalized some features while leaving others unpenalized.
+```python
+from ya_glm.config.penalty import OverlappingSum, SeparableSum, \
+      FusedLasso, NoPenalty
+from ya_glm.pen_seq import get_sequence_decr_max
+
+
+# Sometimes we want to put different penalties on different sets of features
+# this can be accomplished with the SeparableSum() class
+groups = {'no_pen': range(5),  # don't penalized the first 5 features!
+          'sparse': range(5, 10)
+          }
+est = GlmCV(penalty=SeparableSum(groups=groups,
+                                 no_pen=NoPenalty(),
+                                 sparse=Lasso(flavor=NonConvex())
+                                 )
+            ).fit(X, y)
+
+# Fit an adaptive sparse-fused lasso using the OverlappingSum() class
+# note we have to manually specify the tuning sequence for the fused lasso
+pen_val_seq = get_sequence_decr_max(max_val=1, num=10)
+fused_config = FusedLasso(flavor=Adaptive()).tune(pen_val_seq=pen_val_seq)
+
+est = GlmCV(penalty=OverlappingSum(fused=fused_config,
+                                   sparse=Lasso(flavor=Adaptive())
+                                   )
+            ).fit(X, y)
+```
+
+You can employ your favoirite state of the art optimization algorithm by wrapping it in a solver config object. These objects can also be used to specify optimzation parameters (e.g. maximum number of iterations).
+```python
+from ya_glm.solver.FISTA import FISTA  # or your own solver!
 # supply your favorite optimization algorithm!
-solver = FISTA(max_iter=100)
+solver = FISTA(max_iter=100)  # specify optimzation parameters in the solvers' init
 GlmCV(loss='lin_reg', penalty='lasso', solver=solver)
 ```
 

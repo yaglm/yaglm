@@ -14,7 +14,7 @@ from ya_glm.utils import fit_if_unfitted, get_coef_and_intercept, \
 from ya_glm.config.loss import get_loss_config
 from ya_glm.config.constraint import get_constraint_config
 from ya_glm.config.penalty import get_penalty_config
-from ya_glm.config.base_penalty import get_flavor_info, get_unflavored
+from ya_glm.config.penalty_utils import get_flavor_kind, get_unflavored
 from ya_glm.config.base_params import get_base_config
 from ya_glm.solver.default import get_solver
 from ya_glm.solver.LLA import LLAFixedInit
@@ -210,10 +210,6 @@ class BaseGlm(BaseEstimator):
                             sample_weight=sample_weight,
                             copy=copy)
 
-        # ensure sum(sample_weight) = n_samples
-        if sample_weight is not None:
-            sample_weight *= len(sample_weight) / sample_weight.sum()
-
         out.update(y_out)
 
         pro_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
@@ -260,15 +256,10 @@ class BaseGlm(BaseEstimator):
         # Initializer for flavored penalties #
         ######################################
 
-        if self.penalty is not None:
-            # pull out the base flavor config object
-            flavor = get_flavor_info(get_base_config(self.penalty))
-            flavor = get_base_config(flavor)
-        else:
-            flavor = None
+        flavor_kind = get_flavor_kind(self.penalty)
 
         # flavored penalties may require fitting an initializer
-        if flavor is not None:
+        if flavor_kind is not None:
 
             ##############################################
             # Get initializer coefficient/intercept data #
@@ -278,8 +269,8 @@ class BaseGlm(BaseEstimator):
 
                 # by default adaptive and non-convex LLA algorithms
                 # use the unflavored estimator as a default initializer
-                if flavor == 'adaptive' or \
-                        (flavor == 'non_convex' and self.lla):
+                if flavor_kind == 'adaptive' or \
+                        (flavor_kind in ['non_convex', 'mixed'] and self.lla):
                     init_est = self.get_unflavored_tunable()
                     yes_pro_pro_init = True
                 else:
@@ -332,7 +323,7 @@ class BaseGlm(BaseEstimator):
                                       pre_pro_out=pre_pro_out)
 
             # adaptive Lasso may need to know the number of training samples
-            if flavor == 'adaptive':
+            if flavor_kind in ['adaptive', 'mixed']:
                 init_data['n_samples'] = X.shape[0]
 
             return init_data, init_est
@@ -425,9 +416,9 @@ class BaseGlm(BaseEstimator):
         ################
         # setup solver #
         ################
-        flavor_type = get_flavor_info(configs['penalty'])
+        flavor_kind = get_flavor_kind(configs['penalty'])
 
-        if flavor_type == 'non_convex' and self.lla:
+        if flavor_kind in ['non_convex', 'mixed'] and self.lla:
             # LLA algorithm
 
             # default LLA solver
@@ -439,20 +430,21 @@ class BaseGlm(BaseEstimator):
             # set subproblem solver
             solver.set_sp_solver(get_solver(self.solver, **configs))
 
-            # set fixed initialization for the LLA algorithm
-            solver.set_fixed_init(init_data)
-
         else:
             # user specified solver!
             solver = get_solver(self.solver, **configs)
+
+        # possibly set fixed initialization e.g. for the LLA algorithm
+        if solver.needs_fixed_init:
+            solver.set_fixed_init(init_data)
 
         return pro_data, raw_data, pre_pro_out, \
             configs, solver, init_data, inferencer
 
     def _get_solver_init(self, init_data):
-        flavor = get_flavor_info(self.penalty)
+        flavor_kind = get_flavor_kind(self.penalty)
 
-        if flavor == 'non_convex' and not self.lla:
+        if flavor_kind in ['non_convex', 'mixed'] and not self.lla:
             # for non-convex direct we are allowed to specify the
             # initial value for optimization.
             # for the LLA algorithm this is specified somewhere else

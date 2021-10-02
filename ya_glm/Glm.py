@@ -3,8 +3,7 @@ from copy import deepcopy
 from ya_glm.base import BaseGlm
 from ya_glm.LossMixin import LossMixin
 from ya_glm.GlmTuned import GlmCV
-from ya_glm.config.base_penalty import get_unflavored, get_flavor_info
-from ya_glm.config.base_params import get_base_config
+from ya_glm.config.penalty_utils import get_unflavored, get_flavor_kind
 from ya_glm.adaptive import set_adaptive_weights
 
 
@@ -35,6 +34,8 @@ class Glm(LossMixin, BaseGlm):
             Fitted estimator.
         """
 
+        # TODO: make sure none of the configs are tuners
+
         ##############################################
         # setup, preprocess, and prefitting routines #
         ##############################################
@@ -46,13 +47,10 @@ class Glm(LossMixin, BaseGlm):
         # Set adaptive weights #
         ########################
 
-        penalty = configs['penalty']
-        if get_flavor_info(penalty) == 'adaptive':
-            base_penalty = get_base_config(penalty)
-
-            # set the adaptive weights in place
-            set_adaptive_weights(penalty=base_penalty,
-                                 init_data=init_data)
+        if get_flavor_kind(configs['penalty']) in ['adaptive', 'mixed']:
+            configs['penalty'] = \
+                set_adaptive_weights(penalty=configs['penalty'],
+                                     init_data=init_data)
 
         #########################
         # solve and set the fit #

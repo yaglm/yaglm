@@ -1,10 +1,12 @@
+from copy import deepcopy
+
 from ya_glm.config.base import Config
 
 from ya_glm.config.loss import get_loss_config
 from ya_glm.config.constraint import get_constraint_config
 from ya_glm.config.penalty import get_penalty_config
-from ya_glm.config.base_params import get_base_config
-from ya_glm.config.base_penalty import get_unflavored
+from ya_glm.config.base_params import get_base_config, detune_config
+from ya_glm.config.penalty_utils import get_unflavored
 
 
 class GlmSolver(Config):
@@ -42,10 +44,12 @@ class GlmSolver(Config):
             constraint = get_base_config(get_constraint_config(constraint))
 
         # the LLA algorithm only sees unflavored versions of the penalty
+        _penalty = detune_config(deepcopy(penalty))
         if lla:
-            penalty = get_unflavored(penalty)
+            _penalty = get_unflavored(_penalty)
 
-        return self._is_applicable(loss, penalty, constraint)
+        return self._is_applicable(loss=loss, penalty=_penalty,
+                                   constraint=constraint)
 
     @classmethod
     def _is_applicable(self, loss, penalty=None, constraint=None):
@@ -111,6 +115,16 @@ class GlmSolver(Config):
         Whether or not this solve has a path algorithm available for a given loss/penalty combination.
         """
         return False
+
+    @property
+    def needs_fixed_init(self):
+        """
+        Whether or not this solver has a fixed initializer.
+        """
+        return False
+
+    def set_fixed_init(self):
+        raise NotImplementedError('Subclass should overwrite')
 
 
 class GlmSolverWithPath(GlmSolver):

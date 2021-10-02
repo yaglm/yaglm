@@ -1,7 +1,9 @@
 import numpy as np
 from ya_glm.opt.base import Func
 
-
+# TODO: this currently assumes the union of the groups gives the
+# entire input vector. Get this working when the groups may be a strict subset
+# e.g. zero pad the gradient
 class BlockSeparable(Func):
     """
     Represents a function of the form
@@ -24,7 +26,7 @@ class BlockSeparable(Func):
         self.funcs = funcs
         self.groups = groups
 
-        # takes the consequitive concatenation of the blocks and maps
+        # takes the consecutive concatenation of the blocks and maps
         # them back to the proper order
         self.sort_idxs = np.argsort(np.concatenate(self.groups))
 

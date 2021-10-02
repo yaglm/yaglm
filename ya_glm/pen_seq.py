@@ -2,7 +2,7 @@ import numpy as np
 
 
 def get_sequence_decr_max(max_val=1, min_val_mult=1e-3, num=20,
-                          spacing='lin', decr=True):
+                          spacing='log', decr=True):
     """
     Gets a tuning parameter sequence decreasing from a maximum value.
 

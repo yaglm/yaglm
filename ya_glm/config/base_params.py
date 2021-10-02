@@ -52,7 +52,7 @@ class TunerConfig(Config):
             The unique tuning parameters for this setting.
         """
         config = deepcopy(self.base)
-        config = tuners_to_base(config)  # flatten any tuner parameters
+        config = detune_config(config)  # flatten any tuner parameters
 
         for params in self.iter_params():
             config.set_params(**params)
@@ -112,11 +112,11 @@ class TunerWithPathMixin:
         path_lod: iterable of dicts
             The list of dicts for the parameter path.
 
-        single_params: dict
+        single_param_settings: dict
             The single parameter settings.
         """
         config = deepcopy(self.base)
-        config = tuners_to_base(config)  # flatten any tuner parameters
+        config = detune_config(config)  # flatten any tuner parameters
 
         for sps, path_lod in self._iter_params_with_path():
             config.set_params(**sps)
@@ -242,17 +242,16 @@ def get_base_config(config):
         return config
 
 
-def tuners_to_base(config):
+def detune_config(config):
     """
-    For a config that is a TunerConfig or containts parameters that may be TunerConfigs
-    this function replaces all the TunerConfigs with their base ParamConfigs.
+    For a config that is a TunerConfig or containts parameters that may be TunerConfigs this function replaces all the TunerConfigs with their base ParamConfigs.
 
-    Note may modify the config object in place.
+    This may modify the config object in place.
 
     Parameters
     ------
     config: ParamConfig, TunerConfig
-        The config we want to modify.
+        The config we want to tune.
 
     Output
     ------
@@ -260,13 +259,13 @@ def tuners_to_base(config):
         The modified config.
     """
     if isinstance(config, TunerConfig):
-        return tuners_to_base(config.base)
+        return detune_config(config.base)
 
     elif isinstance(config, ParamConfig):
 
         # replace any TunerConfig params
         for (k, v) in config.get_params(deep=False).items():
-            config.set_params(**{k: tuners_to_base(v)})
+            config.set_params(**{k: detune_config(v)})
 
         return config
 

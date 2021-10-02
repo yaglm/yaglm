@@ -13,8 +13,8 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
                           cov='ar',
                           corr=0.35,
                           beta_type=1,
-                          snr=1,
-                          noise_std=None,
+                          noise_std=1,
+                          snr=None,
                           intercept=0,
                           random_state=None):
     """
@@ -42,21 +42,23 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
 
     corr: float
         The correlation for the covariace matrix for the X data.
-        
-    snr: float
-        The desired signal to noise ratio defined as coef.T @ cov @ coef / noise_std ** 2. This will automatically set noise_std.
 
     noise_std: None, float
-        The (optional) user specified noise level; this will over ride the snr argument if provided.
-        
+        The user specified noise level. This is overwitten if snr is provided.
+
+    snr: None, float
+        (Optional) The desired signal to noise ratio defined as coef.T @ cov @ coef / noise_std ** 2. This will automatically set noise_std.
+
     intercept: float or array-like, shape (n_responses, )
         The true intercept.
         
     random_state: None, int
         The seed.
         
-    Parameters
-    ----------
+    Output
+    ------
+    X, y, info
+
     X: array-like, shape (n_samples, n_features)
         The X data.
         
@@ -76,9 +78,12 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
 
     # determine the noise_std
     ct_Sigma_c = coef_cov_quad_form(coef, cov)
-    if noise_std is None:
+    if snr is not None:
+        # user specified signal to noise ratio
+        # overwrite specified noise_std
         noise_std = np.sqrt(ct_Sigma_c / snr)
     else:
+        # compute the snr from the user specified noise std
         snr = ct_Sigma_c / (noise_std ** 2)
 
     # sample X data
@@ -149,7 +154,6 @@ def infuse_outliers(y, prop_bad=.1, random_state=None):
 
     return y_bad
 
-
 # TODO: add signal to noise ratio
 def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
                           beta_type=1,
@@ -190,8 +194,10 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
     random_state: None, int
         The seed.
 
-    Parameters
-    ----------
+    Output
+    ------
+    X, y, info
+
     X: array-like, shape (n_samples, n_features)
         The X data.
 
@@ -269,8 +275,10 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
     random_state: None, int
         The seed.
 
-    Parameters
-    ----------
+    Output
+    ------
+    X, y, info
+
     X: array-like, shape (n_samples, n_features)
         The X data.
 
@@ -354,8 +362,10 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
     random_state: None, int
         The seed.
 
-    Parameters
-    ----------
+    Output
+    ------
+    X, y, info
+
     X: array-like, shape (n_samples, n_features)
         The X data.
 

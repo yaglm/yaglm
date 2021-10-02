@@ -17,7 +17,7 @@ from ya_glm.cvxpy.penalty import zero, ridge_penalty, lasso_penalty,\
     gen_ridge_penalty, multi_task_lasso_penalty, group_lasso_penalty, \
     gen_lasso_penalty
 
-from ya_glm.config.base_penalty import get_flavor_info
+from ya_glm.config.penalty_utils import get_flavor_kind
 from ya_glm.opt.from_config.penalty import get_fused_lasso_diff_mat
 
 
@@ -104,8 +104,7 @@ def get_penalty(coef, config):
         The weights value as a cvxpy parameter; this can be modified in place.
     """
 
-    flavor_type = get_flavor_info(config)
-    if flavor_type == 'non_convex':
+    if get_flavor_kind(config) == 'non_convex':
         raise NotImplementedError("Cvxpy only works for convex problems!")
 
     n_features = coef.shape[0]
