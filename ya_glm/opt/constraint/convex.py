@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.linalg import norm
 from sklearn.isotonic import isotonic_regression
 from ya_glm.opt.base import Func
 
@@ -25,6 +26,22 @@ class Positive(Constraint):
     def is_proximable(self):
         return True
 
+class LinearEquality(Constraint):
+    # credited to PyUNLocBoX
+    # https://github.com/epfl-lts2/pyunlocbox/
+    def __init__(self, A, b):
+        self.A = A
+        self.b = b
+        self.pinvA = np.linalg.pinv(A)
+
+    def _prox(self, x, step=1):
+        residue = self.A@x - self.b
+        sol = x - self.pinvA @ residue
+        return sol
+
+    @property
+    def is_proximable(self):
+        return True
 
 class Simplex(Constraint):
 
@@ -83,7 +100,7 @@ class L2Ball(Constraint):
         self.mult = mult
 
     def _prox(self, x, step=1):
-        return x / np.max([np.linalg.norm(x)/self.mult, 1])
+        return x / np.max([norm(x)/self.mult, 1])
 
     @property
     def is_proximable(self):

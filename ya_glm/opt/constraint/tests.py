@@ -19,6 +19,12 @@ class TestProjectionsOnConstraints(TestCase):
         self.assert_arrays_close(cons.prox(v), [0, 0, 2, 3, 0])
         self.assertEqual(cons.prox(-2), 0)
 
+    def test_LinearEquality(self):
+        A = np.identity(2)
+        b = np.array([1,1])
+        cons = convex.LinearEquality(A, b)
+        proj = cons.prox(b)  # the proj of b should just be b
+        self.assert_arrays_close(proj, b)
 
     def test_L2Ball(self):
         cons1 = convex.L2Ball(1)
