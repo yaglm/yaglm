@@ -92,6 +92,10 @@ class L2Ball(Constraint):
 class Isotonic(Constraint):
     """Constraint for x1 <= ... <= xn or
     x1 >= ... >= xn """
+    # TODO: allow for general isotonic regression
+    # where the order relations are a simple directed
+    # graph. For an algorithm see Nemeth and Nemeth, "How to project onto an
+    # isotone projection cone", JLLA 2010
     def __init__(self, increasing=True):
         self.increasing = increasing
 
