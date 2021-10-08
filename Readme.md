@@ -17,7 +17,7 @@ Parameter tuning methods including cross-validation, generalized cross-validatio
 # Installation
 `yaglm` can be installed via github
 ```
-git clone https://github.com/idc9/yaglm.git
+git clone https://github.com/yaglm/yaglm.git
 python setup.py install
 ```
 
