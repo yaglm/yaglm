@@ -1,5 +1,5 @@
 import numpy as np
-from ya_glm.linalg_utils import euclid_norm
+from yaglm.linalg_utils import euclid_norm
 
 
 def soft_thresh(vec, thresh_vals):

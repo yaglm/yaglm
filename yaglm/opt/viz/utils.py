@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from ya_glm.linalg_utils import euclid_norm
+from yaglm.linalg_utils import euclid_norm
 
 
 def plot_successive_diffs(values, norm='MAD', log=True,

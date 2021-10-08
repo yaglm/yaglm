@@ -1,6 +1,6 @@
-from ya_glm.config.base_params import get_base_config
-from ya_glm.config.flavor import FlavorConfig
-from ya_glm.config.base_penalty import PenaltyConfig, PenaltyTuner
+from yaglm.config.base_params import get_base_config
+from yaglm.config.flavor import FlavorConfig
+from yaglm.config.base_penalty import PenaltyConfig, PenaltyTuner
 
 
 def build_penalty_tree(penalty):

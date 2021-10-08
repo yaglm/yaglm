@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import pandas as pd
 
-from ya_glm.cv.cv_select import add_se
+from yaglm.cv.cv_select import add_se
 
 
 def plot_cv_path(cv_results, metric, param=None, show_se=True,

@@ -29,7 +29,7 @@ Provides the solver wrapper objects that are used to compute the penalized GLM s
 
 tests
 -----
-Test cases for ya_glm.
+Test cases for yaglm.
 
 tune
 ----

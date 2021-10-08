@@ -3,7 +3,7 @@ from scipy.sparse import diags
 import numpy as np
 from time import time
 
-from ya_glm.linalg_utils import leading_sval, euclid_norm
+from yaglm.linalg_utils import leading_sval, euclid_norm
 
 # TODO: handle matrix shaped parameters
 # TODO: allow A1 and or A2 to be None for the identity
@@ -29,7 +29,7 @@ def solve(g1, g2, A1, A2,
 
     Parameters
     ----------
-    g1, g2: ya_glm.opt.base.Func
+    g1, g2: yaglm.opt.base.Func
         The two functions that make up the obejctive. Both must implement conj_prox which evaluates the proxial operator of the conjugate funtion, which is easily obtained from the proximal operator of the original function via Moreau's identity.
 
     A1, A2: array-like
@@ -44,7 +44,7 @@ def solve(g1, g2, A1, A2,
         The first dual variable has shape (n_row(A_2), ) and the second
         has shape (n_row(A_2), ).
 
-    D_mat: str, ya_glm.addm.addm.DMatrix
+    D_mat: str, yaglm.addm.addm.DMatrix
         The D matrix. If str, must be one of ['prop_id', 'diag'].
         If 'prop_id' then D will be ||A||_op * I_d.
         If 'diag', then D will be the diagonal matrix whose ith element is given by sum_{j=1}^d |A^TA|_{ij}.
@@ -258,7 +258,7 @@ def solve_path(prob_data_iter, **kws):
         Each element should be the tuple (g1, g2, A1, A2).
 
     **kws:
-        Keyword arguments to ya_glm.opt.zhu_admm.solve
+        Keyword arguments to yaglm.opt.zhu_admm.solve
 
     Output
     ------

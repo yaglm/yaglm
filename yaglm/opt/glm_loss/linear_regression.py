@@ -1,7 +1,7 @@
 import numpy as np
 
-from ya_glm.opt.glm_loss.base import Glm, GlmInputLoss, GlmMultiResp
-from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
+from yaglm.opt.glm_loss.base import Glm, GlmInputLoss, GlmMultiResp
+from yaglm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
 
 def sample_losses(z, y):

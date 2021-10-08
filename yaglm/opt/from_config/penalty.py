@@ -1,39 +1,39 @@
-from ya_glm.config.penalty import NoPenalty
-from ya_glm.config.penalty import Ridge as RidgeConfig
-from ya_glm.config.penalty import GeneralizedRidge as GeneralizedRidgeConfig
-from ya_glm.config.penalty import Lasso as LassoConfig
-from ya_glm.config.penalty import GroupLasso as GroupLassoConfig
-from ya_glm.config.penalty import \
+from yaglm.config.penalty import NoPenalty
+from yaglm.config.penalty import Ridge as RidgeConfig
+from yaglm.config.penalty import GeneralizedRidge as GeneralizedRidgeConfig
+from yaglm.config.penalty import Lasso as LassoConfig
+from yaglm.config.penalty import GroupLasso as GroupLassoConfig
+from yaglm.config.penalty import \
      ExclusiveGroupLasso as ExclusiveGroupLassoConfig
-from ya_glm.config.penalty import MultiTaskLasso as MultiTaskLassoConfig
-from ya_glm.config.penalty import NuclearNorm as NuclearNormConfig
-from ya_glm.config.penalty import FusedLasso as FusedLassoConfig
-from ya_glm.config.penalty import GeneralizedLasso as GeneralizedLassoConfig
-from ya_glm.config.penalty import ElasticNet as ElasticNetConfig
-from ya_glm.config.penalty import GroupElasticNet as GroupElasticNetConfig
-from ya_glm.config.penalty import MultiTaskElasticNet as \
+from yaglm.config.penalty import MultiTaskLasso as MultiTaskLassoConfig
+from yaglm.config.penalty import NuclearNorm as NuclearNormConfig
+from yaglm.config.penalty import FusedLasso as FusedLassoConfig
+from yaglm.config.penalty import GeneralizedLasso as GeneralizedLassoConfig
+from yaglm.config.penalty import ElasticNet as ElasticNetConfig
+from yaglm.config.penalty import GroupElasticNet as GroupElasticNetConfig
+from yaglm.config.penalty import MultiTaskElasticNet as \
     MultiTaskElasticNetConfig
-from ya_glm.config.penalty import SparseGroupLasso as SparseGroupLassoConfig
-from ya_glm.config.penalty import SeparableSum as SeparableSumConfig
-# from ya_glm.config.penalty import InifmalSum as InifmalSumConfig
-from ya_glm.config.penalty import OverlappingSum as OverlappingSumConfig
+from yaglm.config.penalty import SparseGroupLasso as SparseGroupLassoConfig
+from yaglm.config.penalty import SeparableSum as SeparableSumConfig
+# from yaglm.config.penalty import InifmalSum as InifmalSumConfig
+from yaglm.config.penalty import OverlappingSum as OverlappingSumConfig
 
-from ya_glm.config.base_penalty import WithFlavorPenSeqConfig
+from yaglm.config.base_penalty import WithFlavorPenSeqConfig
 
-from ya_glm.opt.base import Zero, Sum
-from ya_glm.opt.BlockSeparable import BlockSeparable
-from ya_glm.opt.penalty.convex import Ridge, GeneralizedRidge,\
+from yaglm.opt.base import Zero, Sum
+from yaglm.opt.BlockSeparable import BlockSeparable
+from yaglm.opt.penalty.convex import Ridge, GeneralizedRidge,\
      Lasso, GroupLasso, ExclusiveGroupLasso, \
      MultiTaskLasso, NuclearNorm, GeneralizedLasso, \
      ElasticNet, GroupElasticNet, MultiTaskElasticNet, SparseGroupLasso
-from ya_glm.opt.penalty.nonconvex import get_nonconvex_func
-from ya_glm.opt.penalty.composite_structured import CompositeGroup, \
+from yaglm.opt.penalty.nonconvex import get_nonconvex_func
+from yaglm.opt.penalty.composite_structured import CompositeGroup, \
     CompositeMultiTaskLasso, CompositeNuclearNorm, CompositeGeneralizedLasso
-from ya_glm.opt.penalty.utils import MatWithIntercept, WithIntercept
+from yaglm.opt.penalty.utils import MatWithIntercept, WithIntercept
 
-from ya_glm.utils import is_str_and_matches
-from ya_glm.trend_filtering import get_tf_mat, get_graph_tf_mat
-from ya_glm.config.penalty_utils import get_flavor_kind
+from yaglm.utils import is_str_and_matches
+from yaglm.trend_filtering import get_tf_mat, get_graph_tf_mat
+from yaglm.config.penalty_utils import get_flavor_kind
 
 
 def get_penalty_func(config, n_features=None, n_responses=None):
@@ -50,7 +50,7 @@ def get_penalty_func(config, n_features=None, n_responses=None):
 
     Output
     ------
-    func: ya_glm.opt.base.Func
+    func: yaglm.opt.base.Func
         The penalty function
     """
 
@@ -208,7 +208,7 @@ def get_penalty_func(config, n_features=None, n_responses=None):
 
     else:
         raise NotImplementedError("{} is not currently supported by "
-                                  "ya_glm.opt.penalty".
+                                  "yaglm.opt.penalty".
                                   format(config))
 
 
@@ -238,7 +238,7 @@ def get_outer_nonconvex_func(config):
 
     Output
     ------
-    func: ya_glm.opt.base.func
+    func: yaglm.opt.base.func
         The non-convex function.
     """
 

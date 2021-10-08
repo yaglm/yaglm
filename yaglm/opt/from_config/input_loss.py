@@ -1,11 +1,11 @@
-from ya_glm.opt.glm_loss.linear_regression import LeastSquares, \
+from yaglm.opt.glm_loss.linear_regression import LeastSquares, \
     LeastSquaresMulti
-from ya_glm.opt.glm_loss.L2_regression import L2Loss, L2LossMulti
-from ya_glm.opt.glm_loss.huber_regression import Huber, HuberMulti
-from ya_glm.opt.glm_loss.poisson_regression import Poisson, PoissonMulti
-from ya_glm.opt.glm_loss.logistic_regression import Logistic
-from ya_glm.opt.glm_loss.multinomial import MultinomialLoss
-from ya_glm.opt.glm_loss.quantile_regression import Quantile, QuantileMulti
+from yaglm.opt.glm_loss.L2_regression import L2Loss, L2LossMulti
+from yaglm.opt.glm_loss.huber_regression import Huber, HuberMulti
+from yaglm.opt.glm_loss.poisson_regression import Poisson, PoissonMulti
+from yaglm.opt.glm_loss.logistic_regression import Logistic
+from yaglm.opt.glm_loss.multinomial import MultinomialLoss
+from yaglm.opt.glm_loss.quantile_regression import Quantile, QuantileMulti
 
 
 def get_glm_input_loss(config, y, sample_weight=None):

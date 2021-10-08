@@ -1,12 +1,12 @@
 from copy import deepcopy
 
-from ya_glm.config.base import Config
+from yaglm.config.base import Config
 
-from ya_glm.config.loss import get_loss_config
-from ya_glm.config.constraint import get_constraint_config
-from ya_glm.config.penalty import get_penalty_config
-from ya_glm.config.base_params import get_base_config, detune_config
-from ya_glm.config.penalty_utils import get_unflavored
+from yaglm.config.loss import get_loss_config
+from yaglm.config.constraint import get_constraint_config
+from yaglm.config.penalty import get_penalty_config
+from yaglm.config.base_params import get_base_config, detune_config
+from yaglm.config.penalty_utils import get_unflavored
 
 
 class GlmSolver(Config):

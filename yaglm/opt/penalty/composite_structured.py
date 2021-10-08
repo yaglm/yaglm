@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.linalg import svd
 
-from ya_glm.opt.base import Func
-from ya_glm.linalg_utils import euclid_norm
-from ya_glm.autoassign import autoassign
-from ya_glm.opt.penalty.convex import Ridge
+from yaglm.opt.base import Func
+from yaglm.linalg_utils import euclid_norm
+from yaglm.autoassign import autoassign
+from yaglm.opt.penalty.convex import Ridge
 
 
 class CompositeGroup(Func):

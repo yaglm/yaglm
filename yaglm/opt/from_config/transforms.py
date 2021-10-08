@@ -2,15 +2,15 @@ import numpy as np
 from scipy.linalg import svd
 from functools import partial
 
-from ya_glm.linalg_utils import euclid_norm
-from ya_glm.trend_filtering import get_tf_mat, get_graph_tf_mat
+from yaglm.linalg_utils import euclid_norm
+from yaglm.trend_filtering import get_tf_mat, get_graph_tf_mat
 
-from ya_glm.config.base_penalty import SeparableSumConfig, ElasticNetConfig
-from ya_glm.config.penalty_utils import build_penalty_tree, get_parent_key, \
+from yaglm.config.base_penalty import SeparableSumConfig, ElasticNetConfig
+from yaglm.config.penalty_utils import build_penalty_tree, get_parent_key, \
     extract_penalties, extract_flavors_and_pens, get_enet_sum_name, \
     get_ancestor_keys
 
-from ya_glm.config.penalty import \
+from yaglm.config.penalty import \
     NoPenalty,\
     Ridge,\
     GeneralizedRidge,\

@@ -1,6 +1,6 @@
-from ya_glm.autoassign import autoassign
-from ya_glm.opt.base import EntrywiseFunc
-from ya_glm.opt.nonconvex_utils import scad_eval, scad_grad, scad_prox, \
+from yaglm.autoassign import autoassign
+from yaglm.opt.base import EntrywiseFunc
+from yaglm.opt.nonconvex_utils import scad_eval, scad_grad, scad_prox, \
     mcp_eval, mcp_grad, mcp_prox
 
 

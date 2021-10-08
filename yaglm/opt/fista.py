@@ -2,8 +2,8 @@ import numpy as np
 from copy import deepcopy
 from time import time
 
-from ya_glm.opt.base import Zero
-from ya_glm.opt.stopping import check_decreasing_loss, check_no_change
+from yaglm.opt.base import Zero
+from yaglm.opt.stopping import check_decreasing_loss, check_no_change
 
 
 def solve_fista(smooth_func, init_val, non_smooth_func=None,

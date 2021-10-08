@@ -1,5 +1,5 @@
-from ya_glm.solver.base import GlmSolver
-from ya_glm.autoassign import autoassign
+from yaglm.solver.base import GlmSolver
+from yaglm.autoassign import autoassign
 
 
 class QuantileLP(GlmSolver):
@@ -13,7 +13,7 @@ class QuantileLP(GlmSolver):
         See scipy.optimize.linprog.
 
     lp_kws: dict
-        Keyword arguments for ya_glm.solver.quantile_lp.scipy_lin_prog.solve
+        Keyword arguments for yaglm.solver.quantile_lp.scipy_lin_prog.solve
 
     verbosity: int
         How much printout do we want.

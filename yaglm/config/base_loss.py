@@ -1,4 +1,4 @@
-from ya_glm.config.base_params import ParamConfig, ManualTunerMixin
+from yaglm.config.base_params import ParamConfig, ManualTunerMixin
 
 
 class LossConfig(ParamConfig):

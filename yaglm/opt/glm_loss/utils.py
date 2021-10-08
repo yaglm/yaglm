@@ -1,7 +1,7 @@
 import numpy as np
 
-from ya_glm.linalg_utils import leading_sval
-from ya_glm.sparse_utils import safe_hstack, safe_row_scaled
+from yaglm.linalg_utils import leading_sval
+from yaglm.sparse_utils import safe_hstack, safe_row_scaled
 
 
 def safe_covar_mat_op_norm(X, fit_intercept=True, sample_weight=None):

@@ -3,9 +3,9 @@ from sklearn.utils.validation import check_array, FLOAT_DTYPES
 from scipy.sparse import issparse, diags
 from copy import deepcopy
 
-from ya_glm.utils import is_multi_response
-from ya_glm.extmath import weighted_mean_std
-from ya_glm.sparse_utils import center_scale_sparse, is_sparse_or_lin_op, \
+from yaglm.utils import is_multi_response
+from yaglm.extmath import weighted_mean_std
+from yaglm.sparse_utils import center_scale_sparse, is_sparse_or_lin_op, \
     safe_norm
 
 

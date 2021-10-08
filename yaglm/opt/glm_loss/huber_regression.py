@@ -1,9 +1,9 @@
 import numpy as np
 from scipy.optimize import root_scalar
 
-from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
-from ya_glm.opt.utils import safe_vectorize
-from ya_glm.opt.glm_loss.linear_regression import \
+from yaglm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
+from yaglm.opt.utils import safe_vectorize
+from yaglm.opt.glm_loss.linear_regression import \
     compute_lip as lin_reg_compute_lip
 
 

@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.linalg import svd
 
-from ya_glm.opt.base import Func, EntrywiseFunc
-from ya_glm.opt.convex_funcs import L2Norm, SquaredL1
-from ya_glm.opt.prox import soft_thresh, L2_prox
-from ya_glm.linalg_utils import euclid_norm, leading_sval
+from yaglm.opt.base import Func, EntrywiseFunc
+from yaglm.opt.convex_funcs import L2Norm, SquaredL1
+from yaglm.opt.prox import soft_thresh, L2_prox
+from yaglm.linalg_utils import euclid_norm, leading_sval
 
 
 class Ridge(EntrywiseFunc):

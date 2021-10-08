@@ -1,5 +1,5 @@
 import numpy as np
-from ya_glm.utils import count_support
+from yaglm.utils import count_support
 
 
 def est_dof_support(coef, intercept=None, transform=None, zero_tol=1e-6):

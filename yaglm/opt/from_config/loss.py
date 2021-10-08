@@ -1,13 +1,13 @@
 from itertools import chain
-from ya_glm.opt.glm_loss.linear_regression import LinReg, LinRegMultiResp
-from ya_glm.opt.glm_loss.huber_regression import HuberReg, HuberRegMultiResp
-from ya_glm.opt.glm_loss.multinomial import Multinomial
-from ya_glm.opt.glm_loss.poisson_regression import PoissonReg, \
+from yaglm.opt.glm_loss.linear_regression import LinReg, LinRegMultiResp
+from yaglm.opt.glm_loss.huber_regression import HuberReg, HuberRegMultiResp
+from yaglm.opt.glm_loss.multinomial import Multinomial
+from yaglm.opt.glm_loss.poisson_regression import PoissonReg, \
     PoissonRegMultiResp
-from ya_glm.opt.glm_loss.quantile_regression import QuantileReg, QuantileRegMultiResp
-from ya_glm.opt.glm_loss.logistic_regression import LogReg
+from yaglm.opt.glm_loss.quantile_regression import QuantileReg, QuantileRegMultiResp
+from yaglm.opt.glm_loss.logistic_regression import LogReg
 
-from ya_glm.opt.glm_loss.L2_regression import L2Reg, L2RegMultiResp
+from yaglm.opt.glm_loss.L2_regression import L2Reg, L2RegMultiResp
 
 _LOSS_CLS_VEC = {'lin_reg': LinReg,
 
@@ -68,13 +68,13 @@ def get_glm_loss_func(config, X, y,
 
     Output
     ------
-    glm_loss: ya_glm.opt.Func
+    glm_loss: yaglm.opt.Func
         The GLM loss function object.
     """
 
     if config.name not in avail_loss_names:
         raise NotImplementedError("{} is not currently supported by "
-                                  "ya_glm.opt.glm_loss".
+                                  "yaglm.opt.glm_loss".
                                   format(config))
 
     if y.ndim == 1 or y.shape[1] == 1:

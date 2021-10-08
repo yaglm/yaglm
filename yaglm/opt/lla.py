@@ -1,8 +1,8 @@
 from copy import deepcopy
 from time import time
 
-from ya_glm.opt.stopping import check_decreasing_loss, check_no_change
-from ya_glm.opt.utils import safe_concat
+from yaglm.opt.stopping import check_decreasing_loss, check_no_change
+from yaglm.opt.utils import safe_concat
 
 
 def solve_lla(sub_prob, penalty_func,

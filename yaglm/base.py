@@ -6,21 +6,21 @@ from sklearn.utils.extmath import safe_sparse_dot
 from sklearn.utils.validation import check_array, _check_sample_weight, \
     FLOAT_DTYPES
 
-from ya_glm.autoassign import autoassign
-from ya_glm.processing import process_X, deprocess_fit, process_init_data
-from ya_glm.utils import fit_if_unfitted, get_coef_and_intercept, \
+from yaglm.autoassign import autoassign
+from yaglm.processing import process_X, deprocess_fit, process_init_data
+from yaglm.utils import fit_if_unfitted, get_coef_and_intercept, \
     is_str_and_matches, get_shapes_from
 
-from ya_glm.config.loss import get_loss_config
-from ya_glm.config.constraint import get_constraint_config
-from ya_glm.config.penalty import get_penalty_config
-from ya_glm.config.penalty_utils import get_flavor_kind, get_unflavored
-from ya_glm.config.base_params import get_base_config
-from ya_glm.solver.default import get_solver
-from ya_glm.solver.LLA import LLAFixedInit
+from yaglm.config.loss import get_loss_config
+from yaglm.config.constraint import get_constraint_config
+from yaglm.config.penalty import get_penalty_config
+from yaglm.config.penalty_utils import get_flavor_kind, get_unflavored
+from yaglm.config.base_params import get_base_config
+from yaglm.solver.default import get_solver
+from yaglm.solver.LLA import LLAFixedInit
 
-from ya_glm.tune.backend import run_fit_and_score_jobs
-from ya_glm.tune.combined_tuner import PenaltyPerLossFlavorTuner
+from yaglm.tune.backend import run_fit_and_score_jobs
+from yaglm.tune.combined_tuner import PenaltyPerLossFlavorTuner
 
 
 class BaseGlm(BaseEstimator):
@@ -30,7 +30,7 @@ class BaseGlm(BaseEstimator):
     Parameters
     ----------
     loss: str, LossConfig
-        The loss function. If a string is provided the loss function parameters are set to their default values. Otherwise the loss function parameters can be specified by providing a LossConfig object. See ya_glm.LossConfig for available loss functions.
+        The loss function. If a string is provided the loss function parameters are set to their default values. Otherwise the loss function parameters can be specified by providing a LossConfig object. See yaglm.LossConfig for available loss functions.
 
     penalty: None, PenaltyConfig
         The penalty config object specifying the penalty e.g. Lasso, Ridge, ...
@@ -44,7 +44,7 @@ class BaseGlm(BaseEstimator):
     fit_intercept: bool
         Whether or not to fit intercept, which is not penalized.
 
-    solver: str, ya_glm.base.GlmSolver
+    solver: str, yaglm.base.GlmSolver
         The solver used to solve the penalized GLM optimization problem. If this is set to 'default' we try to guess the best solver. Otherwise a custom solver can be provided by specifying a GlmSolver object.
 
     lla: bool, LLASolver
@@ -826,7 +826,7 @@ class TunedGlm(BaseGlm):
 
     def _run_fit_and_score_jobs(self, job_configs, store_ests=False):
         """
-        Simply calls ya_glm.tune.backend.run_fit_and_score_jobs
+        Simply calls yaglm.tune.backend.run_fit_and_score_jobs
 
         Parameters
         ----------

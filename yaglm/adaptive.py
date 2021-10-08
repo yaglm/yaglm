@@ -1,5 +1,5 @@
 import numpy as np
-from ya_glm.opt.from_config.transforms import \
+from yaglm.opt.from_config.transforms import \
     get_flavored_transforms, get_parent_key
 
 

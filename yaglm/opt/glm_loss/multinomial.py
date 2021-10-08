@@ -2,9 +2,9 @@ import numpy as np
 from scipy.special import logsumexp
 from scipy.sparse import diags
 
-from ya_glm.opt.glm_loss.base import GlmMultiResp, GlmInputLoss
-from ya_glm.opt.utils import safe_entrywise_mult
-from ya_glm.opt.glm_loss.utils import safe_covar_mat_op_norm
+from yaglm.opt.glm_loss.base import GlmMultiResp, GlmInputLoss
+from yaglm.opt.utils import safe_entrywise_mult
+from yaglm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
 
 def sample_losses(z, y):

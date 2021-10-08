@@ -5,16 +5,16 @@ from copy import deepcopy
 from numbers import Number
 from time import time
 
-from ya_glm.base import TunedGlm
-from ya_glm.LossMixin import LossMixin
+from yaglm.base import TunedGlm
+from yaglm.LossMixin import LossMixin
 
-from ya_glm.tune.backend import get_cross_validation_jobs, \
+from yaglm.tune.backend import get_cross_validation_jobs, \
     get_validation_jobs, get_train_jobs
-from ya_glm.tune.select import select_tune_param, cv_select_tune_param
+from yaglm.tune.select import select_tune_param, cv_select_tune_param
 
-from ya_glm.autoassign import autoassign
-from ya_glm.utils import get_from
-from ya_glm.tune.utils import train_validation_idxs
+from yaglm.autoassign import autoassign
+from yaglm.utils import get_from
+from yaglm.tune.utils import train_validation_idxs
 
 
 class GlmCV(LossMixin, TunedGlm):

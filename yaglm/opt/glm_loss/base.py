@@ -1,8 +1,8 @@
 from scipy.sparse import diags
 import numpy as np
 
-from ya_glm.opt.base import Func
-from ya_glm.opt.utils import safe_data_mat_coef_dot, safe_data_mat_coef_mat_dot
+from yaglm.opt.base import Func
+from yaglm.opt.utils import safe_data_mat_coef_dot, safe_data_mat_coef_mat_dot
 
 
 # TODO how to handle loss kws

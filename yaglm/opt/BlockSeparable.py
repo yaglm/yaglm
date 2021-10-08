@@ -1,5 +1,5 @@
 import numpy as np
-from ya_glm.opt.base import Func
+from yaglm.opt.base import Func
 
 # TODO: this currently assumes the union of the groups gives the
 # entire input vector. Get this working when the groups may be a strict subset

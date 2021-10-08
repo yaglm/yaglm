@@ -1,6 +1,6 @@
-from ya_glm.solver.FISTA import FISTA
-from ya_glm.solver.ZhuADMM import ZhuADMM
-from ya_glm.solver.Cvxpy import Cvxpy
+from yaglm.solver.FISTA import FISTA
+from yaglm.solver.ZhuADMM import ZhuADMM
+from yaglm.solver.Cvxpy import Cvxpy
 
 
 def get_solver(solver='default', loss='lin_reg',

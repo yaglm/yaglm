@@ -1,8 +1,8 @@
 import numpy as np
-from ya_glm.opt.base import Func
+from yaglm.opt.base import Func
 
-from ya_glm.linalg_utils import euclid_norm
-from ya_glm.opt.prox import L2_prox, squared_l1_prox_pos
+from yaglm.linalg_utils import euclid_norm
+from yaglm.opt.prox import L2_prox, squared_l1_prox_pos
 
 
 class L2Norm(Func):

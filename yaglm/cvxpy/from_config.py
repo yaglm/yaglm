@@ -1,24 +1,24 @@
 import cvxpy as cp
 
-from ya_glm.config.loss import LinReg, L2Reg, Huber, LogReg, Quantile, \
+from yaglm.config.loss import LinReg, L2Reg, Huber, LogReg, Quantile, \
     Poisson, Multinomial
 
-from ya_glm.config.penalty import NoPenalty, Ridge, GeneralizedRidge,\
+from yaglm.config.penalty import NoPenalty, Ridge, GeneralizedRidge,\
     Lasso, GroupLasso, MultiTaskLasso, GeneralizedLasso, FusedLasso,\
     OverlappingSum, SeparableSum
 
-from ya_glm.config.constraint import Positive
+from yaglm.config.constraint import Positive
 
-from ya_glm.cvxpy.glm_loss import lin_reg_loss, log_reg_loss, \
+from yaglm.cvxpy.glm_loss import lin_reg_loss, log_reg_loss, \
     quantile_reg_loss, l2_reg_loss, huber_reg_loss, poisson_reg_loss, \
     multinomial_loss
 
-from ya_glm.cvxpy.penalty import zero, ridge_penalty, lasso_penalty,\
+from yaglm.cvxpy.penalty import zero, ridge_penalty, lasso_penalty,\
     gen_ridge_penalty, multi_task_lasso_penalty, group_lasso_penalty, \
     gen_lasso_penalty
 
-from ya_glm.config.penalty_utils import get_flavor_kind
-from ya_glm.opt.from_config.penalty import get_fused_lasso_diff_mat
+from yaglm.config.penalty_utils import get_flavor_kind
+from yaglm.opt.from_config.penalty import get_fused_lasso_diff_mat
 
 
 def get_loss(coef, intercept, X, y, config, sample_weight=None):

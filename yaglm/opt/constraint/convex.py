@@ -1,6 +1,6 @@
 import numpy as np
 
-from ya_glm.opt.base import Func
+from yaglm.opt.base import Func
 
 
 class Constraint(Func):

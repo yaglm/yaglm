@@ -1,10 +1,10 @@
-from ya_glm.config.penalty_utils import build_penalty_tree, extract_penalties,\
+from yaglm.config.penalty_utils import build_penalty_tree, extract_penalties,\
      extract_flavors_and_pens, get_parent_key, get_enet_sum_name
-from ya_glm.config.base_penalty import ElasticNetConfig, WithFlavorPenSeqConfig
-from ya_glm.opt.from_config.penalty import get_outer_nonconvex_func
-from ya_glm.opt.from_config.transforms import get_flavored_transforms
-from ya_glm.autoassign import autoassign
-from ya_glm.opt.base import Func
+from yaglm.config.base_penalty import ElasticNetConfig, WithFlavorPenSeqConfig
+from yaglm.opt.from_config.penalty import get_outer_nonconvex_func
+from yaglm.opt.from_config.transforms import get_flavored_transforms
+from yaglm.autoassign import autoassign
+from yaglm.opt.base import Func
 
 
 def get_lla_transformer(penalty):
@@ -58,7 +58,7 @@ def get_lla_nonconvex_func(penalty):
 
     Output
     ------
-    non_convex_fucns: ya_glm.opt.base.Fucn
+    non_convex_fucns: yaglm.opt.base.Fucn
         The non-convex function. Formatted to accept the dicts output by LLATransform() and to return a dict whose keys are the weight keys.
     """
     ncvx_funcs, flavor_keys = _get_lla_nonconvex_func_data(penalty)

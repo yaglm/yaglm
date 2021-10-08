@@ -1,8 +1,8 @@
 from copy import deepcopy
 from sklearn.model_selection import ParameterGrid
 
-from ya_glm.config.base import Config
-from ya_glm.autoassign import autoassign
+from yaglm.config.base import Config
+from yaglm.autoassign import autoassign
 
 
 class ParamConfig(Config):

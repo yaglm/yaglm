@@ -1,8 +1,8 @@
 import numpy as np
 
-from ya_glm.opt.base import Func
-from ya_glm.opt.utils import decat_coef_inter_mat
-from ya_glm.opt.utils import decat_coef_inter_vec
+from yaglm.opt.base import Func
+from yaglm.opt.utils import decat_coef_inter_mat
+from yaglm.opt.utils import decat_coef_inter_vec
 
 
 class WithIntercept(Func):

@@ -1,5 +1,5 @@
-from ya_glm.config.base_params import ManualTunerMixin
-from ya_glm.config.base_loss import LossConfig
+from yaglm.config.base_params import ManualTunerMixin
+from yaglm.config.base_loss import LossConfig
 
 
 class LinReg(LossConfig):

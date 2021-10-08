@@ -1,6 +1,6 @@
 import numpy as np
 
-from ya_glm.opt.utils import sign_never_0, safe_vectorize
+from yaglm.opt.utils import sign_never_0, safe_vectorize
 
 ########
 # SCAD #

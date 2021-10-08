@@ -1,9 +1,9 @@
 from scipy.sparse import identity, csr_matrix, bmat, eye
 import numpy as np
 
-from ya_glm.opt.from_config.penalty import get_fused_lasso_diff_mat
+from yaglm.opt.from_config.penalty import get_fused_lasso_diff_mat
 
-from ya_glm.config.penalty import \
+from yaglm.config.penalty import \
     NoPenalty,\
     Ridge,\
     GeneralizedRidge,\

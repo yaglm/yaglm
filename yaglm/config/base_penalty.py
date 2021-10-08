@@ -1,12 +1,12 @@
 import numpy as np
 from itertools import product
 
-from ya_glm.config.base_params import ParamConfig, TunerConfig, \
+from yaglm.config.base_params import ParamConfig, TunerConfig, \
      TunerWithPathMixin, get_base_config
 
-from ya_glm.pen_max.non_convex import adjust_pen_max_for_non_convex
-from ya_glm.pen_seq import get_sequence_decr_max, get_mix_val_seq
-from ya_glm.autoassign import autoassign
+from yaglm.pen_max.non_convex import adjust_pen_max_for_non_convex
+from yaglm.pen_seq import get_sequence_decr_max, get_mix_val_seq
+from yaglm.autoassign import autoassign
 
 
 class PenaltyConfig(ParamConfig):

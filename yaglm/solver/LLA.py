@@ -1,18 +1,18 @@
 from copy import deepcopy
 
 from warnings import warn
-from ya_glm.solver.base import GlmSolverWithPath
-from ya_glm.opt.lla import solve_lla, WeightedProblemSolver
-from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept
-from ya_glm.opt.from_config.loss import get_glm_loss_func
-from ya_glm.opt.utils import safe_concat
-from ya_glm.config.penalty_utils import get_flavor_kind
+from yaglm.solver.base import GlmSolverWithPath
+from yaglm.opt.lla import solve_lla, WeightedProblemSolver
+from yaglm.opt.from_config.penalty import get_penalty_func, wrap_intercept
+from yaglm.opt.from_config.loss import get_glm_loss_func
+from yaglm.opt.utils import safe_concat
+from yaglm.config.penalty_utils import get_flavor_kind
 
-from ya_glm.opt.from_config.lla import get_lla_nonconvex_func, \
+from yaglm.opt.from_config.lla import get_lla_nonconvex_func, \
     get_lla_subproblem_penalty, get_lla_transformer
 
-from ya_glm.autoassign import autoassign
-from ya_glm.utils import is_multi_response
+from yaglm.autoassign import autoassign
+from yaglm.utils import is_multi_response
 
 
 class LLAFixedInit(GlmSolverWithPath):
@@ -193,10 +193,10 @@ class WeightedGlmProblemSolver(WeightedProblemSolver):
     sp_solver_: Solver
         The weighted sub-problem solver.
 
-    loss_func_: ya_glm.opt.base.Func
+    loss_func_: yaglm.opt.base.Func
         The loss function -- used to compute the objective function.
 
-    penalty_func_:ya_glm.opt.base.Func
+    penalty_func_:yaglm.opt.base.Func
         The non-convex penalty function -- used to compute the objective function.
 
     is_mr_: bool

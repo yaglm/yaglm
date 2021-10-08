@@ -1,5 +1,5 @@
-from ya_glm.config.base_params import ParamConfig, ManualTunerMixin
-from ya_glm.autoassign import autoassign
+from yaglm.config.base_params import ParamConfig, ManualTunerMixin
+from yaglm.autoassign import autoassign
 
 # TODO: maybe add proximable tags?
 class FlavorConfig(ParamConfig):
@@ -44,7 +44,7 @@ class NonConvex(ManualTunerMixin, FlavorConfig):
     Parameters
     ----------
     pen_func: str
-        The concave penalty function. See ya_glm.opt.penalty.concave_penalty.
+        The concave penalty function. See yaglm.opt.penalty.concave_penalty.
 
     second_param_val: float, str
         Value of the secondary penalty parameter value for the non-convex penalty e.g. 'a' for SCAD, 'q' for the Lq norm. If None, will use a sensible default e.g. a=3.7 for SCAD.

@@ -1,6 +1,6 @@
-from ya_glm.config.constraint import Positive as PositiveConfig
+from yaglm.config.constraint import Positive as PositiveConfig
 
-from ya_glm.opt.constraint.convex import Positive
+from yaglm.opt.constraint.convex import Positive
 
 
 def get_constraint_func(config):
@@ -10,5 +10,5 @@ def get_constraint_func(config):
 
     else:
         raise NotImplementedError("{} is not currently supported by "
-                                  "ya_glm.opt.constraint".
+                                  "yaglm.opt.constraint".
                                   format(config))

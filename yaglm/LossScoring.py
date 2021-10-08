@@ -1,7 +1,7 @@
 from sklearn.metrics import r2_score
-from ya_glm.metrics import poisson_dsq_score
+from yaglm.metrics import poisson_dsq_score
 
-from ya_glm.cv.scoring import additional_regression_data, \
+from yaglm.cv.scoring import additional_regression_data, \
     get_binary_clf_scores, Scorer
 
 

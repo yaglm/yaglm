@@ -1,5 +1,5 @@
 import numpy as np
-from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
+from yaglm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
 
 
 def sample_losses(z, y):

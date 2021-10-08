@@ -1,11 +1,11 @@
 from copy import deepcopy
 from itertools import product
 
-from ya_glm.config.base_penalty import PenaltyTuner
-from ya_glm.adaptive import set_adaptive_weights
-from ya_glm.config.penalty_utils import build_penalty_tree, extract_penalties,\
+from yaglm.config.base_penalty import PenaltyTuner
+from yaglm.adaptive import set_adaptive_weights
+from yaglm.config.penalty_utils import build_penalty_tree, extract_penalties,\
     extract_flavors, get_flavor_kind
-from ya_glm.config.flavor import FlavorConfig
+from yaglm.config.flavor import FlavorConfig
 
 
 class PenaltyPerLossFlavorTuner:

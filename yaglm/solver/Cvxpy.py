@@ -1,12 +1,12 @@
 import cvxpy as cp
 from time import time
 
-from ya_glm.solver.base import GlmSolverWithPath
-from ya_glm.autoassign import autoassign
-from ya_glm.utils import is_multi_response, get_shapes_from, clip_zero
-from ya_glm.config.penalty_utils import get_flavor_kind
+from yaglm.solver.base import GlmSolverWithPath
+from yaglm.autoassign import autoassign
+from yaglm.utils import is_multi_response, get_shapes_from, clip_zero
+from yaglm.config.penalty_utils import get_flavor_kind
 
-from ya_glm.cvxpy.from_config import get_loss, get_penalty, get_constraints, \
+from yaglm.cvxpy.from_config import get_loss, get_penalty, get_constraints, \
     update_pen_val_and_weights
 
 

@@ -1,8 +1,8 @@
 import numpy as np
 
 
-from ya_glm.metrics.base import MultiScorer
-from ya_glm.utils import count_support
+from yaglm.metrics.base import MultiScorer
+from yaglm.utils import count_support
 
 
 # TODO: add multi-response metrics

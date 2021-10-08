@@ -1,8 +1,8 @@
 import numpy as np
 
-from ya_glm.config.base import Config
-from ya_glm.autoassign import autoassign
-from ya_glm.utils import count_support, fit_if_unfitted
+from yaglm.config.base import Config
+from yaglm.autoassign import autoassign
+from yaglm.utils import count_support, fit_if_unfitted
 
 
 class LinRegNoiseEst(Config):

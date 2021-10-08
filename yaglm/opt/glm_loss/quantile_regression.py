@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize_scalar
-from ya_glm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
-from ya_glm.opt.utils import safe_vectorize
+from yaglm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
+from yaglm.opt.utils import safe_vectorize
 
 
 def tilted_L1(u, quantile=0.5):

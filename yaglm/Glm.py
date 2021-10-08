@@ -1,10 +1,10 @@
 from copy import deepcopy
 
-from ya_glm.base import BaseGlm
-from ya_glm.LossMixin import LossMixin
-from ya_glm.GlmTuned import GlmCV
-from ya_glm.config.penalty_utils import get_unflavored, get_flavor_kind
-from ya_glm.adaptive import set_adaptive_weights
+from yaglm.base import BaseGlm
+from yaglm.LossMixin import LossMixin
+from yaglm.GlmTuned import GlmCV
+from yaglm.config.penalty_utils import get_unflavored, get_flavor_kind
+from yaglm.adaptive import set_adaptive_weights
 
 
 class Glm(LossMixin, BaseGlm):

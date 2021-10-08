@@ -3,12 +3,12 @@ from pandas.core.dtypes.inference import is_array_like
 from copy import deepcopy
 import numpy as np
 
-from ya_glm.config.base import Config
-from ya_glm.autoassign import autoassign
-from ya_glm.config.penalty import Lasso
-from ya_glm.infer.dof import est_dof_support
-from ya_glm.utils import is_fitted
-from ya_glm.config.loss import get_loss_config
+from yaglm.config.base import Config
+from yaglm.autoassign import autoassign
+from yaglm.config.penalty import Lasso
+from yaglm.infer.dof import est_dof_support
+from yaglm.utils import is_fitted
+from yaglm.config.loss import get_loss_config
 
 
 class Inferencer(Config):

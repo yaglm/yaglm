@@ -1,5 +1,5 @@
-from ya_glm.config.base_params import ParamConfig
-from ya_glm.autoassign import autoassign
+from yaglm.config.base_params import ParamConfig
+from yaglm.autoassign import autoassign
 
 
 class ConstraintConfig(ParamConfig):

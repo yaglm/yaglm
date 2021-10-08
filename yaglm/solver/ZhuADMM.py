@@ -1,19 +1,19 @@
 import numpy as np
 from scipy.sparse import csr_matrix
 
-from ya_glm.solver.base import GlmSolverWithPath
-from ya_glm.autoassign import autoassign
+from yaglm.solver.base import GlmSolverWithPath
+from yaglm.autoassign import autoassign
 
-from ya_glm.opt.zhu_admm import solve
-from ya_glm.opt.from_config.input_loss import get_glm_input_loss
-from ya_glm.opt.from_config.mat_and_func import get_mat_and_func
-from ya_glm.opt.from_config.penalty import get_penalty_func
+from yaglm.opt.zhu_admm import solve
+from yaglm.opt.from_config.input_loss import get_glm_input_loss
+from yaglm.opt.from_config.mat_and_func import get_mat_and_func
+from yaglm.opt.from_config.penalty import get_penalty_func
 
-from ya_glm.config.penalty import NoPenalty
-from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat, \
+from yaglm.config.penalty import NoPenalty
+from yaglm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat, \
     process_zero_init
-from ya_glm.utils import is_multi_response, get_shapes_from
-from ya_glm.sparse_utils import safe_hstack
+from yaglm.utils import is_multi_response, get_shapes_from
+from yaglm.sparse_utils import safe_hstack
 
 
 class ZhuADMM(GlmSolverWithPath):
@@ -22,7 +22,7 @@ class ZhuADMM(GlmSolverWithPath):
 
     Parameters
     ----------
-    D_mat: str, ya_glm.addm.addm.DMatrix
+    D_mat: str, yaglm.addm.addm.DMatrix
         The D matrix. If str, must be one of ['prop_id', 'diag'].
         If 'prop_id' then D will be ||A||_op * I_d.
         If 'diag', then D will be the diagonal matrix whose ith element is given by sum_{j=1}^d |A^TA|_{ij}.

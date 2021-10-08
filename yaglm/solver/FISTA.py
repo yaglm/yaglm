@@ -1,18 +1,18 @@
 import numpy as np
 
-from ya_glm.solver.base import GlmSolverWithPath
-from ya_glm.autoassign import autoassign
-from ya_glm.opt.fista import solve_fista
+from yaglm.solver.base import GlmSolverWithPath
+from yaglm.autoassign import autoassign
+from yaglm.opt.fista import solve_fista
 
 
-from ya_glm.opt.from_config.loss import get_glm_loss_func
-from ya_glm.opt.from_config.penalty import get_penalty_func, wrap_intercept, \
+from yaglm.opt.from_config.loss import get_glm_loss_func
+from yaglm.opt.from_config.penalty import get_penalty_func, wrap_intercept, \
     split_smooth_and_non_smooth
-from ya_glm.opt.from_config.constraint import get_constraint_func
+from yaglm.opt.from_config.constraint import get_constraint_func
 
-from ya_glm.opt.base import Sum
-from ya_glm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
-from ya_glm.utils import is_multi_response
+from yaglm.opt.base import Sum
+from yaglm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
+from yaglm.utils import is_multi_response
 
 
 class FISTA(GlmSolverWithPath):

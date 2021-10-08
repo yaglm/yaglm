@@ -1,11 +1,11 @@
-from ya_glm.config.base_penalty import PenaltyConfig, WithPenSeqConfig, \
+from yaglm.config.base_penalty import PenaltyConfig, WithPenSeqConfig, \
     WithFlavorPenSeqConfig, ElasticNetConfig, \
     SeparableSumConfig, InfimalSumConfig, OverlappingSumConfig
 
-from ya_glm.pen_max.ridge import get_ridge_pen_max
-from ya_glm.pen_max.lasso import get_lasso_pen_max
+from yaglm.pen_max.ridge import get_ridge_pen_max
+from yaglm.pen_max.lasso import get_lasso_pen_max
 
-from ya_glm.autoassign import autoassign
+from yaglm.autoassign import autoassign
 
 
 class NoPenalty(PenaltyConfig):

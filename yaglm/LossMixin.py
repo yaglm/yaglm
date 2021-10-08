@@ -10,12 +10,12 @@ from sklearn.utils.class_weight import compute_class_weight
 
 from scipy.special import expit
 
-from ya_glm.config.loss import get_loss_config
-from ya_glm.config.base_params import get_base_config
-from ya_glm.metrics.glm_other import poisson_dsq_score
-from ya_glm.metrics.glm_log_liks import gaussian, bernoulli, multinomial,\
+from yaglm.config.loss import get_loss_config
+from yaglm.config.base_params import get_base_config
+from yaglm.metrics.glm_other import poisson_dsq_score
+from yaglm.metrics.glm_log_liks import gaussian, bernoulli, multinomial,\
      poisson
-from ya_glm.utils import lb_transform_to_indices
+from yaglm.utils import lb_transform_to_indices
 
 
 class LossMixin:

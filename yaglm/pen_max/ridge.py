@@ -1,5 +1,5 @@
 import numpy as np
-from ya_glm.linalg_utils import smallest_sval
+from yaglm.linalg_utils import smallest_sval
 
 
 def get_ridge_pen_max(X, y, loss, weights,

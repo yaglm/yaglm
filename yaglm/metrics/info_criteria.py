@@ -1,11 +1,11 @@
 import numpy as np
 
-from ya_glm.metrics.base import Scorer
-from ya_glm.autoassign import autoassign
+from yaglm.metrics.base import Scorer
+from yaglm.autoassign import autoassign
 
-from ya_glm.config.penalty import Lasso
-from ya_glm.utils import count_support
-from ya_glm.extmath import log_binom
+from yaglm.config.penalty import Lasso
+from yaglm.utils import count_support
+from yaglm.extmath import log_binom
 
 
 class InfoCriteria(Scorer):
@@ -21,7 +21,7 @@ class InfoCriteria(Scorer):
         The gamma argument to ebic()
 
     zero_tol: float, str
-        The zero tolerance for support counting. See ya_glm.utils.count_support()
+        The zero tolerance for support counting. See yaglm.utils.count_support()
     """
     @autoassign
     def __init__(self, crit='ebic', gamma='default', zero_tol=1e-6): pass

@@ -1,5 +1,5 @@
-from ya_glm.solver.base import GlmSolverWithPath
-from ya_glm.autoassign import autoassign
+from yaglm.solver.base import GlmSolverWithPath
+from yaglm.autoassign import autoassign
 
 
 class AndersonCD(GlmSolverWithPath):
