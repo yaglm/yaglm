@@ -12,7 +12,7 @@ install_requires = ['numpy',
                     ]
 
 
-setup(name='ya_glm',
+setup(name='yaglm',
       version='0.3.1',
       description='A python package for penalized generalized linear models that supports fitting and model selection for structured, adaptive and non-convex penalties.',
       author='Iain Carmichael',

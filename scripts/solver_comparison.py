@@ -7,18 +7,18 @@ import argparse
 import numpy as np
 from itertools import product
 
-from ya_glm.config.loss import LinReg, Poisson, Quantile, Huber
-from ya_glm.config.penalty import Ridge, NoPenalty, GeneralizedRidge, \
+from yaglm.config.loss import LinReg, Poisson, Quantile, Huber
+from yaglm.config.penalty import Ridge, NoPenalty, GeneralizedRidge, \
     Lasso, GroupLasso, \
     FusedLasso, GeneralizedLasso,  \
     SeparableSum, OverlappingSum
 
-from ya_glm.toy_data import sample_sparse_lin_reg, sample_sparse_poisson_reg
-from ya_glm.solver.FISTA import FISTA
-from ya_glm.solver.Cvxpy import Cvxpy
-from ya_glm.solver.ZhuADMM import ZhuADMM
+from yaglm.toy_data import sample_sparse_lin_reg, sample_sparse_poisson_reg
+from yaglm.solver.FISTA import FISTA
+from yaglm.solver.Cvxpy import Cvxpy
+from yaglm.solver.ZhuADMM import ZhuADMM
 
-from ya_glm.trend_filtering import get_tf1
+from yaglm.trend_filtering import get_tf1
 
 parser = argparse.\
     ArgumentParser(description="Compare solvers for various "
@@ -38,7 +38,7 @@ parser.add_argument('--save_dir', default=None,
 args = parser.parse_args()
 
 # TODO: remove
-args.save_dir = '/Users/iaincarmichael/Dropbox/Research/ya_glm/notebooks/temp_results'
+args.save_dir = '/Users/iaincarmichael/Dropbox/Research/yaglm/notebooks/temp_results'
 
 
 def get_diffs(v1, v2):
