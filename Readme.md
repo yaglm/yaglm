@@ -108,7 +108,7 @@ est = GlmCV(penalty=OverlappingSum(fused=fused_config,
             ).fit(X, y)
 ```
 
-You can employ your favoirite state of the art optimization algorithm by wrapping it in a solver config object. These objects can also be used to specify optimzation parameters (e.g. maximum number of iterations).
+You can employ your favoirite state of the art optimization algorithm by wrapping it in a solver config object. These objects can also be used to specify optimization parameters (e.g. maximum number of iterations).
 
 ```python
 from yaglm.solver.FISTA import FISTA  # or your own solver!
