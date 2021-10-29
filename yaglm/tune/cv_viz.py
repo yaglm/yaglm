@@ -6,11 +6,41 @@ import pandas as pd
 from yaglm.cv.cv_select import add_se
 
 
-def plot_cv_path(cv_results, metric, param=None, show_se=True,
+def plot_cv_path(cv_results, metric='score', param=None, show_se=True,
                  show_train=True, selected_idx=None,
                  kind=None, log_param=False, negate=False):
     """
-    Plots the cross-validation parameter path.
+    Plots the cross-validation parameter path. Here the x-axis is the tuning parameter value (e.g. the lasso penalty value) and the y-axis is the corresponding cross-validation metric (e.g. test error).
+
+    Parameters
+    ----------
+    cv_results: dict
+        The cross-validation results dict e.g. est.cv_results_.
+
+    metric: str
+        Which train/test metric to plot on the y-axis.
+
+    param: None, str
+        Name of the tuning parameter; if this is not provided we will try to infer the tuning parameter name.
+
+    show_se: bool
+        Whether or not to plot the cross-validation standard error bars.
+
+    show_train: bool
+        Whether or not to plot the CV training error curve.
+
+    selected_idx: None, int
+        (Optional) Index of the selected tuning parameter. If provided we plot a vertical line showing the selected tuning parameter value.
+
+    kind: None, str
+        (Optional) Which kind of metric to show, must be one of ['train', 'test', 'fit']. cv_results has column names KIND__METRIC.
+
+    log_param: bool
+        Whether or not the x-axis should be on the log scale.
+
+    negate: bool
+        Whether or not to negate the metric. The code assumes larger values of the metic mean better fits so, for example, we would use the negative mean square prediction error (MSPE) for linear regression. For visualization purposes, however, we probably want to see the positive MSPE.
+
     """
     if kind is not None:
         show_train = False
