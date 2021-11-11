@@ -1,6 +1,6 @@
 import numpy as np
 from unittest import TestCase
-from ya_glm.opt.constraint import convex
+from yaglm.opt.constraint import convex
 
 class TestProjectionsOnConstraints(TestCase):
     def setUp(self):

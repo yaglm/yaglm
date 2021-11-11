@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.linalg import norm
 from sklearn.isotonic import isotonic_regression
-from ya_glm.opt.base import Func
+from yaglm.opt.base import Func
 
 
 class Constraint(Func):
@@ -32,12 +32,18 @@ class LinearEquality(Constraint):
     def __init__(self, A, b):
         self.A = A
         self.b = b
-        self.pinvA = np.linalg.pinv(A)
+        self._pinvA = None  # will be set on first request to .pinvA
 
     def _prox(self, x, step=1):
         residue = self.A@x - self.b
         sol = x - self.pinvA @ residue
         return sol
+
+    @property
+    def pinvA(self):
+        if self._pinvA is None:
+            self._pinvA = np.linalg.pinv(self.A)
+        return self._pinvA
 
     @property
     def is_proximable(self):
@@ -76,9 +82,6 @@ class L1Ball(Constraint):
 # for more algorithms.
 def project_simplex(v, z=1):
     # z is what the entries need to add up to, e.g. z=1 for probability simplex
-    if np.sum(v) <= z:  # don't we want the simplex to mean sum == z not sum <= z?
-        return v        # also this doesn't work when v has, say, all negative entries
-
     n_features = v.shape[0]
     u = np.sort(v)[::-1]
     cssv = np.cumsum(u) - z
