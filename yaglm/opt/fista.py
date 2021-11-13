@@ -208,7 +208,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
                 history['bt_iter'].append(bt_iter)
                 history['step'].append(step)
 
-        # check X difference stopping triterion
+        # check x difference stopping criteria
         x_stop, diff_norm = check_no_change(current=value,
                                             prev=value_prev,
                                             tol=xtol,
