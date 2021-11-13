@@ -1,7 +1,6 @@
 import numpy as np
 
 from yaglm.opt.glm_loss.base import Glm, GlmInputLoss
-from yaglm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
 
 def logsig(x):
@@ -39,15 +38,6 @@ def sample_grads(z, y):
     return out
 
 
-def compute_lip(X, fit_intercept=True, sample_weight=None):
-
-    op_norm = safe_covar_mat_op_norm(X=X,
-                                     fit_intercept=fit_intercept,
-                                     sample_weight=sample_weight)
-
-    return (0.25/X.shape[0]) * op_norm ** 2
-
-
 class Logistic(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
@@ -59,12 +49,14 @@ class Logistic(GlmInputLoss):
     def is_smooth(self):
         return True
 
+    @property
+    def grad_lip(self):
+        return 0.25 / self.n_samples
+
 
 class LogReg(Glm):
 
     GLM_LOSS_CLASS = Logistic
-
-    compute_lip = staticmethod(compute_lip)
 
     def intercept_at_coef_eq0(self):
         # TODO: is this correct with the sample weights?

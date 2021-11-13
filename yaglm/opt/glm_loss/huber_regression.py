@@ -3,8 +3,6 @@ from scipy.optimize import root_scalar
 
 from yaglm.opt.glm_loss.base import Glm, GlmMultiResp, GlmInputLoss
 from yaglm.opt.utils import safe_vectorize
-from yaglm.opt.glm_loss.linear_regression import \
-    compute_lip as lin_reg_compute_lip
 
 
 def huber_eval_1d(r, knot=1):
@@ -121,10 +119,6 @@ def huberized_mean(values, axis=0, knot=1, sample_weight=None, **kws):
     return out
 
 
-def compute_lip(knot=1.35, **kws):
-    return lin_reg_compute_lip(**kws)
-
-
 class Huber(GlmInputLoss):
     sample_losses = staticmethod(sample_losses)
     sample_grads = staticmethod(sample_grads)
@@ -136,11 +130,14 @@ class Huber(GlmInputLoss):
     def is_smooth(self):
         return self.loss_kws['knot'] > 0
 
+    @property
+    def grad_lip(self):
+        return 1 / self.n_samples
+
 
 class HuberReg(Glm):
 
     GLM_LOSS_CLASS = Huber
-    compute_lip = staticmethod(compute_lip)
 
     def __init__(self, X, y, fit_intercept=True, sample_weight=None,
                  knot=1.35):
@@ -164,11 +161,14 @@ class HuberMulti(GlmInputLoss):
     def is_smooth(self):
         return self.loss_kws['knot'] > 0
 
+    @property
+    def grad_lip(self):
+        return 1 / self.n_samples
+
 
 class HuberRegMultiResp(GlmMultiResp):
 
     GLM_LOSS_CLASS = HuberMulti
-    compute_lip = staticmethod(compute_lip)
 
     def __init__(self, X, y, fit_intercept=True, sample_weight=None,
                  knot=1.35):

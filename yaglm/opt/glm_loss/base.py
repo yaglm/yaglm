@@ -3,6 +3,7 @@ import numpy as np
 
 from yaglm.opt.base import Func
 from yaglm.opt.utils import safe_data_mat_coef_dot, safe_data_mat_coef_mat_dot
+from yaglm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
 
 # TODO how to handle loss kws
@@ -108,26 +109,20 @@ class Glm(Func):
 
     @property
     def grad_lip(self):
-        if hasattr(self, '_grad_lip'):
-            return self._grad_lip
+        if not hasattr(self, '_grad_lip'):
 
-        elif self.compute_lip is not None:
-            return self.compute_lip(X=self.X,
-                                    fit_intercept=self.fit_intercept,
-                                    sample_weight=self.sample_weight,
-                                    **self.loss_kws)
-        else:
-            return None
+            input_loss_lip = self.glm_loss.grad_lip
 
-    def setup(self):
-        # sets up some precomputed data
+            if input_loss_lip is None:
+                X_op_norm = \
+                    safe_covar_mat_op_norm(X=self.X,
+                                           fit_intercept=self.fit_intercept)
 
-        if self.compute_lip is not None:
-            self._grad_lip = \
-                self.compute_lip(X=self.X,
-                                 fit_intercept=self.fit_intercept,
-                                 sample_weight=self.sample_weight,
-                                 **self.loss_kws)
+                self._grad_lip = input_loss_lip * X_op_norm ** 2
+            else:
+                self._grad_lip = None
+
+        return self._grad_lip
 
     def _set_shape_data(self):
         # set coefficient shapes

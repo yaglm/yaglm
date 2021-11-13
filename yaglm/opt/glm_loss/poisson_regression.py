@@ -26,6 +26,11 @@ class Poisson(GlmInputLoss):
     def is_smooth(self):
         return True
 
+    @property
+    def grad_lip(self):
+        # Poissson loss is not Lipschitz differentiable
+        return None
+
 
 class PoissonMulti(GlmInputLoss):
 
@@ -38,6 +43,12 @@ class PoissonMulti(GlmInputLoss):
     @property
     def is_smooth(self):
         return True
+
+    @property
+    def grad_lip(self):
+        # Poissson loss is not Lipschitz differentiable
+        return None
+
 
 # TODO: add exposure
 class PoissonReg(Glm):

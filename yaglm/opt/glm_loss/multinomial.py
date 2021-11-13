@@ -4,7 +4,6 @@ from scipy.sparse import diags
 
 from yaglm.opt.glm_loss.base import GlmMultiResp, GlmInputLoss
 from yaglm.opt.utils import safe_entrywise_mult
-from yaglm.opt.glm_loss.utils import safe_covar_mat_op_norm
 
 
 def sample_losses(z, y):
@@ -20,15 +19,6 @@ def sample_grads(z, y):
     log_probs = z - logsumexp(z, axis=1)[:, np.newaxis]
     probs = np.exp(log_probs)
     return np.array(probs - y)
-
-
-def compute_lip(X, fit_intercept=True, sample_weight=None):
-    # TODO: I think this is right but double check
-    op_norm = safe_covar_mat_op_norm(X=X,
-                                     fit_intercept=fit_intercept,
-                                     sample_weight=sample_weight)
-
-    return (1 / X.shape[0]) * op_norm ** 2
 
 
 def combine_weights(y, sample_weight=None, class_weight=None):
@@ -50,12 +40,15 @@ class MultinomialLoss(GlmInputLoss):
     def is_smooth(self):
         return True
 
+    @property
+    def grad_lip(self):
+        # TODO: double check this
+        return 1 / self.n_samples
+
 
 class Multinomial(GlmMultiResp):
 
     GLM_LOSS_CLASS = MultinomialLoss
-
-    compute_lip = staticmethod(compute_lip)
 
     def intercept_at_coef_eq0(self):
         # double check for weighted case

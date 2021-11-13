@@ -108,6 +108,10 @@ class Quantile(GlmInputLoss):
     def is_smooth(self):
         return False
 
+    @property
+    def grad_lip(self):
+        return None
+
 
 class QuantileReg(Glm):
     GLM_LOSS_CLASS = Quantile
@@ -135,6 +139,10 @@ class QuantileMulti(GlmInputLoss):
     @property
     def is_smooth(self):
         return False
+
+    @property
+    def grad_lip(self):
+        return None
 
 
 class QuantileRegMultiResp(GlmMultiResp):
