@@ -423,7 +423,8 @@ class BaseGlm(BaseEstimator):
 
             # default LLA solver
             if type(self.lla) == bool:
-                solver = LLAFixedInit(n_steps=1)
+                # TODO: do we want max_steps=1 by default?
+                solver = LLAFixedInit(max_steps=1)
             else:
                 solver = self.lla  # TODO: should there be a copy or clone?
 
