@@ -33,7 +33,6 @@ class FISTA(GlmSolverWithPath):
 
         If stop_crit='loss' then we use loss(x_prev) - loss(x_new).
 
-
     tol: float, None
         Numerical value for stopping criterion. If None, then we will not use a stopping criterion.
 
@@ -66,7 +65,7 @@ class FISTA(GlmSolverWithPath):
                  tol=1e-5, rel_crit=False, stop_crit='x_max',
                  bt_max_steps=20,
                  bt_shrink=0.5,
-                 bt_grow=1.1,
+                 bt_grow=1.58,  # 10**.2
                  accel=True,
                  restart=True,
                  tracking_level=0): pass

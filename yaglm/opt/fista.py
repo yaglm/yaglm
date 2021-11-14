@@ -15,7 +15,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
                 tol=1e-5, rel_crit=False, stop_crit='x_max',
                 bt_max_steps=20,
                 bt_shrink=0.5,
-                bt_grow=1.1,
+                bt_grow=1.58,  # 10**.2
                 tracking_level=0):
 
     """
