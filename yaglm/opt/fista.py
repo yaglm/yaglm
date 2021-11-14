@@ -90,6 +90,8 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
     References
     ----------
     Beck, A. and Teboulle, M., 2009. A fast iterative shrinkage-thresholding algorithm for linear inverse problems. SIAM journal on imaging sciences, 2(1), pp.183-202.
+
+    O’donoghue, B. and Candes, E., 2015. Adaptive restart for accelerated gradient schemes. Foundations of computational mathematics, 15(3), pp.715-732.
     """
 
     start_time = time()
@@ -196,7 +198,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
                 ((t_prev - 1) / t) * (value_aux - value_aux_prev)
 
             if restart:
-                # see equation (13) of TODO
+                # see equation (12) of (O'Donoghue and Candes, 2015)
                 if (value_prev - value_aux).ravel().T @ \
                         (value_aux - value_aux_prev).ravel() > 0:
                     t, t_prev = 1, 1

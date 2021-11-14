@@ -113,7 +113,7 @@ class Glm(Func):
 
             input_loss_lip = self.glm_loss.grad_lip
 
-            if input_loss_lip is None:
+            if input_loss_lip is not None:
                 X_op_norm = \
                     safe_covar_mat_op_norm(X=self.X,
                                            fit_intercept=self.fit_intercept)
