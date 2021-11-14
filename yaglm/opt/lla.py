@@ -9,7 +9,8 @@ def solve_lla(sub_prob, penalty_func,
               init, init_upv=None,
               sp_init=None, sp_upv_init=None, sp_other_data=None,
               transform=abs, objective=None,
-              n_steps=1, xtol=1e-4, atol=None, rtol=None,
+              max_steps=1,
+              tol=1e-5, rel_crit=False, stop_crit='x_max',
               tracking_level=1, verbosity=0):
     """
     Runs the local linear approximation algorithm. We only need the concave penalty function and a subroutine that solves the weighted Lasso-like subproblems.
@@ -43,17 +44,23 @@ def solve_lla(sub_prob, penalty_func,
     objective: None, callable(value, upv) -> float
         (Optinoal) Evaluates the full objective function.
 
-    n_steps: int
+    max_steps: int
         Number of LLA steps to take.
 
-    xtol: float, None
-        The change in x tolerance stopping criterion based on the L_infy norm.
+    stop_crit: str
+        Which stopping criterion to use. Must be one of ['x_max', 'x_L2', 'loss'].
 
-    atol: float, None
-        Absolute tolerance for loss based stopping criterion.
+        If stop_crit='x_max' then we use ||x_new - x_prev||_max.
 
-    rtol: float, None
-        Relative tolerance for loss based stopping criterion.
+        If stop_crit='x_L2' then we use ||x_new - x_prev||_2.
+
+        If stop_crit='loss' then we use loss(x_prev) - loss(x_new).
+
+    tol: float, None
+        Numerical value for stopping criterion. If None, then we will not use a stopping criterion.
+
+    rel_crit: bool
+        Should the tolerance be computed on a relative scale e.g. stop if ||x_new - x_prev||  <= tol * (||x_prev|| + epsilon).
 
     tracking_level: int
         How much optimization data to store at each step. Lower values means less informationed is stored.
@@ -77,7 +84,6 @@ def solve_lla(sub_prob, penalty_func,
     opt_info: dict
         Data tracked during the optimization procedure e.g. the loss function.
 
-
     References
     ----------
     Fan, J., Xue, L. and Zou, H., 2014. Strong oracle optimality of folded concave penalized estimation. Annals of statistics, 42(3), p.819.
@@ -91,7 +97,12 @@ def solve_lla(sub_prob, penalty_func,
     current_upv = deepcopy(init_upv)
     T = transform(current)
 
-    if xtol is not None:
+    # check stopping criteria
+    if tol is None:
+        stop_crit = None
+    assert stop_crit is None or stop_crit in ['x_max', 'x_L2', 'loss']
+
+    if stop_crit is not None:
         if current_upv is not None:
             prev = deepcopy(safe_concat(current, current_upv))
         else:
@@ -100,20 +111,21 @@ def solve_lla(sub_prob, penalty_func,
     ##############################
     # optimization data tracking #
     ##############################
-    opt_info = {}
+    history = {}
 
-    if (atol is not None or rtol is not None) and tracking_level == 0:
+    # if we are using the loss tracking criteria then track the loss
+    if stop_crit == 'loss' and tracking_level == 0:
         tracking_level = 1
 
     if tracking_level >= 1:
         if objective is None:
             raise ValueError("The objective function must be provided")
 
-        opt_info['obj'] = [objective(value=current, upv=current_upv)]
+        history['objective'] = [objective(value=current, upv=current_upv)]
 
     if tracking_level >= 2:
-        if xtol is not None:
-            opt_info['diff_norm'] = []  # difference between successive iterates
+        if stop_crit in ['x_max', 'x_L2']:
+            history['x_diff'] = []
 
     #################
     # Run algorithm #
@@ -121,10 +133,9 @@ def solve_lla(sub_prob, penalty_func,
 
     start_time = time()
 
-    step = 0  # in case n_steps = 0
-    x_stop = False
-    obj_stop = False
-    for step in range(int(n_steps)):
+    step = 0  # in case max_steps = 0
+    stop = False
+    for step in range(int(max_steps)):
 
         if verbosity >= 1:
             print("Step {}, {:1.2f} seconds after start".
@@ -160,51 +171,76 @@ def solve_lla(sub_prob, penalty_func,
 
         # track objective function data
         if tracking_level >= 1:
-            opt_info['obj'].append(objective(value=current, upv=current_upv))
+            history['objective'].\
+                append(objective(value=current, upv=current_upv))
 
-        # x change criteria
-        if xtol is not None:
+        if stop_crit in ['x_max', 'x_L2']:
+
             if current_upv is not None:
                 _current = safe_concat(current, current_upv)
             else:
                 _current = current
 
-            x_stop, diff_norm = check_no_change(current=_current,
-                                                prev=prev,
-                                                tol=xtol,
-                                                norm='max')
+            # check x difference stopping criterion
+            stop, diff_norm = check_no_change(current=_current, prev=prev,
+                                              tol=tol, rel_crit=rel_crit,
+                                              norm=stop_crit[-3:]  # max or L2
+                                              )
 
             if tracking_level >= 2:
-                opt_info['diff_norm'].append(diff_norm)
+                history['x_diff'].append(diff_norm)
 
-        if tracking_level >= 1:
-            # objective function change criterion
-            # if the objective has stopped decreasing we are done!
-            obj_stop = check_decreasing_loss(current_loss=opt_info['obj'][-1],
-                                             prev_loss=opt_info['obj'][-2],
-                                             abs_tol=atol, rel_tol=rtol,
-                                             on_increase='ignore')
+        elif stop_crit == 'loss':
+            current = history['objective'][-1]
+            prev = history['objective'][-2]
+
+            # check loss change criterion
+            stop = check_decreasing_loss(current=current, prev=prev,
+                                         tol=tol, rel_crit=rel_crit,
+                                         on_increase='ignore')
+
+        # # x change criteria
+        # if xtol is not None:
+        #     if current_upv is not None:
+        #         _current = safe_concat(current, current_upv)
+        #     else:
+        #         _current = current
+
+        #     x_stop, diff_norm = check_no_change(current=_current,
+        #                                         prev=prev,
+        #                                         tol=xtol,
+        #                                         norm='max')
+
+        #     if tracking_level >= 2:
+        #         opt_info['diff_norm'].append(diff_norm)
+
+        # if tracking_level >= 1:
+        #     # objective function change criterion
+        #     # if the objective has stopped decreasing we are done!
+        #     obj_stop = check_decreasing_loss(current=opt_info['obj'][-1],
+        #                                      prev_=opt_info['obj'][-2],
+        #                                      tol=atol, rel_tol=rtol,
+        #                                      on_increase='ignore')
 
         # maybe stop the algorithm
-        if x_stop or obj_stop:
+        if stop:
             break
-        elif xtol is not None:
+        else:
 
             # set prev for next interation
-            if current_upv is not None:
-                prev = deepcopy(safe_concat(current, current_upv))
-            else:
-                prev = deepcopy(current)
+            if stop_crit in ['x_max', 'x_L2']:
+                prev = deepcopy(_current)
 
             # compute transform for next iteration if it has not already
             # been computed
             if T is None:
                 T = transform(current)
 
-    opt_info['runtime'] = time() - start_time
-    opt_info['final_step'] = step
-    opt_info['obj_stop'] = obj_stop
-    opt_info['x_stop'] = x_stop
+    opt_info = {'runtime': time() - start_time,
+                'history': history,
+                'stop_crit': stop_crit,
+                'stop': stop,
+                'step': step}
 
     return current, current_upv, sp_other_data, opt_info
 

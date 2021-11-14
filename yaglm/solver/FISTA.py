@@ -24,14 +24,21 @@ class FISTA(GlmSolverWithPath):
     max_iter: int
         Maximum number of iterations.
 
-    xtol: float, None
-        Stopping criterion based on max norm of successive iteration differences i.e. stop if max(x_new - x_prev) < xtol.
+    stop_crit: str
+        Which stopping criterion to use. Must be one of ['x_max', 'x_L2', 'loss'].
 
-    rtol: float, None
-        Stopping criterion based on the relative difference of successive loss function values i.e. stop if abs(loss_new - loss_prev)/loss_new < rtol.
+        If stop_crit='x_max' then we use ||x_new - x_prev||_max.
 
-    atol: float, None
-        Stopping criterion based on the absolute difference of successive loss function values i.e. stop if abs(loss_new - loss_prev) < atol.
+        If stop_crit='x_L2' then we use ||x_new - x_prev||_2.
+
+        If stop_crit='loss' then we use loss(x_prev) - loss(x_new).
+
+
+    tol: float, None
+        Numerical value for stopping criterion. If None, then we will not use a stopping criterion.
+
+    rel_crit: bool
+        Should the tolerance be computed on a relative scale e.g. stop if ||x_new - x_prev||  <= tol * (||x_prev|| + epsilon).
 
     bt_max_steps: int
         Maximum number of backtracking steps to take.
@@ -56,9 +63,7 @@ class FISTA(GlmSolverWithPath):
     @autoassign
     def __init__(self,
                  max_iter=1000,
-                 xtol=1e-4,
-                 rtol=None,
-                 atol=None,
+                 tol=1e-5, rel_crit=False, stop_crit='x_max',
                  bt_max_steps=20,
                  bt_shrink=0.5,
                  bt_grow=1.1,
@@ -152,9 +157,6 @@ class FISTA(GlmSolverWithPath):
         self.loss_func_ = get_glm_loss_func(config=loss, X=X, y=y,
                                             fit_intercept=fit_intercept,
                                             sample_weight=sample_weight)
-
-        # compute lipchtiz etc
-        self.loss_func_.setup()
 
         ##########################
         # Penalty and constraint #

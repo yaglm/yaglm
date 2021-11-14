@@ -21,17 +21,23 @@ class LLAFixedInit(GlmSolverWithPath):
 
     Parameters
     ----------
-    n_steps: int
-        Number of LLA steps to take.
+    max_steps: int
+        Maximum number of LLA steps to take.
 
-    xtol: float, None
-        The change in x tolerance stopping criterion based on the L_infy norm.
+     stop_crit: str
+        Which stopping criterion to use. Must be one of ['x_max', 'x_L2', 'loss'].
 
-    atol: float, None
-        Absolute tolerance for loss based stopping criterion.
+        If stop_crit='x_max' then we use ||x_new - x_prev||_max.
 
-    rtol: float, None
-        Relative tolerance for loss based stopping criterion.
+        If stop_crit='x_L2' then we use ||x_new - x_prev||_2.
+
+        If stop_crit='loss' then we use loss(x_prev) - loss(x_new).
+
+    tol: float, None
+        Numerical value for stopping criterion. If None, then we will not use a stopping criterion.
+
+    rel_crit: bool
+        Should the tolerance be computed on a relative scale e.g. stop if ||x_new - x_prev||  <= tol * (||x_prev|| + epsilon).
 
     tracking_level: int
         How much optimization data to store at each step. Lower values means less informationed is stored.
@@ -60,7 +66,8 @@ class LLAFixedInit(GlmSolverWithPath):
         The non-convex function applied to the transformed coefficient.
     """
     @autoassign
-    def __init__(self, n_steps=1, xtol=1e-4, atol=None, rtol=None,
+    def __init__(self, max_steps=1,
+                 tol=1e-5, rel_crit=False, stop_crit='x_max',
                  tracking_level=0, verbosity=0): pass
 
     @classmethod

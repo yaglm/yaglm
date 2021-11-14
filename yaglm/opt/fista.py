@@ -12,9 +12,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
                 restart=True,
                 backtracking=False,
                 max_iter=200,
-                xtol=1e-5,
-                rtol=None,
-                atol=None,
+                tol=1e-5, rel_crit=False, stop_crit='x_max',
                 bt_max_steps=20,
                 bt_shrink=0.5,
                 bt_grow=1.1,
@@ -54,14 +52,21 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
     max_iter: int
         Maximum number of iterations.
 
-    xtol: float, None
-        Stopping criterion based on max norm of successive iteration differences i.e. stop if max(x_new - x_prev) < xtol.
+    stop_crit: str
+        Which stopping criterion to use. Must be one of ['x_max', 'x_L2', 'loss'].
 
-    rtol: float, None
-        Stopping criterion based on the relative difference of successive loss function values i.e. stop if abs(loss_new - loss_prev)/loss_new < rtol.
+        If stop_crit='x_max' then we use ||x_new - x_prev||_max.
 
-    atol: float, None
-        Stopping criterion based on the absolute difference of successive loss function values i.e. stop if abs(loss_new - loss_prev) < atol.
+        If stop_crit='x_L2' then we use ||x_new - x_prev||_2.
+
+        If stop_crit='loss' then we use loss(x_prev) - loss(x_new).
+
+
+    tol: float, None
+        Numerical value for stopping criterion. If None, then we will not use a stopping criterion.
+
+    rel_crit: bool
+        Should the tolerance be computed on a relative scale e.g. stop if ||x_new - x_prev||  <= tol * (||x_prev|| + epsilon).
 
     bt_max_steps: int
         Maximum number of backtracking steps to take.
@@ -80,7 +85,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
     value: array-like
         The solution.
 
-    opt_data: dict
+    opt_info: dict
         Additional optimization data e.g. loss history, etc.
     """
 
@@ -135,9 +140,13 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
         value_aux, value_aux_prev, t, t_prev = None, None, None, None
     bt_iter = 0
 
-    if (atol or rtol) and tracking_level == 0:
-        # if we are using atol or rtol then we need to compute
-        # the objective function anyways
+    # check stopping criteria
+    if tol is None:
+        stop_crit = None
+    assert stop_crit is None or stop_crit in ['x_max', 'x_L2', 'loss']
+
+    # if we are using the loss tracking criteria then track the loss
+    if stop_crit == 'loss' and tracking_level == 0:
         tracking_level = 1
 
     # how much optimization history should we track
@@ -150,7 +159,8 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
             history['step'] = []
 
     if tracking_level >= 2:
-        history['diff_norm'] = []
+        if stop_crit in ['x_max', 'x_L2']:
+            history['x_diff'] = []
 
     if restart:
         history['restarts'] = []
@@ -161,8 +171,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
         assert glip is not None
         step = 1 / glip
 
-    x_stop = False
-    obj_stop = False
+    stop = False
     bt_iter = 0
     for it in range(int(max_iter)):
 
@@ -208,25 +217,49 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
                 history['bt_iter'].append(bt_iter)
                 history['step'].append(step)
 
-        # check x difference stopping criteria
-        x_stop, diff_norm = check_no_change(current=value,
-                                            prev=value_prev,
-                                            tol=xtol,
-                                            norm='max')
+        #####################
+        # Stopping criteria #
+        #####################
+        if stop_crit in ['x_max', 'x_L2']:
 
-        if tracking_level >= 2:
-            history['diff_norm'].append(diff_norm)
+            # check x difference stopping criterion
+            stop, diff_norm = check_no_change(current=value, prev=value_prev,
+                                              tol=tol, rel_crit=rel_crit,
+                                              norm=stop_crit[-3:]  # max or L2
+                                              )
 
-        # objective function criteria
-        if atol is not None or rtol is not None:
-            obj_stop = \
-                check_decreasing_loss(current_loss=history['objective'][-1],
-                                      prev_loss=history['objective'][-2],
-                                      abs_tol=atol, rel_tol=rtol,
-                                      on_increase='ignore')
+            if tracking_level >= 2:
+                history['x_diff'].append(diff_norm)
 
-        # maybe stop
-        if x_stop or obj_stop:
+        elif stop_crit == 'loss':
+            current = history['objective'][-1]
+            prev = history['objective'][-2]
+
+            # check loss change criterion
+            stop = check_decreasing_loss(current=current, prev=prev,
+                                         tol=tol, rel_crit=rel_crit,
+                                         on_increase='ignore')
+
+        # TODO: delete
+        # # check x difference stopping criteria
+        # x_stop, diff_norm = check_no_change(current=value,
+        #                                     prev=value_prev,
+        #                                     tol=xtol,
+        #                                     norm='max')
+
+        # if tracking_level >= 2:
+        #     history['diff_norm'].append(diff_norm)
+
+        # # objective function criteria
+        # if atol is not None or rtol is not None:
+        #     obj_stop = \
+        #         check_decreasing_loss(current_loss=history['objective'][-1],
+        #                               prev_loss=history['objective'][-2],
+        #                               abs_tol=atol, rel_tol=rtol,
+        #                               on_increase='ignore')
+
+        # # maybe stop
+        if stop:
             break
         else:
             value_prev = value.copy()
@@ -234,10 +267,10 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
                 value_aux_prev = value_aux
                 t_prev = deepcopy(t)
 
-    out = {'runtime': time() - start_time,
-           'history': history,
-           'x_stop': x_stop,
-           'obj_stop': obj_stop,
-           'iter': it}
+    opt_info = {'runtime': time() - start_time,
+                'history': history,
+                'stop_crit': stop_crit,
+                'stop': stop,
+                'iter': it}
 
-    return value, out
+    return value, opt_info
