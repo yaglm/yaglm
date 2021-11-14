@@ -23,7 +23,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
 
     min_x smoot_func(x) + non_smooth_func(x)
 
-    using ISTA/FISTA.
+    using ISTA/FISTA. See (Beck and Teboulle, 2009).
 
     Parameters
     ----------
@@ -87,6 +87,10 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
 
     opt_info: dict
         Additional optimization data e.g. loss history, etc.
+
+    References
+    ----------
+    Beck, A. and Teboulle, M., 2009. A fast iterative shrinkage-thresholding algorithm for linear inverse problems. SIAM journal on imaging sciences, 2(1), pp.183-202.
     """
 
     start_time = time()
@@ -102,14 +106,14 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
     def prox_grad_update(x, step):
         return non_smooth_func.prox(x - step * smooth_func.grad(x), step)
 
-    # TODO: we could save some computation by inputing the precomputed computed non_smooth_func.eval(x)
-    def Q(x, y, step):
-        diff = x - y
+    def Q(new, prev, step):
+        # equation (2.5) of (Beck and Teboulle, 2009)
+        # but we drop the non_smooth_func.eval(new) term
+        diff = new - prev
         diff_sq = (diff ** 2).sum()
-        return smooth_func.eval(y) + \
-            (x - y).ravel().T @ smooth_func.grad(y).ravel() +\
-            (0.5 / step) * diff_sq + \
-            non_smooth_func.eval(x)
+        return smooth_func.eval(prev) + \
+            (new - prev).ravel().T @ smooth_func.grad(prev).ravel() +\
+            (0.5 / step) * diff_sq  # + # non_smooth_func.eval(new)
 
     def backtracking_search(x, step, bt_iter_prev):
         # increase the step size if the last one was accepted
@@ -119,9 +123,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
         for bt_iter in range(bt_max_steps):
             x_new = prox_grad_update(x, step)
 
-            obj_new = eval_obj(x_new)
-
-            if obj_new <= Q(x_new, x, step):
+            if smooth_func.eval(x_new) <= Q(new=x_new, prev=x, step=step):
                 break
             else:
                 step *= bt_shrink
@@ -154,11 +156,11 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
     if tracking_level >= 1:
         history['objective'] = [eval_obj(value)]
 
+    if tracking_level >= 2:
         if backtracking:
             history['bt_iter'] = []
             history['step'] = []
 
-    if tracking_level >= 2:
         if stop_crit in ['x_max', 'x_L2']:
             history['x_diff'] = []
 
@@ -213,6 +215,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
         if tracking_level >= 1:
             history['objective'].append(eval_obj(value))
 
+        if tracking_level >= 2:
             if backtracking:
                 history['bt_iter'].append(bt_iter)
                 history['step'].append(step)
