@@ -61,7 +61,6 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
 
         If stop_crit='loss' then we use loss(x_prev) - loss(x_new).
 
-
     tol: float, None
         Numerical value for stopping criterion. If None, then we will not use a stopping criterion.
 
