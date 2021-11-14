@@ -542,20 +542,18 @@ def get_cov(n_features=10, cov='ar', corr=0.35):
     assert cov in ['ident', 'tot', 'ar']
 
     # sample X data
-    if cov == 'identy':
-        cov = np.eye(n_features)
+    if cov == 'ident':
+        return np.eye(n_features)
 
     elif cov == 'tot':
-        cov = (1 - corr) * np.eye(n_features) + \
+        return (1 - corr) * np.eye(n_features) + \
             corr * np.ones((n_features, n_features))
 
     elif cov == 'ar':
         cov = np.array([[abs(i - j) for i in range(n_features)]
                         for j in range(n_features)])
 
-        cov = corr ** cov
-
-    return cov
+        return corr ** cov
 
 
 def coef_cov_quad_form(coef, cov):
