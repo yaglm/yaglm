@@ -57,6 +57,10 @@ class FISTA(GlmSolverWithPath):
 
     tracking_level: int
         How much data to track.
+
+    References
+    ----------
+    Beck, A. and Teboulle, M., 2009. A fast iterative shrinkage-thresholding algorithm for linear inverse problems. SIAM journal on imaging sciences, 2(1), pp.183-202.
     """
 
     @autoassign
