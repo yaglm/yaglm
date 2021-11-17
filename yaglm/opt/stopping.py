@@ -45,6 +45,8 @@ def check_no_change(current, prev, norm='max', tol=None,
     diff_norm: float
         Norm of the difference. If rel_crit=True this is the relative difference.
     """
+    if tol is None:
+        return False, None
 
     # define norm
     if norm == 'max':
@@ -68,7 +70,7 @@ def check_no_change(current, prev, norm='max', tol=None,
         diff_norm /= (f(prev) + tol_eps)
 
     # check stopping criteria
-    if tol is not None and diff_norm <= tol:
+    if diff_norm <= tol:
         return True, diff_norm
 
     else:
@@ -106,6 +108,8 @@ def check_decreasing_loss(current, prev, tol=None,
     stop: bool
         True if the loss has stopped decreasing.
     """
+    if tol is None:
+        return False
 
     # maybe check for increasing loss
     if current > prev and on_increase != 'ignore':
@@ -131,7 +135,7 @@ def check_decreasing_loss(current, prev, tol=None,
         diff /= (abs(prev) + tol_eps)
 
     # check stopping criterla
-    if tol is not None and diff <= tol:
+    if diff <= tol:
         return True
     else:
         return False
