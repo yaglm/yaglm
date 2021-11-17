@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from warnings import warn
 from yaglm.solver.base import GlmSolverWithPath
-from yaglm.opt.lla import solve_lla, WeightedProblemSolver
+from yaglm.opt.algo.lla import solve_lla, WeightedProblemSolver
 from yaglm.opt.from_config.penalty import get_penalty_func, wrap_intercept
 from yaglm.opt.from_config.loss import get_glm_loss_func
 from yaglm.opt.utils import safe_concat

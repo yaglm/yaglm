@@ -2,12 +2,12 @@ import numpy as np
 
 from yaglm.solver.base import GlmSolverWithPath
 from yaglm.autoassign import autoassign
-from yaglm.opt.fista import solve_fista
+from yaglm.opt.algo.fista import solve_fista
 
 
 from yaglm.opt.from_config.loss import get_glm_loss_func
-from yaglm.opt.from_config.penalty import get_penalty_func, wrap_intercept, \
-    split_smooth_and_non_smooth
+from yaglm.opt.from_config.penalty import get_penalty_func, wrap_intercept
+from yaglm.opt.split_smooth_and_non_smooth import split_smooth_and_non_smooth
 from yaglm.opt.from_config.constraint import get_constraint_func
 
 from yaglm.opt.base import Sum

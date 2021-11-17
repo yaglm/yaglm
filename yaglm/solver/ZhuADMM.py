@@ -4,7 +4,7 @@ from scipy.sparse import csr_matrix
 from yaglm.solver.base import GlmSolverWithPath
 from yaglm.autoassign import autoassign
 
-from yaglm.opt.zhu_admm import solve
+from yaglm.opt.algo.zhu_admm import solve
 from yaglm.opt.from_config.input_loss import get_glm_input_loss
 from yaglm.opt.from_config.mat_and_func import get_mat_and_func
 from yaglm.opt.from_config.penalty import get_penalty_func
