@@ -5,6 +5,7 @@ from yaglm.opt.from_config.penalty import get_outer_nonconvex_func
 from yaglm.opt.from_config.transforms import get_flavored_transforms
 from yaglm.autoassign import autoassign
 from yaglm.opt.base import Func
+from yaglm.uitls import enet_params_from_sum
 
 
 def get_lla_transformer(penalty):
@@ -260,29 +261,7 @@ def _get_lla_sub_prob_for_enet(penalty):
     else:
         pen_val_2 = sum_pens[1].pen_val
 
-    pen_val, mix_val = _enet_params_from_sum(pen_val_1, pen_val_2)
+    pen_val, mix_val = enet_params_from_sum(pen_val_1, pen_val_2)
     penalty.set_params(pen_val=pen_val, mix_val=mix_val)
 
     return penalty
-
-
-def _enet_params_from_sum(pen_val_1, pen_val_2):
-    """
-    Computes the elastic net pen_val and mix_val from the two penalty values.
-
-    pen_val_1 = pen_val * mix_val
-    pen_val_2 = pen_val * (1 - mix_val )
-
-    Parameters
-    ----------
-    pen_val_1, pen_val_2: float
-        The two penalty values in the sum.
-
-    Output
-    ------
-    pen_val, mix_val: float
-        The elastic net parameters.
-    """
-    pen_val = pen_val_1 + pen_val_2
-    mix_val = pen_val_1 / (pen_val_1 + pen_val_2)
-    return pen_val, mix_val
