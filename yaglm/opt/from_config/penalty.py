@@ -20,7 +20,7 @@ from yaglm.config.penalty import OverlappingSum as OverlappingSumConfig
 
 from yaglm.config.base_penalty import WithFlavorPenSeqConfig
 
-from yaglm.opt.base import Zero, Sum
+from yaglm.opt.base import Sum
 from yaglm.opt.BlockSeparable import BlockSeparable
 from yaglm.opt.penalty.convex import Ridge, GeneralizedRidge,\
      Lasso, GroupLasso, ExclusiveGroupLasso, \
@@ -58,7 +58,7 @@ def get_penalty_func(config, n_features=None, n_responses=None):
 
     # no penalty!
     if config is None or isinstance(config, NoPenalty):
-        return Zero()
+        return None
 
     # Ridge penalty
     elif isinstance(config, RidgeConfig):
@@ -193,13 +193,17 @@ def get_penalty_func(config, n_features=None, n_responses=None):
 
     # Overlapping sum
     elif isinstance(config, OverlappingSumConfig):
-        funcs = [get_penalty_func(c, n_features)
+        funcs = [get_penalty_func(config=c,
+                                  n_features=n_features,
+                                  n_responses=n_responses)
                  for c in config.get_penalties().values()]
         return Sum(funcs=funcs)
 
     # Separable sum
     elif isinstance(config, SeparableSumConfig):
-        funcs = [get_penalty_func(c, n_features)
+        funcs = [get_penalty_func(config=c,
+                                  n_features=n_features,
+                                  n_responses=n_responses)
                  for c in config.get_penalties().values()]
 
         groups = [grp_idxs for grp_idxs in config.get_groups().values()]

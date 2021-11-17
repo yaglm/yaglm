@@ -194,7 +194,7 @@ class GroupLasso(Func):
     """
     def __init__(self, groups, pen_val=1.0, weights=None):
 
-        # if groups=None put everything ine one group
+        # if groups=None put everything in one group
         if groups is None:
             groups = [...]
         self.groups = groups

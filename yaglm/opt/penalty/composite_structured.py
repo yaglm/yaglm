@@ -7,6 +7,30 @@ from yaglm.autoassign import autoassign
 from yaglm.opt.penalty.convex import Ridge
 
 
+class CompositeL2Norm(Func):
+    @autoassign
+    def __init__(self, func): pass
+
+    @property
+    def is_smooth(self):
+        return False
+
+    @property
+    def is_proximable(self):
+        return self.func.is_proximable
+
+    def _eval(self, x):
+        return self.func.eval(euclid_norm(x))
+
+    def _prox(self, x, step):
+        norm = euclid_norm(x)
+        norm_prox = self.func.prox(norm, step=step)
+        if norm_prox > np.finfo(float).eps:
+            return x * (norm_prox / norm)
+        else:
+            return np.zeros_like(x)
+
+
 class CompositeGroup(Func):
 
     @autoassign
