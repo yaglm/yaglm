@@ -377,3 +377,25 @@ def lb_transform_to_indices(lb, y):
         The class label indices.
     """
     return np.array(lb.fit_transform(y).argmax(axis=1)).reshape(-1)
+
+
+def enet_params_from_sum(pen_val_1, pen_val_2):
+    """
+    Computes the elastic net pen_val and mix_val from the two penalty values.
+
+    pen_val_1 = pen_val * mix_val
+    pen_val_2 = pen_val * (1 - mix_val )
+
+    Parameters
+    ----------
+    pen_val_1, pen_val_2: float
+        The two penalty values in the sum.
+
+    Output
+    ------
+    pen_val, mix_val: float
+        The elastic net parameters.
+    """
+    pen_val = pen_val_1 + pen_val_2
+    mix_val = pen_val_1 / (pen_val_1 + pen_val_2)
+    return pen_val, mix_val
