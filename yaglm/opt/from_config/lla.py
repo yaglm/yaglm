@@ -5,7 +5,7 @@ from yaglm.opt.from_config.penalty import get_outer_nonconvex_func
 from yaglm.opt.from_config.transforms import get_flavored_transforms
 from yaglm.autoassign import autoassign
 from yaglm.opt.base import Func
-from yaglm.uitls import enet_params_from_sum
+from yaglm.utils import enet_params_from_sum
 
 
 def get_lla_transformer(penalty):
