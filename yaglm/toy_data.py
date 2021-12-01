@@ -468,7 +468,26 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
     if neg_idx is not None:
         assert neg_idx < n_nonzero
 
-    if beta_type == 1:
+    if beta_type == 0:
+        # Beta value used in Model 1 of Fan et al. 2014
+        if n_features > 5:
+            trailing_zeros = np.zeros(n_features - 5)
+        coef = [3, 1.5, 0, 0, 2]
+        coef.extend(trailing_zeros)
+        coef = np.array(coef)
+        
+    elif beta_type == 23:
+        # Beta value used in Models 2 & 3 of Fan et al. 2014
+        if n_features < 10: raise Exception('Number of features needs to be at least 10')
+        coef = np.zeros(n_features)
+        idx = np.random.choice(a=n_features, size=10, replace = False)
+        t = np.random.uniform(1,2, size = 10)
+        s = np.array([bernoulli.rvs(0.5) for p in range(10)]) # Generate Rademacher random variable
+        s[s==0] = -1
+        coef[idx] = t*s
+        
+
+    elif beta_type == 1:
         # roughly equally spaced 1s
         coef = np.zeros(n_features)
 
