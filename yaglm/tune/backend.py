@@ -110,7 +110,6 @@ def get_cross_validation_jobs(raw_data, est, solver, tune_iter, fold_iter,
     fold_iter: iterable
         Iterates over the cv folds e.g. the output of cv.split(X=X, y=y).
 
-
     path_algo: bool
         Whether or not to use the solver's path algorithm if it has one available.
 
@@ -175,6 +174,9 @@ def get_validation_jobs(raw_data, est, solver, tune_iter,
 
     tune_iter:
         An object that iterates over all the tuning parameter settings e.g. PenaltyPerLossFlavorTuner().
+
+    train, test: array-like of ints
+        The train/test indices.
 
     path_algo: bool
         Whether or not to use the solver's path algorithm if it has one available.
