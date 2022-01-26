@@ -210,7 +210,6 @@ class FISTA(GlmSolverWithPath):
         opt_info: dict
             Optimization information e.g. number of iterations, runtime, etc.
         """
-
         #########
         # Setup #
         #########
@@ -257,8 +256,11 @@ class FISTA(GlmSolverWithPath):
                 (self.fit_intercept_ and intercept_init is None):
             init_val = self.loss_func_.default_init()
         else:
-            init_val = self.loss_func_.\
-                cat_intercept_coef(intercept_init, coef_init)
+            if self.fit_intercept_:
+                init_val = self.loss_func_.\
+                    cat_intercept_coef(intercept_init, coef_init)
+            else:
+                init_val = coef_init
 
         ############################
         # solve problem with FISTA #
