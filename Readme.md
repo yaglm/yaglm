@@ -148,6 +148,8 @@ If you use this package please cite our [arxiv manuscript](https://arxiv.org/abs
 }
 ```
 
+Some of `yaglm`'s solvers wrap solvers implemented by other software packages. We kindly ask you also cite these underlying packages if you use their solver (see the solver config documentation).
+
 # References
 
 
