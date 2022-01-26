@@ -554,9 +554,10 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
         # solve!
         configs, tuned_params = tune_configs
         solver.setup(**solver_data, **configs)
+        solutions = solver.solve(**solver_init)
 
-        # formatting
-        solutions = [solver.solve(**solver_init)]
+        # format!
+        solutions = [solutions]
         tuned_params = [tuned_params]
 
     # reformated tuned param from list of dict of dicts to just list of dicts
@@ -592,7 +593,7 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
         #######################
 
         # get configs for base estimator
-        if path_algo:
+        if path_algo and len(tuned_params[tune_idx_inner]) > 0:
             # set the penalty config to have this path elements's value
             penalty_params = {}
             for key, value in tuned_params[tune_idx_inner].items():

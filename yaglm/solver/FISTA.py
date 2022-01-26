@@ -2,17 +2,16 @@ import numpy as np
 
 from yaglm.solver.base import GlmSolverWithPath
 from yaglm.autoassign import autoassign
+from yaglm.utils import is_multi_response
+from yaglm.config.penalty import NoPenalty
+
 from yaglm.opt.algo.fista import solve_fista
-
-
 from yaglm.opt.from_config.loss import get_glm_loss_func
 from yaglm.opt.from_config.penalty import get_penalty_func, wrap_intercept
 from yaglm.opt.split_smooth_and_non_smooth import split_smooth_and_non_smooth
 from yaglm.opt.from_config.constraint import get_constraint_func
-
 from yaglm.opt.base import Sum
 from yaglm.opt.utils import decat_coef_inter_vec, decat_coef_inter_mat
-from yaglm.utils import is_multi_response
 
 
 class FISTA(GlmSolverWithPath):
@@ -149,7 +148,7 @@ class FISTA(GlmSolverWithPath):
 
         self.is_mr_ = is_multi_response(y)
         self.fit_intercept_ = fit_intercept
-        self.penalty_config_ = penalty
+        self.penalty_config_ = penalty if penalty is not None else NoPenalty()
         self.n_features_ = X.shape[1]
 
         #################
