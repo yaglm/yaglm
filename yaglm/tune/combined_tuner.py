@@ -49,6 +49,7 @@ class PenaltyPerLossFlavorTuner:
 
         else:
             self.penalty = None
+            self.flavor_grid = None
 
     def set_tuning_values(self, **kws):
 
@@ -108,7 +109,10 @@ class PenaltyPerLossFlavorTuner:
 
         # setup loss/flavor iter (loss in outer loop)
         iter_loss = maybe_iter_params(self.loss)
-        iter_flavor = self.flavor_grid.iter_params()
+        if self.flavor_grid is not None:
+            iter_flavor = self.flavor_grid.iter_params()
+        else:
+            iter_flavor = [{}]
         lf_iter = product(iter_loss, iter_flavor)
 
         for lf_idx, (loss, flavor) in enumerate(lf_iter):
@@ -298,7 +302,10 @@ class PenaltyPerLossFlavorTuner:
 
         # setup loss/flavor iter (loss in outer loop)
         iter_loss = maybe_iter_configs(self.loss, with_params=with_params)
-        iter_flavor = self.flavor_grid.iter_params()  # the params, not configs!
+        if self.flavor_grid is not None:
+            iter_flavor = self.flavor_grid.iter_params()  # the params, not configs!
+        else:
+            iter_flavor = [{}]
         lf_iter = product(iter_loss, iter_flavor)
 
         # outer loop over loss/flavor settings

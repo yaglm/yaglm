@@ -1,8 +1,14 @@
 from setuptools import setup, find_packages
+import os
 
-# def readme():
-#     with open('README.rst') as f:
-#            return f.read()
+version = None
+with open(os.path.join('yaglm', '__init__.py'), 'r') as fid:
+    for line in (line.strip() for line in fid):
+        if line.startswith('__version__'):
+            version = line.split('=')[1].strip().strip('\'')
+            break
+if version is None:
+    raise RuntimeError('Could not determine version')
 
 
 install_requires = ['numpy',
@@ -13,7 +19,7 @@ install_requires = ['numpy',
 
 
 setup(name='yaglm',
-      version='0.3.1',
+      version=version,
       description='A python package for penalized generalized linear models that supports fitting and model selection for structured, adaptive and non-convex penalties.',
       author='Iain Carmichael',
       author_email='idc9@cornell.edu',
