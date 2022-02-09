@@ -217,7 +217,9 @@ class LossMixin:
 
             # get noise estimate
             if hasattr(self, 'inferencer_') \
-                    and hasattr(self.inferencer_, 'scale'):
+                    and hasattr(self.inferencer_, 'scale_') \
+                    and self.inferencer_.scale_ is not None:
+
                 scale = self.inferencer_.scale_
 
             else:

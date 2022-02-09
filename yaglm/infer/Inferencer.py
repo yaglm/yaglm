@@ -81,7 +81,7 @@ class Inferencer(Config):
             elif is_array_like(self.scale):
                 self.scale_ = np.array(self.scale).reshape(-1)
 
-            else:
+            elif self.scale is not None:
                 # TODO: do we want a copy here?
                 scale_est = self.scale
 
@@ -91,6 +91,9 @@ class Inferencer(Config):
                                   sample_weight=sample_weight)
 
                 self.scale_ = scale_est.scale_
+
+            else:
+                self.scale_ = None
 
     def after_fit(self, estimator, X, y, sample_weight=None):
         """

@@ -230,7 +230,6 @@ class FISTA(GlmSolverWithPath):
                                             is_mr=self.is_mr_)
 
         # set smooth/non-smooth functions
-        # set smooth/non-smooth functions
         if smooth_pen is not None:
             smooth_func = Sum([self.loss_func_, smooth_pen])
         else:

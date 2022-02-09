@@ -90,6 +90,7 @@ class LLAFixedInit(GlmSolverWithPath):
                  "non-non-convex problem! Perhaps something silently failed.")
 
         self.penalty_config_ = deepcopy(penalty)
+        self.fit_intercept_ = fit_intercept
 
         # weighted subproblem solver
         self.sp_solver_.setup(**kws)
@@ -165,13 +166,20 @@ class LLAFixedInit(GlmSolverWithPath):
         """
         # TODO-THINK-THROUGH: the initialization is a bit misleading here. For all other solvers coef_init is where we initializer the entire optimization algorithm, but here it is only the initialization for the first LLA sub-problem. The advantage of this current version is that it allows us to do warm starts for the LLA algorithm.
 
+        if self.fit_intercept_:
+            init_upv = self.intercept_init_lla_
+        else:
+            # in case we accidently set intercept_init_lla_, but dont
+            # actually want an intercept
+            init_upv = None
+
         coef, intercept, sp_other_data, opt_info = \
             solve_lla(sub_prob=self.sp_solver_,
                       penalty_func=self.transf_penalty_func_,
 
                       # Actual LLA algorithm initialization
                       init=self.coef_init_lla_,
-                      init_upv=self.intercept_init_lla_,
+                      init_upv=init_upv,
 
                       # warm start the subproblem solver
                       sp_init=coef_init,
