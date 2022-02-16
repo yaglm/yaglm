@@ -74,4 +74,4 @@ def get_tune_param_df(tune_results):
     tune_params: pd.DataFrame
         The tuning parameter settings
     """
-    return pd.DataFrame(list(pd.DataFrame(tune_results['params']).values))
+    return pd.DataFrame(list(tune_results['params']))
