@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.utils import check_random_state
 
@@ -57,3 +58,20 @@ def train_validation_idxs(n_samples, test_size=0.2, shuffle=True,
     return train_test_split(sample_idxs,
                             test_size=test_size,
                             stratify=stratify)
+
+
+def get_tune_param_df(tune_results):
+    """
+    Gets a pd.DataFrame of the tuning parameter settings.
+
+    Parameters
+    ----------
+    tune_results: dict
+        The tune_results_ attribute.
+
+    Output
+    ------
+    tune_params: pd.DataFrame
+        The tuning parameter settings
+    """
+    return pd.DataFrame(list(pd.DataFrame(tune_results['params']).values))
