@@ -1,13 +1,14 @@
 import numpy as np
 from copy import deepcopy
 from time import time
+from tqdm import tqdm
 
 from yaglm.opt.base import Zero
 from yaglm.opt.stopping import check_decreasing_loss, check_no_change
 
 
 def solve_fista(smooth_func, init_val, non_smooth_func=None,
-                step=1,
+                step='lip',
                 accel=True,
                 restart=True,
                 backtracking=False,
@@ -16,7 +17,8 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
                 bt_max_steps=20,
                 bt_shrink=0.5,
                 bt_grow=1.58,  # 10**.2
-                tracking_level=0):
+                tracking_level=0,
+                verbose=False):
 
     """
     Solve an optimzation problem in the form of
@@ -37,7 +39,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
         The (optional) non-smooth part of the loss function. This object should implement non_smooth_func.prox() and non_smooth_func.eval().
 
     step: float, 'lip'
-        The step size. This is either the constant step size or the base step size if backtracking is used.
+        The step size. This is either the constant step size or the base step size if backtracking is used. If step='lip', we infer theh gradient Lipchitz constant from smooth_func.grad_lip.
 
     accel: bool
         Whether or not to use FISTA acceleration.
@@ -78,6 +80,9 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
 
     tracking_level: int
         How much data to track.
+
+    verbose: bool
+        Whether or not to display an iteration progress bar.
 
     Output
     ------
@@ -171,12 +176,16 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
     # set learning rate from Lipchitz constant
     if step == 'lip':
         glip = smooth_func.grad_lip
-        assert glip is not None
+        assert glip is not None,\
+            "Lipchitz constant not currently available for smooth_func."\
+            "Either manually specify a numeric step size or " \
+            "implement smooth_func.grad_lip if available."
+
         step = 1 / glip
 
     stop = False
     bt_iter = 0
-    for it in range(int(max_iter)):
+    for it in tqdm(range(int(max_iter)), disable=not verbose, desc='FISTA'):
 
         ###############
         # Update step #
