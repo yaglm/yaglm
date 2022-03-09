@@ -105,6 +105,9 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
     if non_smooth_func is None:
         non_smooth_func = Zero()
 
+    assert non_smooth_func.is_proximable,\
+        "The non-smooth penalty must be proximable!"
+
     # Setup update stesps
     def eval_obj(x):
         return smooth_func.eval(x) + non_smooth_func.eval(x)
