@@ -7,9 +7,6 @@ from yaglm.utils import is_multi_response, get_shapes_from, clip_zero
 from yaglm.config.penalty_utils import get_flavor_kind
 from yaglm.config.penalty import NoPenalty
 
-from yaglm.cvxpy.from_config import get_loss, get_penalty, get_constraints, \
-    update_pen_val_and_weights
-
 
 class Cvxpy(GlmSolverWithPath):
     """
@@ -51,6 +48,8 @@ class Cvxpy(GlmSolverWithPath):
         # import cvxpy in this call so we don't force the user
         # to have it installed
         import cvxpy as cp
+        from yaglm.cvxpy.from_config import get_loss, get_penalty,\
+            get_constraints
 
         # make sure CVXPY is applicable
         if not self.is_applicable(loss, penalty, constraint):
@@ -98,6 +97,9 @@ class Cvxpy(GlmSolverWithPath):
         """
         Updates the penalty parameters.
         """
+        # local import to avoid requiring cvxpy to be installed
+        from yaglm.cvxpy.from_config import update_pen_val_and_weights
+
         self.penalty_config_.set_params(**params)
         update_pen_val_and_weights(config=self.penalty_config_,
                                    pen_val=self.pen_val_,
