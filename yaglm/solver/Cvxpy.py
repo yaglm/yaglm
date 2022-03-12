@@ -1,5 +1,5 @@
-import cvxpy as cp
 from time import time
+from warnings import warn
 
 from yaglm.solver.base import GlmSolverWithPath
 from yaglm.autoassign import autoassign
@@ -33,6 +33,13 @@ class Cvxpy(GlmSolverWithPath):
 
     @classmethod
     def _is_applicable(self, loss, penalty=None, constraint=None):
+
+        try:
+            import cvxpy
+        except ModuleNotFoundError:
+            warn("cvxpy not installed so yaglm.solver.Cvxpy cannot be used")
+            return False
+
         # cvxpy is applicable to any convex penalty
         return get_flavor_kind(penalty) not in ['non_convex', 'mixed']
 
@@ -41,6 +48,9 @@ class Cvxpy(GlmSolverWithPath):
         """
         Sets up anything the solver needs.
         """
+        # import cvxpy in this call so we don't force the user
+        # to have it installed
+        import cvxpy as cp
 
         # make sure CVXPY is applicable
         if not self.is_applicable(loss, penalty, constraint):
