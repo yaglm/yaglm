@@ -388,9 +388,7 @@ def process_y_log_reg(X, y, sample_weight=None, class_weight=None,
 
         # multiply origianl sample weights by the class weights
         sample_weight *= class_weight_vect[y_ind]
-        print(class_weight_vect)
-        print(enc.classes_)
-        print(sample_weight)
+
     if check_input:
         # this class is for binary logistic regression
         assert len(enc.classes_) == 2
