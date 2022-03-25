@@ -3,8 +3,8 @@ from copy import deepcopy
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import safe_sparse_dot
-from sklearn.utils.validation import check_array, _check_sample_weight, \
-    FLOAT_DTYPES
+from sklearn.utils.validation import check_array, _check_y, \
+    _check_sample_weight, FLOAT_DTYPES
 
 from yaglm.autoassign import autoassign
 from yaglm.processing import process_X, deprocess_fit, process_init_data
@@ -134,9 +134,7 @@ class BaseGlm(BaseEstimator):
             sample_weight = _check_sample_weight(sample_weight, X,
                                                  dtype=X.dtype)
 
-        # make sure y is numpy and of same dtype as X
-        # TODO: do we actually want this for log_reg/multinomial?
-        y = check_array(y, ensure_2d=False)
+        y = _check_y(y, multi_output=True, y_numeric=False)
 
         # make sure 1d input is actually a vector
         if y.ndim == 2 and y.shape[1] == 1:
