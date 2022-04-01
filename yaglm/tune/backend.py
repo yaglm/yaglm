@@ -529,7 +529,10 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
 
     if path_algo:
 
-        # solve!
+        ###################################
+        # track tuning parameter settings #
+        ###################################
+
         # note solve_penalty_path may return a generator in which case
         # the solutions are actually computed below
         configs, single_param_settings, penalty_path = tune_configs
@@ -538,25 +541,31 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
         # accidently modified in place by the solver
         base_configs = deepcopy(configs)
 
-        solver.setup(**solver_data, **configs)
-        solutions = solver.solve_penalty_path(penalty_path=penalty_path,
-                                              **solver_init)
-
         # formatting
         # get uniuqe path tuning parameter settings
         tuned_params = []
         for pen_path_params in penalty_path:
 
             # copy the single_param_settings
-            this_param_settings = {**single_param_settings}
+            this_param_settings = deepcopy(single_param_settings)
 
             # add penalty path settings
             if 'penalty' in this_param_settings:
-                this_param_settings['penalty'].update(pen_path_params)
+                this_param_settings['penalty'].\
+                    update(deepcopy(pen_path_params))
             else:
-                this_param_settings['penalty'] = pen_path_params
+                this_param_settings['penalty'] = deepcopy(pen_path_params)
 
             tuned_params.append(this_param_settings)
+
+        ##########
+        # Solve! #
+        ##########
+        # note solutions might be a generator so the actual solving might
+        # be done below
+        solver.setup(**solver_data, **configs)
+        solutions = solver.solve_penalty_path(penalty_path=penalty_path,
+                                              **solver_init)
 
     else:
         # solve!
@@ -566,12 +575,12 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
         # accidently modified in place by the solver
         base_configs = deepcopy(configs)
 
-        solver.setup(**solver_data, **configs)
-        solutions = solver.solve(**solver_init)
-
         # format!
         solutions = [solutions]
         tuned_params = [tuned_params]
+
+        solver.setup(**solver_data, **configs)
+        solutions = solver.solve(**solver_init)
 
     # reformated tuned param from list of dict of dicts to just list of dicts
     kinds = tuned_params[0].keys()
