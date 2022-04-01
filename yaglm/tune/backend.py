@@ -533,6 +533,11 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
         # note solve_penalty_path may return a generator in which case
         # the solutions are actually computed below
         configs, single_param_settings, penalty_path = tune_configs
+
+        # defensive copy since this gets used below, but can be
+        # accidently modified in place by the solver
+        base_configs = deepcopy(configs)
+
         solver.setup(**solver_data, **configs)
         solutions = solver.solve_penalty_path(penalty_path=penalty_path,
                                               **solver_init)
@@ -541,18 +546,26 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
         # get uniuqe path tuning parameter settings
         tuned_params = []
         for pen_path_params in penalty_path:
-            temp = {**single_param_settings}
 
-            if 'penalty' in temp:
-                temp['penalty'] = {**temp['penalty'], **pen_path_params}
+            # copy the single_param_settings
+            this_param_settings = {**single_param_settings}
+
+            # add penalty path settings
+            if 'penalty' in this_param_settings:
+                this_param_settings['penalty'].update(pen_path_params)
             else:
-                temp = penalty_path
+                this_param_settings['penalty'] = pen_path_params
 
-            tuned_params.append(temp)
+            tuned_params.append(this_param_settings)
 
     else:
         # solve!
         configs, tuned_params = tune_configs
+
+        # defensive copy since this gets used below, but can be
+        # accidently modified in place by the solver
+        base_configs = deepcopy(configs)
+
         solver.setup(**solver_data, **configs)
         solutions = solver.solve(**solver_init)
 
@@ -611,12 +624,12 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
                 if KIND in ['penalty', 'flavor']:
                     penalty_params[name] = value
 
-            configs['penalty'].set_params(**penalty_params)
+            base_configs['penalty'].set_params(**penalty_params)
 
         # set fit coef/intercept for base estimator
         base_estimator._set_fit(fit_out=fit_out,
                                 pre_pro_out=pre_pro_out,
-                                configs=configs)
+                                configs=base_configs)
 
         # run any statistical inference
         # TODO: be careful about passing the raw vs. processed data here
