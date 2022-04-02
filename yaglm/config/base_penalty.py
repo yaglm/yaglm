@@ -517,6 +517,8 @@ class ElasticNetConfig(PenaltyConfig):
 
     first_{pen_val * mix_val}(coef) + second_{pen_val * (1 - mix_val)}(coef)
 
+    Note the mix_vals are tuned over by default!
+
     Parameters
     ----------
     pen_val: float
@@ -563,7 +565,7 @@ class ElasticNetConfig(PenaltyConfig):
         pen_val_seq: None, array-like
             (Optional) User provided penalty value sequence.
 
-        n_mix_vals: None, int
+        n_mix_vals: int, None
             Number of mix values to tune over in a sequence between [min_val_min, 1]. If None or 0 then mix_val (and mix_val_seq=None) the mix_val will not be tuned over.
 
         min_val_min: float
@@ -653,7 +655,7 @@ class ElasticNetTuner(TunerWithPathMixin, PenaltyTuner):
     pen_val_seq: None, array-like
         (Optional) User provided penalty value sequence.
 
-    n_mix_vals: None, int
+    n_mix_vals: int, None
         Number of mix values to tune over in a sequence between [min_val_min, 1]. If None or 0 then mix_val (and mix_val_seq=None) the mix_val will not be tuned over.
 
     min_val_min: float
