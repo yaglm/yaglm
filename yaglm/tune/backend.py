@@ -568,19 +568,18 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
                                               **solver_init)
 
     else:
-        # solve!
+
         configs, tuned_params = tune_configs
+        tuned_params = [deepcopy(tuned_params)]
 
         # defensive copy since this gets used below, but can be
         # accidently modified in place by the solver
         base_configs = deepcopy(configs)
 
-        # format!
-        solutions = [solutions]
-        tuned_params = [tuned_params]
-
+        # solve!
         solver.setup(**solver_data, **configs)
         solutions = solver.solve(**solver_init)
+        solutions = [solutions]
 
     # reformated tuned param from list of dict of dicts to just list of dicts
     kinds = tuned_params[0].keys()
