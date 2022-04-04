@@ -45,8 +45,6 @@ def get_solver(solver='default', loss='lin_reg',
 
                 return FISTA()
 
-            # only import cvxpy if we need to!
-
             if Cvxpy.is_applicable(loss=loss,
                                    penalty=penalty,
                                    constraint=constraint,

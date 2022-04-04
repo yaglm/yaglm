@@ -529,36 +529,57 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
 
     if path_algo:
 
-        # solve!
+        ###################################
+        # track tuning parameter settings #
+        ###################################
+
         # note solve_penalty_path may return a generator in which case
         # the solutions are actually computed below
         configs, single_param_settings, penalty_path = tune_configs
-        solver.setup(**solver_data, **configs)
-        solutions = solver.solve_penalty_path(penalty_path=penalty_path,
-                                              **solver_init)
+
+        # defensive copy since this gets used below, but can be
+        # accidently modified in place by the solver
+        base_configs = deepcopy(configs)
 
         # formatting
         # get uniuqe path tuning parameter settings
         tuned_params = []
         for pen_path_params in penalty_path:
-            temp = {**single_param_settings}
 
-            if 'penalty' in temp:
-                temp['penalty'] = {**temp['penalty'], **pen_path_params}
+            # copy the single_param_settings
+            this_param_settings = deepcopy(single_param_settings)
+
+            # add penalty path settings
+            if 'penalty' in this_param_settings:
+                this_param_settings['penalty'].\
+                    update(deepcopy(pen_path_params))
             else:
-                temp = penalty_path
+                this_param_settings['penalty'] = deepcopy(pen_path_params)
 
-            tuned_params.append(temp)
+            tuned_params.append(this_param_settings)
+
+        ##########
+        # Solve! #
+        ##########
+        # note solutions might be a generator so the actual solving might
+        # be done below
+        solver.setup(**solver_data, **configs)
+        solutions = solver.solve_penalty_path(penalty_path=penalty_path,
+                                              **solver_init)
 
     else:
-        # solve!
+
         configs, tuned_params = tune_configs
+        tuned_params = [deepcopy(tuned_params)]
+
+        # defensive copy since this gets used below, but can be
+        # accidently modified in place by the solver
+        base_configs = deepcopy(configs)
+
+        # solve!
         solver.setup(**solver_data, **configs)
         solutions = solver.solve(**solver_init)
-
-        # format!
         solutions = [solutions]
-        tuned_params = [tuned_params]
 
     # reformated tuned param from list of dict of dicts to just list of dicts
     kinds = tuned_params[0].keys()
@@ -611,12 +632,12 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
                 if KIND in ['penalty', 'flavor']:
                     penalty_params[name] = value
 
-            configs['penalty'].set_params(**penalty_params)
+            base_configs['penalty'].set_params(**penalty_params)
 
         # set fit coef/intercept for base estimator
         base_estimator._set_fit(fit_out=fit_out,
                                 pre_pro_out=pre_pro_out,
-                                configs=configs)
+                                configs=base_configs)
 
         # run any statistical inference
         # TODO: be careful about passing the raw vs. processed data here

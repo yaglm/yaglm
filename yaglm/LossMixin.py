@@ -3,7 +3,7 @@ from sklearn.metrics._regression import r2_score
 from sklearn.metrics._classification import accuracy_score
 from sklearn.utils.validation import check_is_fitted
 from sklearn.utils.extmath import softmax
-from sklearn.utils.validation import check_array
+from sklearn.utils.validation import _check_y
 from sklearn.utils.multiclass import check_classification_targets
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 from sklearn.utils.class_weight import compute_class_weight
@@ -256,8 +256,12 @@ class LossMixin:
 
 
 def basic_y_formatting(X, y, copy=True, check_input=True, is_clf=False):
+
+    if copy:
+        y = y.copy(order='K')
+
     if check_input:
-        y = check_array(y, copy=copy, ensure_2d=False)
+        y = _check_y(y, multi_output=False, y_numeric=not is_clf)
 
         if y.ndim == 2 and y.shape[1] == 1:
             y = y.reshape(-1)
@@ -266,9 +270,6 @@ def basic_y_formatting(X, y, copy=True, check_input=True, is_clf=False):
             check_classification_targets(y)
         else:
             y = y.astype(X.dtype)
-
-    elif copy:
-        y = y.copy(order='K')
 
     return y
 

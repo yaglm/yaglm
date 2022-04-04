@@ -57,6 +57,9 @@ class FISTA(GlmSolverWithPath):
     tracking_level: int
         How much data to track.
 
+    verbose: bool
+        Whether or not to display an iteration progress bar.
+
     References
     ----------
     Beck, A. and Teboulle, M., 2009. A fast iterative shrinkage-thresholding algorithm for linear inverse problems. SIAM journal on imaging sciences, 2(1), pp.183-202.
@@ -71,7 +74,8 @@ class FISTA(GlmSolverWithPath):
                  bt_grow=1.58,  # 10**.2
                  accel=True,
                  restart=True,
-                 tracking_level=0): pass
+                 tracking_level=0,
+                 verbose=False): pass
 
     @classmethod
     def _is_applicable(self, loss, penalty=None, constraint=None):
@@ -256,6 +260,7 @@ class FISTA(GlmSolverWithPath):
             init_val = self.loss_func_.default_init()
         else:
             if self.fit_intercept_:
+                # TODO: pull cat_intercept_coef into a separate function
                 init_val = self.loss_func_.\
                     cat_intercept_coef(intercept_init, coef_init)
             else:

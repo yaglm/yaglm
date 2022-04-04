@@ -1,14 +1,11 @@
-import cvxpy as cp
 from time import time
+from warnings import warn
 
 from yaglm.solver.base import GlmSolverWithPath
 from yaglm.autoassign import autoassign
 from yaglm.utils import is_multi_response, get_shapes_from, clip_zero
 from yaglm.config.penalty_utils import get_flavor_kind
 from yaglm.config.penalty import NoPenalty
-
-from yaglm.cvxpy.from_config import get_loss, get_penalty, get_constraints, \
-    update_pen_val_and_weights
 
 
 class Cvxpy(GlmSolverWithPath):
@@ -33,6 +30,13 @@ class Cvxpy(GlmSolverWithPath):
 
     @classmethod
     def _is_applicable(self, loss, penalty=None, constraint=None):
+
+        try:
+            import cvxpy
+        except ModuleNotFoundError:
+            warn("cvxpy not installed so yaglm.solver.Cvxpy cannot be used")
+            return False
+
         # cvxpy is applicable to any convex penalty
         return get_flavor_kind(penalty) not in ['non_convex', 'mixed']
 
@@ -41,6 +45,11 @@ class Cvxpy(GlmSolverWithPath):
         """
         Sets up anything the solver needs.
         """
+        # import cvxpy in this call so we don't force the user
+        # to have it installed
+        import cvxpy as cp
+        from yaglm.cvxpy.from_config import get_loss, get_penalty,\
+            get_constraints
 
         # make sure CVXPY is applicable
         if not self.is_applicable(loss, penalty, constraint):
@@ -88,6 +97,9 @@ class Cvxpy(GlmSolverWithPath):
         """
         Updates the penalty parameters.
         """
+        # local import to avoid requiring cvxpy to be installed
+        from yaglm.cvxpy.from_config import update_pen_val_and_weights
+
         self.penalty_config_.set_params(**params)
         update_pen_val_and_weights(config=self.penalty_config_,
                                    pen_val=self.pen_val_,
