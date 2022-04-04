@@ -66,7 +66,7 @@ def scad_grad_1d(x, pen_val, a=3.7):
 
     elif abs_x <= a * pen_val:
         return np.sign(x) * (a * pen_val - abs_x) / (a - 1)
-
+    
     else:
         return 0
 

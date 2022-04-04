@@ -184,7 +184,7 @@ def solve_lla(sub_prob, penalty_func,
             # check x difference stopping criterion
             stop, diff_norm = check_no_change(current=_current, prev=prev,
                                               tol=tol, rel_crit=rel_crit,
-                                              norm=stop_crit[-3:]  # max or L2
+                                              norm=stop_crit[2:]  # max or L2
                                               )
 
             if tracking_level >= 2:

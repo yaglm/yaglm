@@ -229,7 +229,7 @@ def solve_fista(smooth_func, init_val, non_smooth_func=None,
             # check x difference stopping criterion
             stop, diff_norm = check_no_change(current=value, prev=value_prev,
                                               tol=tol, rel_crit=rel_crit,
-                                              norm=stop_crit[-3:]  # max or L2
+                                              norm=stop_crit[2:]  # max or L2
                                               )
 
             if tracking_level >= 2:

@@ -31,7 +31,7 @@ class Ridge(WithPenSeqConfig):
         (Optional) Weights for each term in the penalty.
     """
     @autoassign
-    def __init__(self, pen_val=1, weights=None): pass
+    def __init__(self, pen_val=1, weights=None, targ_ubd=1): pass
 
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
                         sample_weight=None, init_data=None):
@@ -40,7 +40,7 @@ class Ridge(WithPenSeqConfig):
                                  weights=self.weights,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
-                                 targ_ubd=1,
+                                 targ_ubd=self.targ_ubd,
                                  norm_by_dim=True)
 
 
