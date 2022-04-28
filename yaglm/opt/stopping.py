@@ -53,13 +53,13 @@ def check_no_change(current, prev, norm='max', tol=None,
         def f(x): return np.abs(x).max()
 
     elif norm == 'mad':
-        def f(x): np.abs(x).mean()
+        def f(x): return np.abs(x).mean()
 
     elif norm == 'L2':
-        def f(x): np.sqrt(((x) ** 2).sum())
+        def f(x): return np.sqrt(((x) ** 2).sum())
 
     elif norm == 'rmse':
-        def f(x): np.sqrt(((x) ** 2).mean())
+        def f(x): return np.sqrt(((x) ** 2).mean())
 
     else:
         raise ValueError("Bad input to norm: {}".format(norm))

@@ -31,7 +31,7 @@ class Ridge(WithPenSeqConfig):
         (Optional) Weights for each term in the penalty.
     """
     @autoassign
-    def __init__(self, pen_val=1, weights=None): pass
+    def __init__(self, pen_val=1, weights=None, targ_ubd=1): pass
 
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
                         sample_weight=None, init_data=None):
@@ -40,7 +40,7 @@ class Ridge(WithPenSeqConfig):
                                  weights=self.weights,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
-                                 targ_ubd=1,
+                                 targ_ubd=self.targ_ubd,
                                  norm_by_dim=True)
 
 
@@ -310,12 +310,12 @@ class ElasticNet(ElasticNetConfig):
     """
     Represents the ElasticNet penalty
 
-    pen_val * mix_val ||coef||_1 + 0.5 * pen_val * (1 - mix_val) * ||coef||_2^2
+    pen_val * mix_val ||coef||_1 + pen_val * (1 - mix_val) * ||coef||_2^2
 
     The Lasso may have weights (though not the ridge at this time) or may be flavored.
     We define the non-convex elastic net as
 
-    non-convex_{pen_val * mix_val} (coef) + 0.5 * pen_val * (1 - mix_val) * ||coef||_2^2
+    non-convex_{pen_val * mix_val} (coef) + pen_val * (1 - mix_val) * ||coef||_2^2
 
     Parameters
     ----------

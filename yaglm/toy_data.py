@@ -3,6 +3,7 @@ from sklearn.utils import check_random_state
 from scipy.special import expit
 from sklearn.utils.extmath import softmax
 from numbers import Number
+from scipy.stats import bernoulli
 
 # TODO: add signal to noise ratio for logistic, multinomial and poisson
 
@@ -13,6 +14,7 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
                           cov='ar',
                           corr=0.35,
                           beta_type=1,
+                          beta_random_state=None,
                           noise_std=1,
                           snr=None,
                           intercept=0,
@@ -72,7 +74,8 @@ def sample_sparse_lin_reg(n_samples=100, n_features=10,
 
     # set coefficient and covariance matrix
     coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
-                           n_responses=n_responses, beta_type=beta_type)
+                           n_responses=n_responses, beta_type=beta_type,
+                           random_state = beta_random_state)
 
     cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
@@ -157,6 +160,7 @@ def infuse_outliers(y, prop_bad=.1, random_state=None):
 # TODO: add signal to noise ratio
 def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
                           beta_type=1,
+                          beta_random_state=None,
                           cov='ar',
                           corr=0.35,
                           coef_scale=1,
@@ -211,7 +215,7 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
 
     # set coefficient and covariance matrix
     coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
-                           beta_type=beta_type)
+                           beta_type=beta_type, random_state = beta_random_state)
 
     cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
@@ -238,6 +242,7 @@ def sample_sparse_log_reg(n_samples=100, n_features=10, n_nonzero=5,
 
 def sample_sparse_multinomial(n_samples=100, n_features=10,
                               n_nonzero=5, n_classes=3, beta_type=1,
+                              beta_random_state=None,
                               cov='ar',
                               corr=0.35,
                               coef_scale=1,
@@ -292,7 +297,8 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
 
     # set coefficient and covariance matrix
     coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
-                           beta_type=beta_type, n_responses=n_classes)
+                           beta_type=beta_type, n_responses=n_classes,
+                           random_state = beta_random_state)
 
     cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
@@ -322,6 +328,7 @@ def sample_sparse_multinomial(n_samples=100, n_features=10,
 def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
                               n_nonzero=5,
                               beta_type=1,
+                              beta_random_state=None,
                               coef_scale=1,
                               cov='ar',
                               corr=0.35,
@@ -379,7 +386,8 @@ def sample_sparse_poisson_reg(n_samples=100, n_features=10, n_responses=1,
 
     # set coefficient and covariance matrix
     coef = get_sparse_coef(n_features=n_features, n_nonzero=n_nonzero,
-                           beta_type=beta_type)
+                           beta_type=beta_type, 
+                           random_state = beta_random_state)
 
     cov = get_cov(n_features=n_features, cov=cov, corr=corr)
 
@@ -468,7 +476,26 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
     if neg_idx is not None:
         assert neg_idx < n_nonzero
 
-    if beta_type == 1:
+    if beta_type == 0:
+        # Beta value used in Model 1 of Fan et al. 2014
+        if n_features > 5:
+            trailing_zeros = np.zeros(n_features - 5)
+        coef = [3, 1.5, 0, 0, 2]
+        coef.extend(trailing_zeros)
+        coef = np.array(coef)
+        
+    elif beta_type == 23:
+        # Beta value used in Models 2 & 3 of Fan et al. 2014
+        if n_features < 10: raise Exception('Number of features needs to be at least 10')
+        coef = np.zeros(n_features)
+        idx = np.random.choice(a=n_features, size=10, replace = False)
+        t = np.random.uniform(1,2, size = 10)
+        s = np.array([bernoulli.rvs(0.5) for p in range(10)]) # Generate Rademacher random variable
+        s[s==0] = -1
+        coef[idx] = t*s
+        
+
+    elif beta_type == 1:
         # roughly equally spaced 1s
         coef = np.zeros(n_features)
 
@@ -505,6 +532,10 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
         coef = np.concatenate([np.ones(n_nonzero), decay])
 
         support_idxs = np.arange(n_nonzero)
+        
+    elif beta_type == 6:
+        # fully dense
+        coef = np.ones(n_features)
 
     # scale entries by a Laplace
     if laplace:

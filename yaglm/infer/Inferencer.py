@@ -6,7 +6,7 @@ import numpy as np
 from yaglm.config.base import Config
 from yaglm.autoassign import autoassign
 from yaglm.config.penalty import Lasso
-from yaglm.infer.dof import est_dof_support
+from yaglm.infer.dof import est_dof_support, est_dof_enet
 from yaglm.utils import is_fitted
 from yaglm.config.loss import get_loss_config
 
@@ -136,6 +136,15 @@ class Inferencer(Config):
             else:
                 # we don't currently support estimating the DoF for this model
                 self.dof_ = None
+                
+        elif self.dof == 'enet':
+            
+            self.dof_ = est_dof_enet(coef = estimator.coef_,
+                                     pen_val=estimator.fit_penalty_.pen_val,
+                                     mix_val=estimator.fit_penalty_.mix_val,
+                                     X = X,
+                                     intercept=estimator.intercept_,
+                                     zero_tol=zero_tol)
 
         elif isinstance(self.dof, Number):
             # user provided DOF value
