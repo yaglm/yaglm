@@ -532,6 +532,10 @@ def get_sparse_coef(n_features=10, n_nonzero=5, n_responses=1, beta_type=1,
         coef = np.concatenate([np.ones(n_nonzero), decay])
 
         support_idxs = np.arange(n_nonzero)
+        
+    elif beta_type == 6:
+        # fully dense
+        coef = np.ones(n_features)
 
     # scale entries by a Laplace
     if laplace:

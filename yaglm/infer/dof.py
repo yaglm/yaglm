@@ -49,3 +49,66 @@ def est_dof_support(coef, intercept=None, transform=None, zero_tol=1e-6):
 
     DoF = n_nonzero_coef + n_vals_intercept
     return DoF
+
+
+def est_dof_enet(coef, pen_val, mix_val, X, intercept=None, zero_tol=1e-6):
+    
+    """
+    The size of the support of the estimated coefficient for elastic net at a particular 
+    penalty and mixing value.
+    
+    ElasticNet penalty:
+
+    pen_val * mix_val ||coef||_1 + pen_val * (1 - mix_val) * ||coef||_2^2
+
+    Parameters
+    ----------
+    coef: array-like
+        The estimated coefficient.
+        
+    pen_val: float,
+        current penalty value in the elastic net penalty
+    
+    mix_val: float,
+        current mixing value in the elastic net penalty
+        
+    X: (n,d)-array,
+        design matrix excluding the intercept column
+
+    intercept: None, float, array-like
+        (Optional) The estimated coefficeint.
+
+    zero_tol: float
+        Tolerance for declaring a small value equal to zero. This addresses numerical issues where some solvers may not return exact zeros.
+
+    Output
+    ------
+    DoF: int
+        The estimaed number of degrees of freedom. The DoF of the coefficeint is given by either ||coef||_0 or ||transform(coef)||_0
+
+    References
+    ----------
+    Zou, H., Hastie, T. and Tibshirani, R., 2007. On the “degrees of freedom” of the lasso. The Annals of Statistics, 35(5), pp.2173-2192.
+    """
+    
+    # Get the estimated support from the fitted coefficient
+    if intercept is not None:
+        coef = np.concatenate([[intercept], coef])
+        
+    support = (abs(coef) > zero_tol)
+    
+    # tuning parameter attached to the ridge penalty
+    lambda_2 = pen_val * (1 - mix_val)
+    
+    # Get the columns of the design matrix that correspond to the non-zero coef
+    if intercept is not None:
+        ones = np.ones((X.shape[0], 1))
+        X = np.concatenate([ones, X], axis = 1)
+    
+    X_A = X[:, support].copy()
+    
+    xtx_li_inv = np.linalg.inv(X_A.T @ X_A + lambda_2 * np.identity(X_A.shape[1]))
+    
+    DoF = np.trace(X_A @ xtx_li_inv @ X_A.T)
+    
+    return(DoF)

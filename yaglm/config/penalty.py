@@ -310,12 +310,12 @@ class ElasticNet(ElasticNetConfig):
     """
     Represents the ElasticNet penalty
 
-    pen_val * mix_val ||coef||_1 + 0.5 * pen_val * (1 - mix_val) * ||coef||_2^2
+    pen_val * mix_val ||coef||_1 + pen_val * (1 - mix_val) * ||coef||_2^2
 
     The Lasso may have weights (though not the ridge at this time) or may be flavored.
     We define the non-convex elastic net as
 
-    non-convex_{pen_val * mix_val} (coef) + 0.5 * pen_val * (1 - mix_val) * ||coef||_2^2
+    non-convex_{pen_val * mix_val} (coef) + pen_val * (1 - mix_val) * ||coef||_2^2
 
     Parameters
     ----------

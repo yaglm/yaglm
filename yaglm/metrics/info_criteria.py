@@ -3,7 +3,7 @@ import numpy as np
 from yaglm.metrics.base import Scorer
 from yaglm.autoassign import autoassign
 
-from yaglm.config.penalty import Lasso
+from yaglm.config.penalty import Lasso, ElasticNet
 from yaglm.utils import count_support
 from yaglm.extmath import log_binom
 
@@ -56,9 +56,9 @@ class InfoCriteria(Scorer):
         """
 
         # formatting
-        if not isinstance(estimator.fit_penalty_, Lasso):
+        if not isinstance(estimator.fit_penalty_, (Lasso, ElasticNet)):
             raise NotImplementedError("Information criteria is currently only"
-                                      " supported for entrywise sparse penalties.")
+                                      " supported for Lasso and Elastic Net.")
 
         # compute data log-likelihood
         log_lik = estimator.sample_log_liks(X=X, y=y).sum()
