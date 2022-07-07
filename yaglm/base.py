@@ -53,6 +53,9 @@ class BaseGlm(BaseEstimator):
     initializer: str, dict, Estimator
         Specifies the initial estimator to use for penalties that require an initial estimator e.g. adaptive and non-convex LLA penalties. If str, must be one of ['default', 'zero']. If init='default', will infer a reasonable default penalty to use. If 'init'='zero', will initialize from zero. If an estimator is provided, will fit the estimator to the training data (unless it is already fit) then use the estimtor's fit coefficient. If a dict is provided, it must include the key 'coef' for the initializer coefficient.
 
+    relaxed: bool
+        Fit the relaxed version of the penalty i.e. fit the penalty, obtain the estimated support set, then fit the unpenalized version of the problem only including the estimated support.
+
     inferencer: None, Inferencer
         (Optional) An object that runs statistical inference procedures on the fitted estimator.
 
@@ -86,6 +89,7 @@ class BaseGlm(BaseEstimator):
                  solver='default',
                  lla=True,
                  initializer='default',
+                 relaxed=False,
                  inferencer=None
                  ):
         pass
@@ -491,6 +495,17 @@ class BaseGlm(BaseEstimator):
         solver_init = {} if solver_init is None else solver_init
         fit_out, _,  opt_info = solver.solve(**solver_init)
 
+        ###############
+        # Fit relaxed #
+        ###############
+        if self.relaxed:
+            raise NotImplementedError("TODO add")
+            # get unpenalized version of the penalty
+            # find support of estimated coefficient
+            # setup and solve relaxed problem
+            # map relaxed solution back to full vector
+            # TODO: give option to provide different solver for relaxed
+
         ##################
         # post procesing #
         ##################
@@ -719,6 +734,7 @@ class TunedGlm(BaseGlm):
                  solver='default',
                  lla=True,
                  initializer='default',
+                 relaxed=False,
                  inferencer=None,
 
                  select_metric=None,
@@ -839,11 +855,14 @@ class TunedGlm(BaseGlm):
         ------
         see run_fit_and_score_jobs()
         """
+        if self.relaxed:
+            raise NotImplementedError("TODO: add")
 
         return run_fit_and_score_jobs(job_configs=job_configs,
                                       store_ests=store_ests,
                                       scorer=self.scorer,
                                       fit_evals=self.fit_eval,
+                                      relaxed=self.relaxed,
                                       n_jobs=self.n_jobs,
                                       verbose=self.verbose,
                                       pre_dispatch=self.pre_dispatch)

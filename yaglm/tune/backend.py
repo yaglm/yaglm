@@ -7,7 +7,8 @@ from joblib import Parallel, delayed
 
 
 def run_fit_and_score_jobs(job_configs,
-                           store_ests=False, scorer=None, fit_evals=None,
+                           store_ests=False, scorer=None,
+                           fit_evals=None, relaxed=False,
                            n_jobs=None, verbose=0, pre_dispatch='2*n_jobs'):
     """
     Runs fit and score for a sequence of jobs.
@@ -35,6 +36,9 @@ def run_fit_and_score_jobs(job_configs,
     cv_pre_dispatch: int, or str, default=n_jobs
         Controls the number of jobs that get dispatched during parallel execution.
 
+    relaxed: bool
+        Fit the relaxed version of the penalty.
+
     Output
     ------
     For cross-validation: cv_results
@@ -61,6 +65,7 @@ def run_fit_and_score_jobs(job_configs,
     jobs = (delayed(fit_and_score)(store_ests=store_ests,
                                    scorer=scorer,
                                    fit_evals=fit_evals,
+                                   relaxed=relaxed,
                                    **kws) for kws in job_configs)
 
     output = par(jobs)
@@ -416,7 +421,9 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
                   fold_idx=None,
                   store_ests=False,
                   scorer=None,
-                  fit_evals=None):
+                  fit_evals=None,
+
+                  relaxed=False):
     """
     Fits and scores an estimator for either a single parameter setting or a path of parameters.
 
@@ -492,6 +499,9 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
 
     fit_evals: None, callable(est) -> dict or float
         (Optional) function that computes quantities from the fit estimator e.g. np.linalg.norm(est.coef_).
+
+    relaxed: bool
+        Fit the relaxed version of the penalty.
 
     Output
     ------
@@ -594,6 +604,13 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
                     new_params[new_key] = value
 
         tuned_params[i] = new_params
+
+    ###########
+    # Relaxed #
+    ###########
+    if relaxed:
+        # fit the relaxed version of the penalty
+        raise NotImplementedError("TODO: add")
 
     #######################
     # score each soluiton #

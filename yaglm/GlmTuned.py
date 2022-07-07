@@ -32,6 +32,7 @@ class GlmCV(LossMixin, TunedGlm):
                  solver='default',
                  lla=True,
                  initializer='default',
+                 relaxed=False,
                  inferencer=None,
 
                  cv=None,
@@ -148,6 +149,7 @@ class GlmValidation(LossMixin, TunedGlm):
                  solver='default',
                  lla=True,
                  initializer='default',
+                 relaxed=False,
                  inferencer=None,
 
                  val=0.2,
