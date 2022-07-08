@@ -13,7 +13,7 @@ class FitEval(MultiScorer):
     """
     def __init__(self, zero_tol=1e-6): pass
 
-    def __call__(self, estimator, X, y, sample_weight=None):
+    def __call__(self, estimator, X, y, sample_weight=None, offsets=None):
         """
         Output
         ------

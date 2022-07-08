@@ -1,7 +1,8 @@
 import numpy as np
-from sklearn.utils.validation import check_array, FLOAT_DTYPES
+from sklearn.utils.validation import check_array, FLOAT_DTYPES, _num_samples
 from scipy.sparse import issparse, diags
 from copy import deepcopy
+from numbers import Number
 
 from yaglm.utils import is_multi_response
 from yaglm.extmath import weighted_mean_std
@@ -253,3 +254,81 @@ def check_estimator_type(estimator, valid_class):
         raise ValueError("estimator is wrong type. " \
                          "Got {} but should be {}".
                          format(type(estimator), valid_class))
+
+def _check_offsets(offsets, X, dtype=None, copy=False,
+                   force_not_none=False,
+                   force_vector=True):
+    """
+
+    Parameters
+    ----------
+    offsets : {ndarray, Number or None}, shape (n_samples,)
+        Input sample offsets.
+
+    X : {ndarray, list, sparse matrix}
+        Input data.
+
+    dtype : dtype, default=None
+        dtype of the validated `offsets`.
+        If None, and the input `offsets` is an array, the dtype of the
+        input is preserved; otherwise an array with the default numpy dtype
+        is be allocated.  If `dtype` is not one of `float32`, `float64`,
+        `None`, the output will be of dtype `float64`.
+
+    copy : bool, default=False
+        If True, a copy of offsets will be created.
+
+    force_not_none: bool
+        If offsets=None then this will output a vector of zeros.
+
+    force_vector: bool
+        If offsetes is a float, will convert to a vector.
+
+    Output
+    -------
+    offsets : ndarray of shape (n_samples,),  float, or None
+        Validated offsets. It is guaranteed to be "C" contiguous.
+    """
+
+    # TODO: handle multiple response case of different offsets per output
+
+    n_samples = _num_samples(X)
+
+    if dtype is not None and dtype not in [np.float32, np.float64]:
+        dtype = np.float64
+
+    if offsets is None:
+
+        if force_not_none:
+            offsets = np.zeros(offsets, dtype=dtype)
+
+    elif isinstance(offsets, Number):
+
+        if force_vector:
+            offsets = np.full(n_samples, offsets, dtype=dtype)
+
+    else:
+        if dtype is None:
+            dtype = [np.float64, np.float32]
+
+        offsets = check_array(
+            offsets,
+            accept_sparse=False,
+            ensure_2d=False,
+            dtype=dtype,
+            order="C",
+            copy=copy,
+            # input_name="offsets",
+        )
+
+        if offsets.ndim != 1:
+            raise ValueError("Sample weights must be 1D array or scalar")
+
+        if offsets.shape != (n_samples,):
+            raise ValueError(
+                "offset.shape == {}, expected {}!".format(
+                    offsets.shape, (n_samples,)
+                )
+            )
+
+    return offsets

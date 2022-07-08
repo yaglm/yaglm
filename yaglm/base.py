@@ -7,7 +7,8 @@ from sklearn.utils.validation import check_array, _check_y, \
     _check_sample_weight, FLOAT_DTYPES
 
 from yaglm.autoassign import autoassign
-from yaglm.processing import process_X, deprocess_fit, process_init_data
+from yaglm.processing import process_X, deprocess_fit, process_init_data, \
+    _check_offsets
 from yaglm.utils import fit_if_unfitted, get_coef_and_intercept, \
     is_str_and_matches, get_shapes_from
 
@@ -119,7 +120,8 @@ class BaseGlm(BaseEstimator):
         """
         raise NotImplementedError("Subclass should overwrite")
 
-    def _validate_data(self, X, y, sample_weight=None, accept_sparse=True):
+    def _validate_data(self, X, y, sample_weight=None, offsets=None,
+                       accept_sparse=True):
         """
         Validates the X/y data. This should not change the raw input data, but may reformat the data (e.g. convert pandas to numpy).
 
@@ -130,6 +132,19 @@ class BaseGlm(BaseEstimator):
 
         y: array-like, shape (n_samples, ) or (n_samples, n_responses)
             The response data.
+
+        sample_weight: None, array-like, shape (n_samples, )
+            (Optional) The sample weights
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
+        accept_sparse: bool
+            Whether or not X is allowed to be sparse.
+
+        Output
+        ------
+        X, y, sample_weight, offsets
         """
         X = check_array(X, accept_sparse=accept_sparse,
                         dtype=FLOAT_DTYPES)
@@ -137,6 +152,10 @@ class BaseGlm(BaseEstimator):
         if sample_weight is not None:
             sample_weight = _check_sample_weight(sample_weight, X,
                                                  dtype=X.dtype)
+
+        offsets = _check_offsets(offsets, X=X, dtype=X.dtype,
+                                 force_not_none=False,
+                                 force_vector=False)
 
         y = _check_y(y, multi_output=True, y_numeric=False)
 
@@ -148,9 +167,10 @@ class BaseGlm(BaseEstimator):
         if y.shape[0] != X.shape[0]:
             raise ValueError("X and y must have the same number of rows!")
 
-        return X, y, sample_weight
+        return X, y, sample_weight, offsets
 
-    def preprocess(self, X, y, sample_weight=None, copy=True, check_input=True):
+    def preprocess(self, X, y, sample_weight=None, offsets=None,
+                   copy=True, check_input=True):
         """
         Preprocesses the data for fitting.
 
@@ -166,8 +186,11 @@ class BaseGlm(BaseEstimator):
         y: array-like, shape (n_samples, ) or (n_samples, n_responses)
             The response data.
 
-        sample_weight: None or array-like,  shape (n_samples,)
-            Individual weights for each sample.
+        sample_weight: None, array-like, shape (n_samples, )
+            (Optional) The sample weights.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
 
         copy: bool
             Whether or not to copy the X/y arrays or modify them in place.
@@ -196,6 +219,12 @@ class BaseGlm(BaseEstimator):
             if copy:
                 sample_weight = sample_weight.copy()
 
+        if offsets is not None:
+            if hasattr(offsets, 'copy'):
+                offsets = offsets.copy()
+            else:
+                offsets = deepcopy(offsets)
+
         # possibly standarize X
         X, out = process_X(X,
                            standardize=self.standardize,
@@ -214,7 +243,8 @@ class BaseGlm(BaseEstimator):
 
         out.update(y_out)
 
-        pro_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
+        pro_data = {'X': X, 'y': y,
+                    'sample_weight': sample_weight, 'offsets': offsets}
         return pro_data, out
 
     def get_unflavored_tunable(self):
@@ -225,7 +255,8 @@ class BaseGlm(BaseEstimator):
         """
         raise NotImplementedError("Subclass should overwrite")
 
-    def get_initializer(self, X, y, pre_pro_out, sample_weight=None):
+    def get_initializer(self, X, y, pre_pro_out,
+                        sample_weight=None, offsets=None):
         """
         Possibly performs prefitting routines e.g. fitting an initial estimator.
 
@@ -242,6 +273,9 @@ class BaseGlm(BaseEstimator):
 
         sample_weight: None or array-like,  shape (n_samples,)
             Individual weights for each sample.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            The offsets for each sample.
 
         Output
         ------
@@ -311,7 +345,8 @@ class BaseGlm(BaseEstimator):
             if init_est is not None:
                 # possibly fit this estimator if it has not already been fit
                 init_est = fit_if_unfitted(init_est, X=X, y=y,
-                                           sample_weight=sample_weight)
+                                           sample_weight=sample_weight,
+                                           offsets=offsets)
 
                 coef, intercept = get_coef_and_intercept(init_est, copy=True,
                                                          error=True)
@@ -334,7 +369,7 @@ class BaseGlm(BaseEstimator):
             init_data, init_est = None, None
             return init_data, init_est
 
-    def setup_and_prefit(self, X, y, sample_weight):
+    def setup_and_prefit(self, X, y, sample_weight, offsets):
         """
         Runs various routines needed before fitting the GLM
 
@@ -382,10 +417,13 @@ class BaseGlm(BaseEstimator):
         #################
 
         # basic formatting check
-        X, y, sample_weight = self._validate_data(X=X, y=y,
-                                                  sample_weight=sample_weight)
+        X, y, sample_weight, offsets = \
+            self._validate_data(X=X, y=y,
+                                sample_weight=sample_weight,
+                                offsets=offsets)
 
-        raw_data = {'X': X, 'y': y, 'sample_weight': sample_weight}
+        raw_data = {'X': X, 'y': y,
+                    'sample_weight': sample_weight, 'offsets': offsets}
 
         # run any prefitting inference
         inferencer = self.run_prefit_inference(**raw_data)
@@ -398,7 +436,8 @@ class BaseGlm(BaseEstimator):
         init_data, init_est = \
             self.get_initializer(X=X, y=y,
                                  pre_pro_out=pre_pro_out,
-                                 sample_weight=sample_weight)
+                                 sample_weight=sample_weight,
+                                 offsets=offsets)
 
         # store init_est here to be saved later in _pre_fit
         pre_pro_out['init_est'] = init_est
@@ -488,7 +527,7 @@ class BaseGlm(BaseEstimator):
 
         # setup solver
         solver.setup(fit_intercept=self.fit_intercept,
-                     **pro_data,  # X, y, sample_weight
+                     **pro_data,  # X, y, sample_weight, offsets
                      **configs,  # loss, penalty, constraint
                      )
 
@@ -613,15 +652,19 @@ class BaseGlm(BaseEstimator):
 
         return self
 
-    def decision_function(self, X):
+    def decision_function(self, X, offsets=None):
         """
-        The GLM decision function i.e. z = X.T @ coef + interept
+        The GLM decision function i.e. z = X.T @ coef + interept or
+
+        z = X.T @ coef + interept + offests
 
         Parameters
         ----------
         X: array-like, shape (n_samples, n_features)
             The covariate data.
 
+        offsets: None, array-like, shape (n_samples, )
+            (Optional) Offsets for the decision function.
         Output
         ------
         z: array-like, shape (n_samples, ) or (n_samples, n_responses)
@@ -638,6 +681,9 @@ class BaseGlm(BaseEstimator):
         if hasattr(self, 'intercept_') and self.intercept_ is not None:
             z += self.intercept_
 
+        if offsets is not None:
+            z += offsets
+
         return z
 
     def _more_tags(self):
@@ -647,7 +693,7 @@ class BaseGlm(BaseEstimator):
     # Inference #
     #############
 
-    def run_prefit_inference(self, X, y, sample_weight=None):
+    def run_prefit_inference(self, X, y, sample_weight=None, offsets=None):
         """
         Runs statistical inference procedures on before fitting the model e.g. estimating the exponential family scale parameter.
 
@@ -655,6 +701,12 @@ class BaseGlm(BaseEstimator):
         ----------
         X, y: array-like
             The training data used to fit the model.
+
+        sample_weight: None, array-like, shape (n_samples, )
+            (Optional) The sample weights
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
 
         Output
         ------
@@ -664,13 +716,14 @@ class BaseGlm(BaseEstimator):
             # TODO: do we want to do a copy here?
             inferencer = deepcopy(self.inferencer)
             inferencer.pre_fit(estimator=self, X=X, y=y,
-                               sample_weight=sample_weight)
+                               sample_weight=sample_weight,
+                               offsets=offsets)
             return inferencer
 
         else:
             return None
 
-    def run_after_fit_inference(self, X, y, sample_weight=None):
+    def run_after_fit_inference(self, X, y, sample_weight=None, offsets=None):
         """
         Runs statistical inference procedures on the fitted model e.g. estimates the number of degrees of freedom. The inferencer_ attribute must first be set.
 
@@ -678,6 +731,12 @@ class BaseGlm(BaseEstimator):
         ----------
         X, y: array-like
             The training data used to fit the model.
+
+        sample_weight: None, array-like, shape (n_samples, )
+            (Optional) The sample weights
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
 
         Output
         ------
@@ -689,7 +748,8 @@ class BaseGlm(BaseEstimator):
         # but this may be a bit unexpected
         if self.inferencer_ is not None:
             self.inferencer_.after_fit(estimator=self, X=X, y=y,
-                                       sample_weight=sample_weight)
+                                       sample_weight=sample_weight,
+                                       offsets=offsets)
 
         return self
 
@@ -759,7 +819,7 @@ class TunedGlm(BaseGlm):
             A dict of the loss, penalty, and constraint configs.
 
         pro_data: dict
-            The preprocessed X, y and sample_weight data.
+            The preprocessed X, y, sample_weight, and offset data.
 
         init_data: dict
             The initialization data for the solver. This i

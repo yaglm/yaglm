@@ -46,7 +46,29 @@ class GlmCV(LossMixin, TunedGlm):
                  pre_dispatch='2*n_jobs',
                  path_algo=True): pass
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y, sample_weight=None, offsets=None):
+        """
+        Fits the penalized GLM and tunes the parameters with cross-validation.
+
+        Parameters
+        ----------
+        X: array-like, shape (n_samples, n_features)
+            The training covariate data.
+
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The training response data.
+
+        sample_weight: None or array-like, shape (n_samples,)
+            (Optional) Individual weights for each sample.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
+        Output
+        ------
+        self
+            Fitted estimator.
+        """
 
         start_time = time()
         tune_info = {'runtime': {}}
@@ -56,7 +78,9 @@ class GlmCV(LossMixin, TunedGlm):
         ##############################################
         pro_data, raw_data, pre_pro_out, \
             configs, solver, init_data, inferencer = \
-            self.setup_and_prefit(X, y, sample_weight)
+            self.setup_and_prefit(X=X, y=y,
+                                  sample_weight=sample_weight,
+                                  offsets=offsets)
 
         # store inferencer
         self.inferencer_ = inferencer
@@ -162,8 +186,29 @@ class GlmValidation(LossMixin, TunedGlm):
                  pre_dispatch='2*n_jobs',
                  path_algo=True): pass
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y, sample_weight=None, offsets=None):
+        """
+        Fits the penalized GLM and tunes the parameters with a validation set.
 
+        Parameters
+        ----------
+        X: array-like, shape (n_samples, n_features)
+            The training covariate data.
+
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The training response data.
+
+        sample_weight: None or array-like, shape (n_samples,)
+            (Optional) Individual weights for each sample.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
+        Output
+        ------
+        self
+            Fitted estimator.
+        """
         start_time = time()
         tune_info = {'runtime': {}}
 
@@ -172,7 +217,9 @@ class GlmValidation(LossMixin, TunedGlm):
         ##############################################
         pro_data, raw_data, pre_pro_out, \
             configs, solver, init_data, inferencer = \
-            self.setup_and_prefit(X, y, sample_weight)
+            self.setup_and_prefit(X=X, y=y,
+                                  sample_weight=sample_weight,
+                                  offsets=offsets)
 
         # store inferencer
         self.inferencer_ = inferencer
@@ -259,7 +306,29 @@ class GlmTrainMetric(LossMixin, TunedGlm):
     Tunes a GLM model using generalized cross-validation (GCV).
     """
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y, sample_weight=None, offsets=None):
+        """
+        Fits the penalized GLM and tunes the parameters with a metric from the training data.
+
+        Parameters
+        ----------
+        X: array-like, shape (n_samples, n_features)
+            The training covariate data.
+
+        y: array-like, shape (n_samples, ) or (n_samples, n_responses)
+            The training response data.
+
+        sample_weight: None or array-like, shape (n_samples,)
+            (Optional) Individual weights for each sample.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
+        Output
+        ------
+        self
+            Fitted estimator.
+        """
 
         tune_info = {'runtime': {}}
         start_time = time()
@@ -269,7 +338,9 @@ class GlmTrainMetric(LossMixin, TunedGlm):
         ##############################################
         pro_data, raw_data, pre_pro_out, \
             configs, solver, init_data, inferencer = \
-            self.setup_and_prefit(X, y, sample_weight)
+            self.setup_and_prefit(X=X, y=y,
+                                  sample_weight=sample_weight,
+                                  offsets=offsets)
 
         # store inferencer
         self.inferencer_ = inferencer

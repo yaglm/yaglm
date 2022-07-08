@@ -31,7 +31,7 @@ class InfoCriteria(Scorer):
         return self.crit
 
     # TODO: currently ignores sample_weight
-    def __call__(self, estimator, X, y, sample_weight=None):
+    def __call__(self, estimator, X, y, sample_weight=None, offsets=None):
         """
         Returns the negative information criteria.
 
@@ -49,11 +49,20 @@ class InfoCriteria(Scorer):
         sample_weight: None, array-like (n_samples, )
             (Optional) Sample weight to use for scoring.
 
+        offsets: None, array-like (n_samples, )
+            (Optional) Sample offsets.
+
         Output
         ------
         scores: float
             The negative information criteria score so that larger values indicate better model fit.
         """
+
+        if sample_weight is not None:
+            raise NotImplementedError("TODO: add")
+
+        if offsets is not None:
+            raise NotImplementedError("Think through")
 
         # formatting
         if not isinstance(estimator.fit_penalty_, Lasso):
@@ -61,7 +70,7 @@ class InfoCriteria(Scorer):
                                       " supported for entrywise sparse penalties.")
 
         # compute data log-likelihood
-        log_lik = estimator.sample_log_liks(X=X, y=y).sum()
+        log_lik = estimator.sample_log_liks(X=X, y=y, offsets=offsets).sum()
 
         n_samples = X.shape[0]
 

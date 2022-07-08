@@ -13,7 +13,7 @@ class Glm(LossMixin, BaseGlm):
     def _is_tuner(self):
         return False
 
-    def fit(self, X, y, sample_weight=None):
+    def fit(self, X, y, sample_weight=None, offsets=None):
         """
         Fits the penalized GLM.
 
@@ -25,8 +25,11 @@ class Glm(LossMixin, BaseGlm):
         y: array-like, shape (n_samples, ) or (n_samples, n_responses)
             The training response data.
 
-        sample_weight: None or array-like,  shape (n_samples,)
+        sample_weight: None or array-like, shape (n_samples,)
             (Optional) Individual weights for each sample.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
 
         Output
         ------
@@ -41,7 +44,8 @@ class Glm(LossMixin, BaseGlm):
         ##############################################
         pro_data, raw_data, pre_pro_out, \
             configs, solver, init_data, inferencer = \
-            self.setup_and_prefit(X, y, sample_weight)
+            self.setup_and_prefit(X=X, y=y,
+                                  sample_weight=sample_weight, offsets=offsets)
 
         ########################
         # Set adaptive weights #

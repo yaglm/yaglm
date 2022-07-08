@@ -60,7 +60,7 @@ class LossMixin:
                                          copy=copy,
                                          check_input=check_input)
 
-    def predict(self, X):
+    def predict(self, X, offsets=None):
         """
         Returns the predicted values. For regressors this is the E[Y|X], while for classifies this is the predicted class label.
 
@@ -69,24 +69,27 @@ class LossMixin:
         X: array-like, shape (n_samples, n_features)
             The covariate data.
 
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
         Output
         ------
         y_pred: array-like, shape (n_samples, ) or (n_samples, n_responses)
             The predictions.
         """
         if self._estimator_type == 'regressor':
-            return self.predict_expected(X)
+            return self.predict_expected(X, offsets=offsets)
 
         elif self._estimator_type == 'classifier':
 
-            scores = self.decision_function(X)
+            scores = self.decision_function(X, offsets=offsets)
             if len(scores.shape) == 1:
                 indices = (scores > 0).astype(int)
             else:
                 indices = scores.argmax(axis=1)
             return self.classes_[indices]
 
-    def score(self, X, y, sample_weight=None):
+    def score(self, X, y, sample_weight=None, offsets=None):
         """
         Scores the predictions using the default score strategy e.g. r2_score for linear regression, accuracy for classifiers and D squared for poission.
 
@@ -98,13 +101,19 @@ class LossMixin:
         y: array-like, shape (n_samples, ) or (n_samples, n_responses)
             The groud truth values for the test samples.
 
+        sample_weight: None or array-like, shape (n_samples,)
+            (Optional) Individual weights for each sample.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
         Output
         ------
         score: float
             The score; higher is better.
         """
 
-        y_pred = self.predict(X)
+        y_pred = self.predict(X, offsets=offsets)
         loss_config = get_base_config(get_loss_config(self.loss))
 
         if loss_config.name in ['lin_reg', 'huber', 'quantile', 'poisson']:
@@ -119,7 +128,7 @@ class LossMixin:
             return accuracy_score(y_true=y, y_pred=y_pred,
                                   sample_weight=sample_weight)
 
-    def predict_proba(self, X):
+    def predict_proba(self, X, offsets=None):
         """"
         Predicted class probabilities.
 
@@ -127,6 +136,9 @@ class LossMixin:
         ----------
         X: array-like, shape (n_samples, n_features)
             The covariate test data.
+
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
 
         Output
         ------
@@ -139,9 +151,9 @@ class LossMixin:
             raise ValueError("{} does not support predict_proba".
                              format(loss_config.name))
 
-        return self.predict_expected(X)
+        return self.predict_expected(X, offsets=offsets)
 
-    def predict_log_proba(self, X):
+    def predict_log_proba(self, X, offsets=None):
         """
         Log of the predicted class probabilities.
 
@@ -150,15 +162,17 @@ class LossMixin:
         X: array-like, shape (n_samples, n_features)
             The covariate test data.
 
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
         Output
         ------
         prob: array-like, shape (n_samples, ) or (n_samples, n_classes)
             The logs of the probabilities either for class 1 (for logistic regression) or for all the classes (for multinomial.)
 
         """
-        return np.log(self.predict_proba(X))
+        return np.log(self.predict_proba(X, offsets=offsets))
 
-    def predict_expected(self, X):
+    def predict_expected(self, X, offsets=None):
         """
         Returns E[Y|X], the estimatead expected value of Y given X.
 
@@ -167,6 +181,9 @@ class LossMixin:
         X: array-like, shape (n_samples, n_features)
             The covariate test data.
 
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
         Output
         ------
         expected: array-like (n_samples, n_responses)
@@ -174,7 +191,7 @@ class LossMixin:
         """
         check_is_fitted(self)
 
-        z = self.decision_function(X)
+        z = self.decision_function(X, offsets=offsets)
         loss_config = get_base_config(get_loss_config(self.loss))
 
         if loss_config.name in ['lin_reg', 'huber', 'quantile', 'l2']:
@@ -192,7 +209,7 @@ class LossMixin:
         else:
             raise NotImplementedError
 
-    def sample_log_liks(self, X, y):
+    def sample_log_liks(self, X, y, offsets=None):
         """
         Returns the sample log-likelihood of the predictions.
 
@@ -204,13 +221,16 @@ class LossMixin:
         y: array-like, shape (n_samples, n_responses)
             The true response test data.
 
+        offsets: None, float, array-like, shape (n_samples, )
+            (Optional) The offsets for each sample.
+
         Output
         ------
         X: array-like, shape (n_samples, )
             The log-likelihood of each sample.
         """
         loss_config = get_base_config(get_loss_config(self.loss))
-        y_pred = self.predict_expected(X)
+        y_pred = self.predict_expected(X, offsets=offsets)
 
         # linear regression
         if loss_config.name == 'lin_reg':

@@ -43,7 +43,8 @@ class LinReg(Glm):
     GLM_LOSS_CLASS = LeastSquares
 
     def intercept_at_coef_eq0(self):
-        return np.average(self.y, weights=self.sample_weight)
+        values = self.y if self.offsets is None else self.y - self.offsets
+        return np.average(values, weights=self.sample_weight)
 
 
 class LeastSquaresMulti(GlmInputLoss):
@@ -64,4 +65,6 @@ class LinRegMultiResp(GlmMultiResp):
     GLM_LOSS_CLASS = LeastSquaresMulti
 
     def intercept_at_coef_eq0(self):
-        return np.average(self.y, axis=0, weights=self.sample_weight)
+        values = self.y if self.offsets is None else self.y - self.offsets
+
+        return np.average(values, axis=0, weights=self.sample_weight)

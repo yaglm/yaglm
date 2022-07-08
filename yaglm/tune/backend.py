@@ -1,9 +1,11 @@
 import numpy as np
 from copy import deepcopy
 from itertools import product
-from sklearn.metrics import get_scorer
 from sklearn.utils.fixes import _joblib_parallel_args
 from joblib import Parallel, delayed
+
+# from sklearn.metrics import get_scorer
+from yaglm.metrics.scorer_with_offsets import get_scorer, check_accepts_offsets
 
 
 def run_fit_and_score_jobs(job_configs,
@@ -101,7 +103,7 @@ def get_cross_validation_jobs(raw_data, est, solver, tune_iter, fold_iter,
     Parameters
     ----------
     raw_data: dict
-        A dict containing the raw data with keys ['X', 'y', 'sample_weights'].
+        A dict containing the raw data with keys ['X', 'y', 'sample_weight', 'offsets'].
 
     est: Glm
         The base estimator. This is used for preprocessing the CV training data and for computing evaluation metrics.
@@ -135,7 +137,7 @@ def get_cross_validation_jobs(raw_data, est, solver, tune_iter, fold_iter,
 
         # split/process train data
         solver_data, eval_data = \
-            split_and_process(**raw_data,  # X, y, sample_weight
+            split_and_process(**raw_data,  # X, y, sample_weight, offsets
                               est=est, train=train, test=test)
 
         # setup tuning prameter iterator
@@ -169,7 +171,7 @@ def get_validation_jobs(raw_data, est, solver, tune_iter,
     Parameters
     ----------
     raw_data: dict
-        A dict containing the raw data with keys ['X', 'y', 'sample_weights'].
+        A dict containing the raw data with keys ['X', 'y', 'sample_weight', 'offsets'].
 
     est: Glm
         The base estimator. This is used for preprocessing the CV training data and for computing evaluation metrics.
@@ -199,7 +201,8 @@ def get_validation_jobs(raw_data, est, solver, tune_iter,
     path_algo = path_algo and solver.has_path_algo
 
     # split/process train data
-    solver_data, eval_data = split_and_process(**raw_data,  # X,y,sample_weight
+    solver_data, eval_data = split_and_process(**raw_data,
+                                               # X,y,sample_weight, offsets
                                                est=est,
                                                train=train, test=test)
 
@@ -233,10 +236,10 @@ def get_train_jobs(pro_data, raw_data, pre_pro_out,
     Parameters
     ----------
     pro_data: dict
-        A dict containing the processed data with keys ['X', 'y', 'sample_weights'].
+        A dict containing the processed data with keys ['X', 'y', 'sample_weight', 'offsets'].
 
     raw_data: dict
-        A dict containing the raw data with keys ['X', 'y', 'sample_weights'].
+        A dict containing the raw data with keys ['X', 'y', 'sample_weight', 'offsets'].
 
     pre_pro_out: dict
         The preprocessing output of the training data.
@@ -296,7 +299,8 @@ def get_train_jobs(pro_data, raw_data, pre_pro_out,
                }
 
 
-def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
+def split_and_process(X, y, est, train=None, test=None,
+                      sample_weight=None, offsets=None):
     """
     Possibly splits the data into train/test sets then processes the training data.
 
@@ -317,8 +321,11 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
     test: None, array-like
         (Optional) Indices for test samples.
 
-    fit_params: None, array-like
-        (Optional) Sample weights.
+    sample_weight: None, array-like, shape (n_samples, )
+        (Optional) The sample weights
+
+    offsets: None, float, array-like, shape (n_samples, )
+        (Optional) The offsets for each sample.
 
     Output
     ------
@@ -332,6 +339,9 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
 
         sample_weight: None, array-like
             The processed training sample weights.
+
+        offsets: None, array-like
+            The processed training offsets.
 
     eval_data: dict
         The raw data that will be used for computing evaluation metrics. Includes keys
@@ -348,24 +358,30 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
         X_test, y_test: array-like
             The raw test data.
 
-        fit_params_test:
-            The test fit params.
+        sample_weight: None, array-like
+            The processed test sample weights.
+
+        offsets: None, array-like
+            The processed test offsets.
+
     """
 
     ##########################
     # extract training data #
     #########################
     if train is None:
-        X_train, y_train, sample_weight_train = X, y, sample_weight
+        X_train, y_train, sample_weight_train, offsets_train =\
+            X, y, sample_weight, offsets
 
     else:
         X_train = X[train, :]
         y_train = y[train]
 
-        if sample_weight is not None:
-            sample_weight_train = sample_weight[train]
-        else:
-            sample_weight_train = None
+        sample_weight_train = None if sample_weight is None \
+            else sample_weight[train]
+
+        offsets_train = None if offsets is None \
+            else offsets[train]
 
     #########################
     # process training data #
@@ -375,6 +391,7 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
     pro_data, pre_pro_out = \
         est.preprocess(X=X_train, y=y_train,
                        sample_weight=sample_weight_train,
+                       offsets=offsets_train,
                        copy=True)
 
     # processed data to be passed to the solver
@@ -388,6 +405,7 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
     eval_data = {'X_train': X_train,
                  'y_train': y_train,
                  'sample_weight_train': sample_weight_train,
+                 'offsets_train': offsets_train,
                  'pre_pro_out': pre_pro_out,
                  'base_estimator': est  # TODO: clone here?
                  }
@@ -400,10 +418,11 @@ def split_and_process(X, y, est, train=None, test=None, sample_weight=None):
         eval_data['X_test'] = X[test, :]
         eval_data['y_test'] = y[test]
 
-        if sample_weight is not None:
-            eval_data['sample_weight_test'] = sample_weight[test]
-        else:
-            eval_data['sample_weight_test'] = None
+        eval_data['sample_weight_test'] = None if sample_weight is None \
+            else sample_weight[test]
+
+        eval_data['offsets_test'] = None if offsets is None \
+            else offsets[test]
 
     return solver_data, eval_data
 
@@ -418,6 +437,9 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
                   sample_weight_train=None,
                   sample_weight_test=None,
 
+                  offsets_train=None,
+                  offsets_test=None,
+
                   fold_idx=None,
                   store_ests=False,
                   scorer=None,
@@ -430,7 +452,7 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
     Parameters
     -----------
     solver_data: dict
-        The input to solver.setup() excluding the config arguments e.g. has keys ['X', 'y', 'sample_weight', 'fit_intercept'].
+        The input to solver.setup() excluding the config arguments e.g. has keys ['X', 'y', 'sample_weight', 'offset', 'fit_intercept'].
 
     solver: GlmSolver
         The solver object that computes either a single solution of solution path.
@@ -487,6 +509,12 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
 
     sample_weight_test: None, array-like (n_samples_test, )
             (Optional) Test sample weights.
+
+    offsets_train: None, array-like (n_samples_train, )
+            (Optional) Train offsets.
+
+    offsets_test: None, array-like (n_samples_test, )
+            (Optional) Test offsets.
 
     fold_idx: None, int
         (Optional) Index of the cross-validation fold.
@@ -660,7 +688,8 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
         # TODO: be careful about passing the raw vs. processed data here
         base_estimator.\
             run_after_fit_inference(X=X_train, y=y_train,
-                                    sample_weight=sample_weight_train)
+                                    sample_weight=sample_weight_train,
+                                    offsets=offsets_train)
 
         ###########################
         # score the fit estimator #
@@ -672,29 +701,46 @@ def fit_and_score(solver_data, solver, path_algo, solver_init,
 
             # train score
             tr = base_estimator.score(X=X_train, y=y_train,
-                                      sample_weight=sample_weight_train)
+                                      sample_weight=sample_weight_train,
+                                      offsets=offsets_train)
             
             # (optional) test score
             if X_test is not None:
                 tst = base_estimator.score(X=X_test, y=y_test,
-                                           sample_weight=sample_weight_test)
+                                           sample_weight=sample_weight_test,
+                                           offsets=offsets_test)
 
         else:  # custom scorer
-
-            # possibly get scoring from sklearn
 
             if type(scorer) == str:
                 # default_score_name = scorer
                 scorer = get_scorer(scorer)
 
+            if offsets_train is not None and not check_accepts_offsets(scorer):
+                raise RuntimeError("The provided scorer does not accept an "
+                                   "'offsets' argument. Note sklean does not "
+                                   "include this argument by default. See "
+                                   "yaglm.metrics.scorer_with_offsets for "
+                                   "scorers that do accept an offsets argument")
+
+            # only pass 'offsets' into scorer if actually needed
+            tr_kws = {} if offsets_train is None else {'offsets': offsets_train}
+
             # train score
-            tr = scorer(base_estimator, X_train, y_train,  # X=, y_true=
-                        sample_weight=sample_weight_train)
+            tr = scorer(estimator=base_estimator, X=X_train, y=y_train,
+                        sample_weight=sample_weight_train,
+                        **tr_kws
+                        )
             
             # test score
             if X_test is not None:
-                tst = scorer(base_estimator, X_test, y_test,
-                             sample_weight=sample_weight_test)
+                # only pass 'offsets' into scorer if actually needed
+                tst_kws = {} if offsets_test is None else \
+                     {'offsets': offsets_test}
+
+                tst = scorer(estimator=base_estimator, X=X_test, y_true=y_test,
+                             sample_weight=sample_weight_test,
+                             **tst_kws)
 
         # make sure we have dict formatting
         if not isinstance(tr, dict):

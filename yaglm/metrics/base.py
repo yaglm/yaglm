@@ -3,7 +3,7 @@ class Scorer:
     Base class for an estimator scoring object.
     """
 
-    def __call__(self, estimator, X, y, sample_weight=None):
+    def __call__(self, estimator, X, y, sample_weight=None, offsets=None):
         """
         Parameters
         ----------
@@ -18,6 +18,9 @@ class Scorer:
 
         sample_weight: None, array-like (n_samples, )
             (Optional) Sample weight to use for scoring.
+
+        offsets: None, array-like (n_samples, )
+            (Optional) Sample offsets.
 
         Output
         ------
@@ -51,7 +54,7 @@ class MultiScorer:
     name: str
         Name of this score.
     """
-    def __call__(self, estimator, X, y, sample_weight=None):
+    def __call__(self, estimator, X, y, sample_weight=None, offsets=None):
         """
 
         Output

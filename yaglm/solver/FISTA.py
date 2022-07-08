@@ -140,7 +140,7 @@ class FISTA(GlmSolverWithPath):
             return True
 
     def setup(self, X, y, loss, penalty, constraint=None,
-              fit_intercept=True, sample_weight=None):
+              fit_intercept=True, sample_weight=None, offsets=None):
         """
         Sets up anything the solver needs.
         """
@@ -162,7 +162,8 @@ class FISTA(GlmSolverWithPath):
         # get the loss function
         self.loss_func_ = get_glm_loss_func(config=loss, X=X, y=y,
                                             fit_intercept=fit_intercept,
-                                            sample_weight=sample_weight)
+                                            sample_weight=sample_weight,
+                                            offsets=offsets)
 
         ##########################
         # Penalty and constraint #

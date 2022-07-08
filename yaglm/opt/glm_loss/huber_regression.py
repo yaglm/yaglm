@@ -63,7 +63,9 @@ def huberized_mean_1d(values, knot=1, sample_weight=None, **kws):
     knot: float
         Where the knot is.
 
-    sample_weight: None, array-like (n_samples, )
+    sample_weight: None, array-like, shape (n_samples, )
+
+    offsets: None, array-like, shape (n_samples )
 
     **kws:
         keyword arguments to scipy.optimize.root_scalar
@@ -91,7 +93,8 @@ def huberized_mean_1d(values, knot=1, sample_weight=None, **kws):
     return huber_mean
 
 
-def huberized_mean(values, axis=0, knot=1, sample_weight=None, **kws):
+def huberized_mean(values, axis=0, knot=1,
+                   sample_weight=None, **kws):
     """
     Computes the huberized mean along the axis of an array.
 
@@ -102,7 +105,9 @@ def huberized_mean(values, axis=0, knot=1, sample_weight=None, **kws):
     knot: float
         Where the knot is.
 
-    sample_weight: None, array-like (n_samples, )
+    sample_weight: None, array-like, shape (n_samples, )
+
+    offsets: None, array-like, shape (n_samples )
 
     **kws:
         keyword arguments to scipy.optimize.root_scalar
@@ -113,7 +118,9 @@ def huberized_mean(values, axis=0, knot=1, sample_weight=None, **kws):
     """
     out = np.apply_along_axis(func1d=huberized_mean_1d,
                               arr=values, axis=axis,
-                              knot=knot, sample_weight=sample_weight, **kws)
+                              knot=knot,
+                              sample_weight=sample_weight,
+                              **kws)
     if out.ndim == 0:
         out = float(out)
     return out
@@ -139,14 +146,21 @@ class HuberReg(Glm):
 
     GLM_LOSS_CLASS = Huber
 
-    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+    def __init__(self, X, y,
+                 fit_intercept=True, sample_weight=None, offsets=None,
                  knot=1.35):
 
-        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
-                         sample_weight=sample_weight, knot=knot)
+        super().__init__(X=X, y=y,
+                         fit_intercept=fit_intercept,
+                         sample_weight=sample_weight,
+                         offsets=offsets,
+                         knot=knot)
 
     def intercept_at_coef_eq0(self):
-        return huberized_mean(values=self.y,
+
+        values = self.y if self.offsets is None else self.y - self.offsets
+
+        return huberized_mean(values=values,
                               axis=0,
                               sample_weight=self.sample_weight,
                               knot=self.loss_kws['knot'])
@@ -170,14 +184,22 @@ class HuberRegMultiResp(GlmMultiResp):
 
     GLM_LOSS_CLASS = HuberMulti
 
-    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+    def __init__(self, X, y,
+                 fit_intercept=True, sample_weight=None, offsets=None,
                  knot=1.35):
 
-        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
-                         sample_weight=sample_weight, knot=knot)
+        super().__init__(X=X, y=y,
+                         fit_intercept=fit_intercept,
+                         sample_weight=sample_weight,
+                         offsets=offsets,
+                         knot=knot)
 
     def intercept_at_coef_eq0(self):
-        return huberized_mean(values=self.y,
+
+        values = self.y if self.offsets is None else self.y - self.offsets
+
+        return huberized_mean(values=values,
                               axis=0,
                               sample_weight=self.sample_weight,
+                              offsets=self.offsets,
                               knot=self.loss_kws['knot'])

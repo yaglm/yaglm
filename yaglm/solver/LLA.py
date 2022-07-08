@@ -80,7 +80,7 @@ class LLAFixedInit(GlmSolverWithPath):
         self.sp_solver_ = WeightedGlmProblemSolver(solver=solver)
 
     def setup(self, X, y, loss, penalty, constraint=None,
-              fit_intercept=True, sample_weight=None):
+              fit_intercept=True, sample_weight=None, offsets=None):
 
         kws = locals()
         kws.pop('self')
@@ -224,7 +224,7 @@ class WeightedGlmProblemSolver(WeightedProblemSolver):
         self.solver = solver
 
     def setup(self, X, y, loss, penalty, constraint=None,
-              fit_intercept=True, sample_weight=None):
+              fit_intercept=True, sample_weight=None, offsets=None):
         """
         Sets up anything the solver needs.
         """
@@ -294,12 +294,13 @@ class WeightedGlmProblemSolver(WeightedProblemSolver):
 class ObjectiveFunc:
 
     def __init__(self, X, y, loss, penalty,
-                 fit_intercept=True, sample_weight=None):
+                 fit_intercept=True, sample_weight=None, offsets=None):
 
         # setup loss + penalty for computing loss function
         self.loss_func_ = get_glm_loss_func(X=X, y=y, config=loss,
                                             fit_intercept=fit_intercept,
-                                            sample_weight=sample_weight)
+                                            sample_weight=sample_weight,
+                                            offsets=offsets)
 
         self.is_mr_ = is_multi_response(y)
         self.fit_intercept_ = fit_intercept
