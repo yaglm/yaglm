@@ -60,4 +60,6 @@ class LogReg(Glm):
 
     def intercept_at_coef_eq0(self):
         # TODO: is this correct with the sample weights?
+        if self.offsets is not None:
+            raise NotImplementedError
         return np.average(self.y, weights=self.sample_weight)

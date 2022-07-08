@@ -41,7 +41,7 @@ class Cvxpy(GlmSolverWithPath):
         return get_flavor_kind(penalty) not in ['non_convex', 'mixed']
 
     def setup(self, X, y, loss, penalty, constraint=None,
-              fit_intercept=True, sample_weight=None):
+              fit_intercept=True, sample_weight=None, offsets=None):
         """
         Sets up anything the solver needs.
         """
@@ -74,7 +74,8 @@ class Cvxpy(GlmSolverWithPath):
                              intercept=self.intercept_,
                              X=X, y=y,
                              config=loss,
-                             sample_weight=sample_weight)
+                             sample_weight=sample_weight,
+                             offsets=offsets)
 
         penalty_func, pen_val, weights = get_penalty(coef=self.coef_,
                                                      config=penalty)

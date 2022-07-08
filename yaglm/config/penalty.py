@@ -34,12 +34,13 @@ class Ridge(WithPenSeqConfig):
     def __init__(self, pen_val=1, weights=None): pass
 
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
-                        sample_weight=None, init_data=None):
+                        sample_weight=None, offsets=None, init_data=None):
 
         return get_ridge_pen_max(X=X, y=y, loss=loss,
                                  weights=self.weights,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
+                                 offsets=offsets,
                                  targ_ubd=1,
                                  norm_by_dim=True)
 
@@ -86,12 +87,13 @@ class Lasso(WithFlavorPenSeqConfig):
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
-                                 sample_weight=None):
+                                 sample_weight=None, offsets=None):
 
         return get_lasso_pen_max(X=X, y=y, loss=loss,
                                  weights=self.weights,
                                  fit_intercept=fit_intercept,
-                                 sample_weight=sample_weight)
+                                 sample_weight=sample_weight,
+                                 offsets=offsets)
 
 
 # TODO: add default weights
@@ -127,13 +129,14 @@ class GroupLasso(WithFlavorPenSeqConfig):
     def __init__(self, groups=None, pen_val=1, weights=None, flavor=None): pass
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
-                                 sample_weight=None):
+                                 sample_weight=None, offsets=None):
 
         return get_lasso_pen_max(X=X, y=y, loss=loss,
                                  weights=self.weights,
                                  groups=self.groups,
                                  fit_intercept=fit_intercept,
-                                 sample_weight=sample_weight)
+                                 sample_weight=sample_weight,
+                                 offsets=offsets)
 
 
 # TODO: add flavor
@@ -185,13 +188,14 @@ class MultiTaskLasso(WithFlavorPenSeqConfig):
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
-                                 sample_weight=None):
+                                 sample_weight=None, offsets=None):
 
         return get_lasso_pen_max(X=X, y=y, loss=loss,
                                  weights=self.weights,
                                  multi_task=True,
                                  fit_intercept=fit_intercept,
-                                 sample_weight=sample_weight)
+                                 sample_weight=sample_weight,
+                                 offsets=offsets)
 
 
 class NuclearNorm(WithFlavorPenSeqConfig):
@@ -218,13 +222,14 @@ class NuclearNorm(WithFlavorPenSeqConfig):
     def __init__(self, pen_val=1, weights=None, flavor=None): pass
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
-                                 sample_weight=None):
+                                 sample_weight=None, offsets=None):
 
         return get_lasso_pen_max(X=X, y=y, loss=loss,
                                  weights=self.weights,
                                  nuc=True,
                                  fit_intercept=fit_intercept,
-                                 sample_weight=sample_weight)
+                                 sample_weight=sample_weight,
+                                 offsets=offsets)
 
 
 class FusedLasso(WithFlavorPenSeqConfig):

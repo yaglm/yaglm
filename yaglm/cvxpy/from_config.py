@@ -21,7 +21,7 @@ from yaglm.config.penalty_utils import get_flavor_kind
 from yaglm.opt.from_config.penalty import get_fused_lasso_diff_mat
 
 
-def get_loss(coef, intercept, X, y, config, sample_weight=None):
+def get_loss(coef, intercept, X, y, config, sample_weight=None, offsets=None):
     """
     Parameters
     ----------
@@ -40,6 +40,9 @@ def get_loss(coef, intercept, X, y, config, sample_weight=None):
     sample_weight: None, array-like
         (Optional) Sample weights.
 
+    offsets: None, float, array-like
+        (Optional) Sample offsets.
+
     Output
     ------
     loss_func: cvxpy Expression
@@ -50,6 +53,12 @@ def get_loss(coef, intercept, X, y, config, sample_weight=None):
 
     kws = {'coef': coef, 'intercept': intercept,
            'X': X, 'y': y}  # 'sample_weight': sample_weight
+
+    if sample_weight is not None:
+        kws['sample_weight'] = sample_weight
+
+    if offsets is not None:
+        kws['offsets'] = offsets
 
     if isinstance(config, LinReg):
         func = lin_reg_loss

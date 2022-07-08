@@ -10,10 +10,13 @@ class L2Loss(Func):
     f(z) = mult * (1/sqrt(n)) ||y - z||_2
     """
 
-    def __init__(self, y, sample_weight=None):
+    def __init__(self, y, sample_weight=None, offsets=None):
         self.y = y
         self.sample_weight = sample_weight
+        self.offsets = offsets
         if sample_weight is not None:
+            raise NotImplementedError
+        if offsets is not None:
             raise NotImplementedError
 
     def _eval(self, x):
@@ -49,6 +52,9 @@ class L2Reg(Glm):
     GLM_LOSS_CLASS = L2Loss
 
     def intercept_at_coef_eq0(self):
+        if self.offsets is not None:
+            raise NotImplementedError
+
         return np.average(self.y, weights=self.sample_weight)
 
 

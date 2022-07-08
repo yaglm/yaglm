@@ -45,7 +45,8 @@ avail_loss_names = list(set(_LOSS_CLS_VEC.keys()).union(_LOSS_CLS_MAT.keys()))
 
 def get_glm_loss_func(config, X, y,
                       fit_intercept=True,
-                      sample_weight=None):
+                      sample_weight=None,
+                      offsets=None):
     """
     Returns an GLM loss function object.
 
@@ -63,8 +64,11 @@ def get_glm_loss_func(config, X, y,
     fit_intercept: bool
         Whether or not to fit an intercept.
 
-    sample_weight: None or array-like,  shape (n_samples,)
+    sample_weight: None or array-like, shape (n_samples,)
         Individual weights for each sample.
+
+    offsets: None, float, array-like, shape (n_samples, )
+                (Optional) The offsets for each sample.
 
     Output
     ------
@@ -85,10 +89,13 @@ def get_glm_loss_func(config, X, y,
         CLS = _LOSS_CLS_MAT[config.name]
 
     kws = {'X': X, 'y': y,
-           'fit_intercept': fit_intercept, 'sample_weight': sample_weight,
+           'fit_intercept': fit_intercept,
            **config.get_func_params()}
 
     if sample_weight is not None:
         kws['sample_weight'] = sample_weight
+
+    if offsets is not None:
+        kws['offsets'] = offsets
 
     return CLS(**kws)

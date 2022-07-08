@@ -5,7 +5,7 @@ from yaglm.opt.from_config.loss import get_glm_loss_func
 
 
 def get_lasso_pen_max(X, y, loss, fit_intercept, weights=None,
-                      sample_weight=None,
+                      sample_weight=None, offsets=None,
                       multi_task=False, groups=None, nuc=False):
 
     # make sure only one special thing is provided
@@ -15,7 +15,8 @@ def get_lasso_pen_max(X, y, loss, fit_intercept, weights=None,
     #  the coefficeint is zero
     loss_func = get_glm_loss_func(config=loss, X=X, y=y,
                                   fit_intercept=fit_intercept,
-                                  sample_weight=sample_weight)
+                                  sample_weight=sample_weight,
+                                  offsets=offsets)
 
     grad = loss_func.grad_at_coef_eq0()
 

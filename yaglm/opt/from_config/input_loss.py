@@ -8,10 +8,16 @@ from yaglm.opt.glm_loss.multinomial import MultinomialLoss
 from yaglm.opt.glm_loss.quantile_regression import Quantile, QuantileMulti
 
 
-def get_glm_input_loss(config, y, sample_weight=None):
+def get_glm_input_loss(config, y, sample_weight=None, offsets=None):
 
     is_mr = y.ndim == 2 and y.shape[1] > 1
-    kws = {'y': y, 'sample_weight': sample_weight}
+    kws = {'y': y}
+
+    if sample_weight is not None:
+        kws['sample_weight'] = sample_weight
+
+    if offsets is not None:
+        kws['offsets'] = offsets
 
     # linear regression
     if config.name == 'lin_reg':

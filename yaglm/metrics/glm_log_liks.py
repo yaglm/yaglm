@@ -188,4 +188,3 @@ def _safe_apply_over_responses(y_pred, y_true, func, scale=None):
             return func(y_pred=y_pred, y_true=y_true)
         else:
             return func(y_pred=y_pred, y_true=y_true, scale=scale)
-

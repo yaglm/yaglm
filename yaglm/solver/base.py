@@ -67,7 +67,7 @@ class GlmSolver(Config):
         return self.get_params()
 
     def setup(self, X, y, loss, penalty, constraint=None,
-              fit_intercept=True, sample_weight=None):
+              fit_intercept=True, sample_weight=None, offsets=None):
         """
         Sets up anything the solver needs.
         """

@@ -51,6 +51,9 @@ class Multinomial(GlmMultiResp):
     GLM_LOSS_CLASS = MultinomialLoss
 
     def intercept_at_coef_eq0(self):
+        if self.offsets is not None:
+            raise NotImplementedError
+
         # double check for weighted case
         if self.sample_weight is None:
             return np.array(self.y.mean(axis=0)).ravel()

@@ -51,7 +51,10 @@ def _tilted_L1_grad_1d(x, quantile=0.5):
 tilted_L1_grad = safe_vectorize(_tilted_L1_grad_1d)
 
 
-def weighted_quantile_1d(values, q=0.5,  sample_weight=None, **kws):
+def weighted_quantile_1d(values, q=0.5,
+                         sample_weight=None,
+                         **kws):
+
     if sample_weight is None:
         return np.quantile(a=values, q=q)
 
@@ -68,7 +71,10 @@ def weighted_quantile_1d(values, q=0.5,  sample_weight=None, **kws):
     return result.x
 
 
-def weighted_quantile(values, q=0.5, axis=0, sample_weight=None, **kws):
+def weighted_quantile(values, q=0.5, axis=0,
+                      sample_weight=None,
+                      **kws):
+
     if sample_weight is None:
         return np.quantile(a=values, q=q, axis=axis)
     else:
@@ -116,14 +122,21 @@ class Quantile(GlmInputLoss):
 class QuantileReg(Glm):
     GLM_LOSS_CLASS = Quantile
 
-    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+    def __init__(self, X, y,
+                 fit_intercept=True, sample_weight=None, offsets=None,
                  quantile=0.5):
 
-        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+        super().__init__(X=X, y=y,
+                         fit_intercept=fit_intercept,
+                         sample_weight=sample_weight,
+                         offsets=offsets,
                          quantile=quantile)
 
     def intercept_at_coef_eq0(self):
-        return weighted_quantile(values=self.y,
+
+        values = self.y if self.offsets is None else self.y - self.offsets
+
+        return weighted_quantile(values=values,
                                  axis=0,
                                  sample_weight=self.sample_weight,
                                  q=self.quantile)
@@ -149,15 +162,20 @@ class QuantileRegMultiResp(GlmMultiResp):
 
     GLM_LOSS_CLASS = QuantileMulti
 
-    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+    def __init__(self, X, y,
+                 fit_intercept=True, sample_weight=None, offsets=None,
                  quantile=0.5):
 
-        super().__init__(X=X, y=y, fit_intercept=fit_intercept,
+        super().__init__(X=X, y=y,
+                         fit_intercept=fit_intercept,
                          sample_weight=sample_weight,
+                         offsets=offsets,
                          quantile=quantile)
 
     def intercept_at_coef_eq0(self):
-        return weighted_quantile(values=self.y,
+        values = self.y if self.offsets is None else self.y - self.offsets
+
+        return weighted_quantile(values=values,
                                  axis=0,
                                  sample_weight=self.sample_weight,
                                  q=self.quantile)

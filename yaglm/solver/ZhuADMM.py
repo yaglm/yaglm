@@ -109,7 +109,7 @@ class ZhuADMM(GlmSolverWithPath):
             return False
 
     def setup(self, X, y, loss, penalty, constraint=None,
-              fit_intercept=True, sample_weight=None):
+              fit_intercept=True, sample_weight=None, offsets=None):
         """
         Sets up anything the solver needs.
         """
@@ -155,7 +155,8 @@ class ZhuADMM(GlmSolverWithPath):
         # set the loss function
         self.g1_ = get_glm_input_loss(config=loss,
                                       y=y,
-                                      sample_weight=sample_weight)
+                                      sample_weight=sample_weight,
+                                      offsets=offsets)
 
     def update_penalty(self, **params):
         """

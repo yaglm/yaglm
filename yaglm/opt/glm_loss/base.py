@@ -20,15 +20,19 @@ class GlmInputLoss(Func):
     sample_grads = None
     sample_proxs = None
 
-    def __init__(self, y, sample_weight=None, **loss_kws):
+    def __init__(self, y, sample_weight=None, offsets=None, **loss_kws):
         self.y = y
 
         self.sample_weight = sample_weight
+        self.offsets = offsets
         self.n_samples = y.shape[0]
         self.loss_kws = loss_kws
 
     def _eval(self, x):
-        losses = self.sample_losses(z=x, y=self.y, **self.loss_kws)
+
+        z = x if self.offsets is None else x + self.offsets
+
+        losses = self.sample_losses(z=z, y=self.y, **self.loss_kws)
 
         if self.sample_weight is None:
             return losses.sum() / self.n_samples
@@ -38,18 +42,25 @@ class GlmInputLoss(Func):
 
     def _grad(self, x):
 
-        grads = self.sample_grads(z=x, y=self.y, **self.loss_kws)
+        z = x if self.offsets is None else x + self.offsets
+
+        grads = self.sample_grads(z=z, y=self.y, **self.loss_kws)
 
         # possibly reweight
         if self.sample_weight is not None:
             grads = diags(self.sample_weight) @ grads
 
         grads /= self.n_samples
+
         return grads
 
     def _prox(self, x, step=1):
         if self.sample_weight is not None:
-            raise NotImplementedError  # TODO
+            raise NotImplementedError()  # TODO
+
+        if self.offsets is not None:
+            # i think we just set x -> x + offsets??
+            raise NotImplementedError()
 
         return self.sample_proxs(z=x, y=self.y,
                                  step=step / self.n_samples,
@@ -76,12 +87,14 @@ class Glm(Func):
     # a method to compute the gradient Lipschitz constant
     compute_lip = None
 
-    def __init__(self, X, y, fit_intercept=True, sample_weight=None,
+    def __init__(self, X, y, fit_intercept=True,
+                 sample_weight=None, offsets=None,
                  **loss_kws):
 
         # instantiate GLM input loss class
         self.glm_loss = self.GLM_LOSS_CLASS(y=y,
                                             sample_weight=sample_weight,
+                                            offsets=offsets,
                                             **loss_kws)
         self.X = X
         self.fit_intercept = fit_intercept
@@ -102,6 +115,10 @@ class Glm(Func):
     @property
     def sample_weight(self):
         return self.glm_loss.sample_weight
+
+    @property
+    def offsets(self):
+        return self.glm_loss.offsets
 
     @property
     def loss_kws(self):

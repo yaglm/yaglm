@@ -3,7 +3,7 @@ from yaglm.linalg_utils import smallest_sval
 
 
 def get_ridge_pen_max(X, y, loss, weights,
-                      fit_intercept=True, sample_weight=None,
+                      fit_intercept=True, sample_weight=None, offsets=None,
                       targ_ubd=1, norm_by_dim=True):
     """
     Returns a heuristic for the largest reasonable value for the ridge tuning parameter. See linear_regression_max_val documentation for a description.
@@ -37,6 +37,7 @@ def get_ridge_pen_max(X, y, loss, weights,
         return lin_reg_ridge_max(X, y,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
+                                 offsets=offsets,
                                  targ_ubd=targ_ubd,
                                  weights=weights,
                                  norm_by_dim=norm_by_dim)
@@ -45,6 +46,7 @@ def get_ridge_pen_max(X, y, loss, weights,
         return log_reg_ridge_max(X, y,
                                  fit_intercept=fit_intercept,
                                  sample_weight=sample_weight,
+                                 offsets=offsets,
                                  targ_ubd=targ_ubd,
                                  weights=weights,
                                  norm_by_dim=norm_by_dim)
@@ -53,7 +55,8 @@ def get_ridge_pen_max(X, y, loss, weights,
         raise NotImplementedError('{} not supported'.format(loss.name))
 
 
-def lin_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
+def lin_reg_ridge_max(X, y, fit_intercept=True,
+                      sample_weight=None, offsets=None,
                       weights=None,
                       targ_ubd=1, norm_by_dim=True):
     """
@@ -106,6 +109,9 @@ def lin_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
     if sample_weight is not None:
         raise NotImplementedError('TODO')
 
+    if offsets is not None:
+        y = y - offsets
+
     if weights is not None:
         raise NotImplementedError
 
@@ -135,7 +141,8 @@ def lin_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
         return scaled_prod - eval_min
 
 
-def log_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
+def log_reg_ridge_max(X, y, fit_intercept=True,
+                      sample_weight=None, offsets=None,
                       weights=None,
                       targ_ubd=1, norm_by_dim=True):
     """
@@ -180,6 +187,9 @@ def log_reg_ridge_max(X, y, fit_intercept=True, sample_weight=None,
 
     """
     if sample_weight is not None:
+        raise NotImplementedError('TODO')
+
+    if offsets is not None:
         raise NotImplementedError('TODO')
 
     if fit_intercept:

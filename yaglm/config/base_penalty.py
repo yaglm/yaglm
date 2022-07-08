@@ -30,7 +30,7 @@ class PenaltyTuner(TunerConfig):
     Base class for all penalty tuners
     """
     def set_tuning_values(self,  X, y, loss, fit_intercept=True,
-                          sample_weight=None, init_data=None):
+                          sample_weight=None, offsets=None, init_data=None):
         """
         Sets the data needed to create the tuning parameter sequence/grid for a given dataset.
         """
@@ -86,7 +86,7 @@ class WithPenSeqConfig(PenaltyConfig):
         return PenaltySeqTuner(**kws)
 
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
-                        sample_weight=None):
+                        sample_weight=None, offsets=None):
         """
         Computes the largest reasonable value for the penalty value for a given data set and loss.
 
@@ -128,11 +128,12 @@ class WithFlavorPenSeqConfig(WithPenSeqConfig):
         pass
 
     def get_pen_val_max(self, X, y, loss, fit_intercept=True,
-                        sample_weight=None, init_data=None):
+                        sample_weight=None, offsets=None, init_data=None):
 
         pen_max = self._get_vanilla_pen_val_max(X=X, y=y, loss=loss,
                                                 fit_intercept=fit_intercept,
-                                                sample_weight=sample_weight)
+                                                sample_weight=sample_weight,
+                                                offsets=offsets)
 
         flav = get_base_config(self.flavor)
         flavor_kind = flav.name if flav is not None else None
@@ -149,7 +150,7 @@ class WithFlavorPenSeqConfig(WithPenSeqConfig):
         return pen_max
 
     def _get_vanilla_pen_val_max(self, X, y, loss, fit_intercept=True,
-                                 sample_weight=None):
+                                 sample_weight=None, offsets=None):
         raise NotImplementedError("Subclass should overwrite")
 
 
@@ -196,7 +197,7 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
                  pen_spacing='log', pen_val_seq=None): pass
 
     def set_tuning_values(self,  X, y, loss, fit_intercept=True,
-                          sample_weight=None, init_data=None):
+                          sample_weight=None, offsets=None, init_data=None):
         """
         Computes the largest reasonable value for pen_val.
         """
@@ -211,6 +212,7 @@ class PenaltySeqTuner(TunerWithPathMixin, PenaltyTuner):
                     self.base.get_pen_val_max(X=X, y=y, loss=loss,
                                               fit_intercept=fit_intercept,
                                               sample_weight=sample_weight,
+                                              offsets=offsets,
                                               init_data=init_data)
 
             except NotImplementedError:
@@ -411,7 +413,7 @@ class AdditivePenaltyTuner(TunerWithPathMixin, PenaltyTuner):
     def __init__(self, base): pass
 
     def set_tuning_values(self,  X, y, loss, fit_intercept=True,
-                          sample_weight=None, init_data=None):
+                          sample_weight=None, offsets=None, init_data=None):
         kws = locals()
         kws.pop('self')
 
@@ -677,7 +679,7 @@ class ElasticNetTuner(TunerWithPathMixin, PenaltyTuner):
                  mix_val_seq=None): pass
 
     def set_tuning_values(self,  X, y, loss, fit_intercept=True,
-                          sample_weight=None, init_data=None):
+                          sample_weight=None, offsets=None, init_data=None):
         """
         Computes the largest reasonable value for pen_val.
         """
