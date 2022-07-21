@@ -118,7 +118,7 @@ class FISTA(GlmSolverWithPath):
             constraint_func = get_constraint_func(constraint)
 
         # don't currently support penalty with constraint
-        if penalty is not None and constraint is not None:
+        if non_smooth_pen is not None and constraint is not None:
             # TODO: there are some special cases where this will work
             return False
 
