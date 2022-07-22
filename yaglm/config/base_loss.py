@@ -1,4 +1,4 @@
-from yaglm.config.base_params import ParamConfig, ManualTunerMixin
+from yaglm.config.base_params import ParamConfig
 
 
 class LossConfig(ParamConfig):
@@ -47,4 +47,3 @@ class LossConfig(ParamConfig):
             return {k: v for (k, v) in all_params.items() if k not in to_drop}
         else:
             return all_params
-

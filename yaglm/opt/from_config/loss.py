@@ -5,6 +5,12 @@ from yaglm.opt.glm_loss.multinomial import Multinomial
 from yaglm.opt.glm_loss.poisson_regression import PoissonReg, \
     PoissonRegMultiResp
 from yaglm.opt.glm_loss.quantile_regression import QuantileReg, QuantileRegMultiResp
+from yaglm.opt.glm_loss.smoothed_quantile import SmoothedQuantileReg
+
+from yaglm.opt.glm_loss.hinge import HingeReg
+from yaglm.opt.glm_loss.huberized_hinge import HuberizedHingeReg
+from yaglm.opt.glm_loss.logistic_hinge import LogisticHingeReg
+
 from yaglm.opt.glm_loss.logistic_regression import LogReg
 
 from yaglm.opt.glm_loss.L2_regression import L2Reg, L2RegMultiResp
@@ -18,6 +24,14 @@ _LOSS_CLS_VEC = {'lin_reg': LinReg,
                  'poisson': PoissonReg,
 
                  'quantile': QuantileReg,
+
+                 'smoothed_quantile': SmoothedQuantileReg,
+
+                 'hinge': HingeReg,
+
+                 'huberized': HuberizedHingeReg,
+
+                 'logistic_hinge': LogisticHingeReg,
 
                  'L2': L2Reg
                  }

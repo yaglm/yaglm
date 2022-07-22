@@ -7,6 +7,9 @@ from yaglm.opt.utils import safe_vectorize
 def tilted_L1(u, quantile=0.5):
     """
     tilted_L1(u; quant) = quant * [u]_+ + (1 - quant) * [u]_+
+
+    tilted_L1(u; quant) = quant * u        if u >= 0
+                          (quant - 1) * u  if u < 0
     """
     return 0.5 * abs(u) + (quantile - 0.5) * u
 

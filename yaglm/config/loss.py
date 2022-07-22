@@ -59,15 +59,15 @@ class Quantile(LossConfig):
     """
     Quantile regression.
 
-    L(y, z) = tilted_L1(z - y; quant)
+    L(y, z) = tilted_L1(y - z; quant)
 
-    tilted_L1(r; quant) = quant * [r]_+ + (1 - quant) * [r]_+
-    where [r]_+ is the positive part of r (i.e. 0 if r is negative, r otherwise)
+    tilted_L1(r; quant) = quant * r        if u >= 0
+                          (quant - 1) * r  if r < 0
 
     Parameters
     ----------
-    knot: quantile
-        Which quantile we want to regress on.
+    quantile: float
+        Which quantile we want to regress on. Must be between 0 and 1.
     """
     name = 'quantile'
     _estimator_type = "regressor"
@@ -77,6 +77,37 @@ class Quantile(LossConfig):
 
     def __init__(self, quantile=0.5):
         self.quantile = quantile
+
+
+class SmoothedQuantile(LossConfig):
+    """
+    Quantile regression.
+
+    L(y, z) = smooth-tilted_L1(y - z; quant, smooth-param)
+
+    smooth-tilted_L1(r; q, a) = q * r + q * log(1 + e^{-r/a})
+
+    Parameters
+    ----------
+    quantile: float
+        Which quantile we want to regress on. Must be between 0 and 1.
+
+    smooth_param: float
+        The smoothing parameters. Must be non-negative. Smaller values make this closer to the tilted L1 loss, but less smooth.
+
+    References
+    ----------
+    Zheng, S., 2011. Gradient descent algorithms for quantile regression with smooth approximation. International Journal of Machine Learning and Cybernetics, 2(3), pp.191-207.
+    """
+    name = 'smoothed_quantile'
+    _estimator_type = "regressor"
+
+    is_exp_fam = False
+    has_scale = False
+
+    def __init__(self, quantile=0.5, smooth_param=0.5):
+        self.quantile = quantile
+        self.smooth_param = smooth_param
 
 
 class Poisson(LossConfig):
@@ -126,9 +157,6 @@ class LogReg(LossConfig):
     def __init__(self, class_weight=None):
         self.class_weight = class_weight
 
-    def get_loss_kws(self):
-        return {}  # solvers do not need to know about class_weight
-
 
 class Multinomial(LossConfig):
     """
@@ -158,9 +186,6 @@ class Multinomial(LossConfig):
     def __init__(self, class_weight=None):
         self.class_weight = class_weight
 
-    def get_loss_kws(self):
-        return {}  # solvers do not need to know about class_weight
-
 
 class Hinge(LossConfig):
     """
@@ -176,6 +201,7 @@ class Hinge(LossConfig):
 
     is_exp_fam = False
     has_scale = False
+    def __init__(self): pass
 
 
 class HuberizedHinge(LossConfig):
@@ -202,6 +228,8 @@ class HuberizedHinge(LossConfig):
     is_exp_fam = False
     has_scale = False
 
+    def __init__(self): pass
+
 
 class LogisticHinge(LossConfig):
     """
@@ -210,7 +238,7 @@ class LogisticHinge(LossConfig):
 
     L(y, z) = logistic(y * z)
 
-    logistic(p) = log(1 + e^-z)
+    logistic(p) = log(1 + e^-p)
 
     # TODO: add class weight!
     """
@@ -219,6 +247,8 @@ class LogisticHinge(LossConfig):
 
     is_exp_fam = True
     has_scale = False
+
+    def __init__(self): pass
 
 
 def get_loss_config(config):
@@ -245,7 +275,10 @@ def get_loss_config(config):
 loss_str2obj = {'lin_reg': LinReg(),
                 'l2': L2Reg(),
                 'huber': Huber(),
+
                 'quantile': Quantile(),
+                'smooth_quantile': SmoothedQuantile(),
+
                 'poisson': Poisson(),
 
                 'log_reg': LogReg(),
@@ -253,7 +286,7 @@ loss_str2obj = {'lin_reg': LinReg(),
 
                 'hinge': Hinge(),
                 'huberized_hinge': HuberizedHinge(),
-                'logistic_hing': LogisticHinge()
+                'logistic_hinge': LogisticHinge()
                 }
 
 avail_losses = list(loss_str2obj.keys())
