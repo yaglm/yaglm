@@ -139,13 +139,12 @@ class QuantileReg(Glm):
                          quantile=quantile)
 
     def intercept_at_coef_eq0(self):
-
         values = self.y if self.offsets is None else self.y - self.offsets
 
         return weighted_quantile(values=values,
                                  axis=0,
                                  sample_weight=self.sample_weight,
-                                 q=self.quantile)
+                                 q=self.loss_kws['quantile'])
 
 
 class QuantileMulti(GlmInputLoss):

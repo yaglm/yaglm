@@ -34,7 +34,7 @@ def sample_losses(z, y):
 #     raise NotImplementedError()
 
 def sample_grads(z, y):
-    return huberized_hinge_grad(y * z)
+    return y * huberized_hinge_grad(y * z)
 
 
 class HuberizedHinge(GlmInputLoss):

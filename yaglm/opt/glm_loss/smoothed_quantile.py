@@ -1,15 +1,19 @@
 import numpy as np
+from scipy.special import expit
+
 
 from yaglm.opt.glm_loss.base import GlmInputLoss, Glm
 from yaglm.opt.glm_loss.quantile_regression import weighted_quantile
 
 
 def smoothed_tilted_l1(u, quantile=0.5, smooth_param=0.5):
-    return quantile * u + smooth_param * np.log(1 + np.exp(-u/smooth_param))
+    # return quantile * u + smooth_param * np.log(1 + np.exp(-u/smooth_param))
+    return quantile * u + smooth_param * np.logaddexp(0, -u/smooth_param)
 
 
 def smoothed_tilted_l1_grad(u, quantile=0.5, smooth_param=0.5):
-    return quantile - 1 / (1 + np.exp(u / smooth_param))
+    # return quantile - (1 / (1 + np.exp(u / smooth_param)))
+    return quantile - expit(- u / smooth_param)
 
 
 def sample_losses(z, y, quantile=0.5, smooth_param=0.5):
@@ -39,7 +43,7 @@ class SmoothedQuantile(GlmInputLoss):
 
     @property
     def grad_lip(self):
-        return 0.25 / (self.smooth_param * self.n_samples)
+        return 0.25 / (self.loss_kws['smooth_param'] * self.n_samples)
 
 
 class SmoothedQuantileReg(Glm):
@@ -66,4 +70,4 @@ class SmoothedQuantileReg(Glm):
         return weighted_quantile(values=values,
                                  axis=0,
                                  sample_weight=self.sample_weight,
-                                 q=self.quantile)
+                                 q=self.loss_kws['quantile'])

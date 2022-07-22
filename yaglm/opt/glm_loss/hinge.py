@@ -34,7 +34,7 @@ def sample_losses(z, y):
 
 
 def sample_proxs(z, y, step=1):
-    return (1/y) * hinge_prox_1d(y * z, step=step)
+    return (1/y) * hinge_prox(y * z, step=step)
 
 
 def sample_grads(z, y):
@@ -59,7 +59,7 @@ class Hinge(GlmInputLoss):
 
 class HingeReg(Glm):
 
-    GLM_LOSS_CLASS = GlmInputLoss
+    GLM_LOSS_CLASS = Hinge
 
     def intercept_at_coef_eq0(self):
         # values = self.y if self.offsets is None else self.y - self.offsets

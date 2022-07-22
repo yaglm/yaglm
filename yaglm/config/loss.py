@@ -277,7 +277,7 @@ loss_str2obj = {'lin_reg': LinReg(),
                 'huber': Huber(),
 
                 'quantile': Quantile(),
-                'smooth_quantile': SmoothedQuantile(),
+                'smoothed_quantile': SmoothedQuantile(),
 
                 'poisson': Poisson(),
 

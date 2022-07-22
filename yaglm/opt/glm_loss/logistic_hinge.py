@@ -1,16 +1,19 @@
 import numpy as np
+from scipy.special import expit
 
 from yaglm.opt.glm_loss.base import GlmInputLoss, Glm
 
 
 def sample_losses(z, y):
     p = y * z
-    return np.log(1 + np.exp(-p))
+    # return np.log(1 + np.exp(-p))
+    return np.logaddexp(0, -p)
 
 
 def sample_grads(z, y):
     p = y * z
-    g = - 1 / (1 + np.exp(p))
+    # g = - 1 / (1 + np.exp(p))
+    g = - expit(-p)
     return g * y
 
 
