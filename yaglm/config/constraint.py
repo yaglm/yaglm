@@ -87,6 +87,19 @@ class Rank(ConstraintConfig):
     def __init__(self, rank=1): pass
 
 
+class DevecPSD(ConstraintConfig):
+    """
+    Assumes the coefficient is a vectorized (d x d) symmetric matrix. This constrains the devectorized version of the cofficient to be positive semi definite.
+
+    Parameters
+    ----------
+    d: int
+        The shape of the symmetric matrix.
+    """
+    @autoassign
+    def __init__(self, d): pass
+
+
 def get_constraint_config(config):
     """
     Gets the constraint config object.
@@ -110,7 +123,13 @@ def get_constraint_config(config):
 constraint_str2obj = {'pos': Positive(),
                       'isotonic': Isotonic(),
                       'simplex': Simplex(),
-                      'lin_eq': LinearEquality(mat=None, eq=None),  # TODO: hack
+
+                      # TODO: hack since these are required!!
+                      # how to handle this case??
+                      'lin_eq': LinearEquality(mat=None, eq=None),
+
+                      'devec_psd': DevecPSD(d=None),
+
                       'rank': Rank()
                       }
 

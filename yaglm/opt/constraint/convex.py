@@ -28,12 +28,12 @@ class Positive(Constraint):
 
 class Simplex(Constraint):
 
-    def __init__(self, mult=1):
-        self.mult = mult
+    def __init__(self, radius=1):
+        self.radius = radius
 
     def _prox(self, x, step=1):
         # TODO: z is what I think it is right?
-        p = project_simplex(x.reshape(-1), z=self.mult)
+        p = project_simplex(x.reshape(-1), z=self.radius)
         return p.reshape(x.shape)
 
     @property
