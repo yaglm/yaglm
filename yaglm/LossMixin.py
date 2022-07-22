@@ -34,9 +34,8 @@ class LossMixin:
                                      sample_weight=sample_weight,
                                      copy=copy, check_input=check_input)
 
-        elif loss_config.name == 'quantile':
+        elif loss_config.name in ['quantile', 'smoothed_quantile']:
             return process_y_lin_reg(X=X, y=y,
-                                     # never center y for quantile!
                                      sample_weight=sample_weight,
                                      standardize=False,
                                      copy=copy,
@@ -59,6 +58,12 @@ class LossMixin:
                                          class_weight=loss_config.class_weight,
                                          copy=copy,
                                          check_input=check_input)
+
+        elif loss_config.name in ['hinge', 'huberized_hinge', 'logistic_hinge']:
+            return process_y_hinge(X=X, y=y, sample_weight=sample_weight,
+                                   copy=copy,
+                                   check_input=check_input
+                                   )
 
     def predict(self, X, offsets=None):
         """
@@ -116,7 +121,8 @@ class LossMixin:
         y_pred = self.predict(X, offsets=offsets)
         loss_config = get_base_config(get_loss_config(self.loss))
 
-        if loss_config.name in ['lin_reg', 'huber', 'quantile', 'poisson']:
+        if loss_config.name in ['lin_reg', 'huber', 'quantile', 'poisson',
+                                'smoothed_quantile']:
             return r2_score(y_true=y, y_pred=y_pred,
                             sample_weight=sample_weight)
 
@@ -124,7 +130,9 @@ class LossMixin:
             return poisson_dsq_score(y_true=y, y_pred=y_pred,
                                      sample_weight=sample_weight)
 
-        elif loss_config.name in ['log_reg', 'multinomial']:
+        elif loss_config.name in ['log_reg', 'multinomial',
+                                  'hinge', 'huberized_hinge',
+                                  'logistic_hinge']:
             return accuracy_score(y_true=y, y_pred=y_pred,
                                   sample_weight=sample_weight)
 
@@ -194,7 +202,8 @@ class LossMixin:
         z = self.decision_function(X, offsets=offsets)
         loss_config = get_base_config(get_loss_config(self.loss))
 
-        if loss_config.name in ['lin_reg', 'huber', 'quantile', 'l2']:
+        if loss_config.name in ['lin_reg', 'huber', 'quantile', 'l2',
+                                'smoothed_quantile']:
             return z
 
         elif loss_config.name == 'poisson':
@@ -418,7 +427,93 @@ def process_y_log_reg(X, y, sample_weight=None, class_weight=None,
     return y_ind, sample_weight, pre_pro_out
 
 
-def process_y_multinomial(X, y,  sample_weight=None, class_weight=None,
+def process_y_hinge(X, y, sample_weight=None, class_weight=None,
+                    copy=True, check_input=True):
+    """
+    Converts the labels to +/- 1 for the hinge loss. Note the class labels are determined by sorting order e.g. the "larger" class is the positive class.
+
+    Parameters
+    ----------
+    y: array-like, shape (n_samples, )
+        The response data.
+
+    sample_weight: None, array-like (n_samples, )
+        The sample weights.
+
+    copy: bool
+        Make sure y is copied and not modified in place.
+
+    check_input: bool
+        Whether or not we should validate the input.
+
+    Output
+    ------
+    y_pm1, sample_weight, out
+
+    y_pm1: array-like, shape (n_samples, )
+        The +/-1 class labels
+
+    sample_weight: None or array-like,  shape (n_samples,)
+        The sample weights possibly adjusted by the class weights.
+
+    out: dict
+        The pre-processesing output data.
+        out['classes']: array-like
+            The class labels.
+    """
+
+    y = basic_y_formatting(X, y, copy=copy, check_input=check_input,
+                           is_clf=True)
+
+    enc = LabelEncoder()
+    y_ind = enc.fit_transform(y)
+    y_pm1 = 2 * y_ind - 1
+
+    # adjust sample weights by class weights
+    if class_weight is not None:
+
+        if sample_weight is None:
+            sample_weight = np.ones(len(y))
+
+        # compute class weights
+        class_weight_vect = compute_class_weight(class_weight=class_weight,
+                                                 classes=enc.classes_,
+                                                 y=y)
+
+        # multiply origianl sample weights by the class weights
+        sample_weight *= class_weight_vect[y_ind]
+
+    if check_input:
+        # this class is for binary logistic regression
+        assert len(enc.classes_) == 2
+
+    pre_pro_out = {'label_encoder': enc}
+
+    return y_pm1, sample_weight, pre_pro_out
+
+
+def pos_neg_encode(enc, y):
+    """
+    Encodes y to +/-1
+
+    Parameters
+    ----------
+    enc: LabelEncoder
+        The label encoder (binarizes the labels)
+
+    y: array-like, shape (n_samples, )
+        The original cass labels
+
+    Output
+    ------
+    y_pm1: array-like, shape (n_samples, )
+        The +/-1 labels
+    """
+    assert isinstance(enc, LabelEncoder)
+    return 2 * enc.transform(y) - 1
+
+
+def process_y_multinomial(X, y, sample_weight=None, class_weight=None,
                           copy=True, check_input=True):
     """
     Create dummy variables for the y labels.

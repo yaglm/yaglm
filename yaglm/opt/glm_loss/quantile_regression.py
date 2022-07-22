@@ -6,9 +6,16 @@ from yaglm.opt.utils import safe_vectorize
 
 def tilted_L1(u, quantile=0.5):
     """
-    tilted_L1(u; quant) = quant * [u]_+ + (1 - quant) * [u]_
+    tilted_L1(u; quant) = quant * [u]_+ + (1 - quant) * [u]_+
+
+    tilted_L1(u; quant) = quant * u        if u >= 0
+                          (quant - 1) * u  if u < 0
     """
     return 0.5 * abs(u) + (quantile - 0.5) * u
+
+# tilted_L1 = check_loss
+# def check_loss(u, quantile=0.5):
+#     return u * (quantile - (u < 0).astype(float))
 
 
 def tilted_L1_prox_1d(x, step, quantile=0.5):
@@ -88,7 +95,7 @@ def weighted_quantile(values, q=0.5, axis=0,
 
 
 def sample_losses(z, y, quantile=0.5):
-    return tilted_L1(z - y, quantile=quantile)
+    return tilted_L1(y - z, quantile=quantile)
 
 
 def sample_losses_multi_resp(z, y):
@@ -96,13 +103,12 @@ def sample_losses_multi_resp(z, y):
 
 
 def sample_grads(z, y, quantile=0.5):
-    return tilted_L1_grad(z - y, quantile=quantile)
+    return tilted_L1_grad(y - z, quantile=quantile)
 
 
 def sample_proxs(z, y, quantile=0.5, step=1):
-    r = z - y
-    p = tilted_L1_prox(x=r, step=step, quantile=quantile)
-    return p + y
+    p = tilted_L1_prox(x=y - z, step=step, quantile=quantile)
+    return y - p
 
 
 class Quantile(GlmInputLoss):
@@ -133,13 +139,12 @@ class QuantileReg(Glm):
                          quantile=quantile)
 
     def intercept_at_coef_eq0(self):
-
         values = self.y if self.offsets is None else self.y - self.offsets
 
         return weighted_quantile(values=values,
                                  axis=0,
                                  sample_weight=self.sample_weight,
-                                 q=self.quantile)
+                                 q=self.loss_kws['quantile'])
 
 
 class QuantileMulti(GlmInputLoss):

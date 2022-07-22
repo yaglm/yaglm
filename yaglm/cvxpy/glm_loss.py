@@ -58,10 +58,9 @@ def huber_reg_loss(X, y, coef, intercept=None, offsets=None, knot=1):
     return (0.5 / X.shape[0]) * cp.sum(cp.huber(y - z, M=knot))
 
 
-# def hinge_loss(X, y, coef, intercept=None):
-# TODO: need to make y -1, 1
-#     z = get_z(X, coef, intercept)
-#     return (1 / X.shape[0]) * cp.sum(cp.pos(1 - cp.multiply(y, z)))
+def hinge_reg_loss(X, y, coef, intercept=None, offsets=None):
+    z = get_z(X, coef, intercept=intercept, offsets=offsets)
+    return (1 / X.shape[0]) * cp.sum(cp.pos(1 - cp.multiply(y, z)))
 
 
 def get_z(X, coef, intercept=None, offsets=None):

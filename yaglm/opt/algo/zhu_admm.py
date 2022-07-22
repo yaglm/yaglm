@@ -4,6 +4,7 @@ import numpy as np
 from time import time
 
 from yaglm.linalg_utils import leading_sval, euclid_norm
+from yaglm.opt.base import Zero
 
 # TODO: handle matrix shaped parameters
 # TODO: allow A1 and or A2 to be None for the identity
@@ -95,6 +96,11 @@ def solve(g1, g2, A1, A2,
     n_row_2 = A2.shape[0]
     d = A1.shape[1]
     assert A2.shape[1] == d
+
+    # handle case g1/g2 is None
+    # TODO: is this the best way to handle this case?
+    g1 = Zero() if g1 is None else g1
+    g2 = Zero() if g2 is None else g2
 
     ########################
     # initialize variables #

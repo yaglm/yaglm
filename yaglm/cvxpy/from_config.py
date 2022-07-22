@@ -1,7 +1,7 @@
 import cvxpy as cp
 
 from yaglm.config.loss import LinReg, L2Reg, Huber, LogReg, Quantile, \
-    Poisson, Multinomial
+    Poisson, Multinomial, Hinge
 
 from yaglm.config.penalty import NoPenalty, Ridge, GeneralizedRidge,\
     Lasso, GroupLasso, MultiTaskLasso, GeneralizedLasso, FusedLasso,\
@@ -11,7 +11,7 @@ from yaglm.config.constraint import Positive
 
 from yaglm.cvxpy.glm_loss import lin_reg_loss, log_reg_loss, \
     quantile_reg_loss, l2_reg_loss, huber_reg_loss, poisson_reg_loss, \
-    multinomial_loss
+    multinomial_loss, hinge_reg_loss
 
 from yaglm.cvxpy.penalty import zero, ridge_penalty, lasso_penalty,\
     gen_ridge_penalty, multi_task_lasso_penalty, group_lasso_penalty, \
@@ -82,6 +82,9 @@ def get_loss(coef, intercept, X, y, config, sample_weight=None, offsets=None):
     elif isinstance(config, Quantile):
         func = quantile_reg_loss
         kws['quantile'] = config.quantile
+
+    elif isinstance(config, Hinge):
+        func = hinge_reg_loss
 
     else:
         raise NotImplementedError("{} not currently available".format(config))

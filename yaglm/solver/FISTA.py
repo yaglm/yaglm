@@ -242,7 +242,10 @@ class FISTA(GlmSolverWithPath):
 
         if self.constraint_func_ is not None:
             assert non_smooth_pen is None
-            non_smooth_func = self.constraint_func_
+            non_smooth_func = wrap_intercept(func=self.constraint_func_,
+                                             fit_intercept=self.fit_intercept_,
+                                             is_mr=self.is_mr_)
+
         else:
             non_smooth_func = non_smooth_pen
 
