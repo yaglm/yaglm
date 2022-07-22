@@ -29,7 +29,7 @@ _LOSS_CLS_VEC = {'lin_reg': LinReg,
 
                  'hinge': HingeReg,
 
-                 'huberized': HuberizedHingeReg,
+                 'huberized_hinge': HuberizedHingeReg,
 
                  'logistic_hinge': LogisticHingeReg,
 
