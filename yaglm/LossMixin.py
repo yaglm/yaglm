@@ -484,8 +484,8 @@ def process_y_hinge(X, y, sample_weight=None, class_weight=None,
         sample_weight *= class_weight_vect[y_ind]
 
     if check_input:
-        # this class is for binary logistic regression
-        assert len(enc.classes_) == 2
+        # we allow hinge loss to have 1 class!
+        assert len(enc.classes_) in [1, 2]
 
     pre_pro_out = {'label_encoder': enc}
 
