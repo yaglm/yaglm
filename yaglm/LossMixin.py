@@ -284,13 +284,14 @@ class LossMixin:
                                       "for {}.".format(loss_config.name))
 
 
-def basic_y_formatting(X, y, copy=True, check_input=True, is_clf=False):
+def basic_y_formatting(X, y, copy=True, check_input=True, is_clf=False,
+                       multi_output=True):
 
     if copy:
         y = y.copy(order='K')
 
     if check_input:
-        y = _check_y(y, multi_output=False, y_numeric=not is_clf)
+        y = _check_y(y, multi_output=multi_output, y_numeric=not is_clf)
 
         if y.ndim == 2 and y.shape[1] == 1:
             y = y.reshape(-1)
@@ -350,7 +351,8 @@ def process_y_lin_reg(X, y,
             The response mean.
     """
 
-    y = basic_y_formatting(X, y, copy=copy, check_input=check_input)
+    y = basic_y_formatting(X, y, copy=copy, check_input=check_input,
+                           multi_output=True)
 
     # mean center y
     out = {}
@@ -399,7 +401,7 @@ def process_y_log_reg(X, y, sample_weight=None, class_weight=None,
             The class labels.
     """
     y = basic_y_formatting(X, y, copy=copy, check_input=check_input,
-                           is_clf=True)
+                           is_clf=True, multi_output=False)
 
     enc = LabelEncoder()
     y_ind = enc.fit_transform(y)
@@ -463,7 +465,7 @@ def process_y_hinge(X, y, sample_weight=None, class_weight=None,
     """
 
     y = basic_y_formatting(X, y, copy=copy, check_input=check_input,
-                           is_clf=True)
+                           is_clf=True, multi_output=True)
 
     enc = LabelEncoder()
     y_ind = enc.fit_transform(y)
@@ -551,7 +553,7 @@ def process_y_multinomial(X, y, sample_weight=None, class_weight=None,
             The class labels.
     """
     y = basic_y_formatting(X, y, copy=copy, check_input=check_input,
-                           is_clf=True)
+                           is_clf=True, multi_output=False)
 
     if check_input:
         # make sure y is one dimensional
@@ -613,7 +615,8 @@ def process_y_poisson(X, y, sample_weight=None, copy=True, check_input=True):
     sample_weight: None or array-like,  shape (n_samples,)
         The original sample weights.
     """
-    y = basic_y_formatting(X, y, copy=copy, check_input=check_input)
+    y = basic_y_formatting(X, y, copy=copy, check_input=check_input,
+                           multi_output=True)
     if check_input:
         assert y.min() >= 0
 
