@@ -1,14 +1,6 @@
 from setuptools import setup, find_packages
-import os
 
-version = None
-with open(os.path.join('yaglm', '__init__.py'), 'r') as fid:
-    for line in (line.strip() for line in fid):
-        if line.startswith('__version__'):
-            version = line.split('=')[1].strip().strip('\'')
-            break
-if version is None:
-    raise RuntimeError('Could not determine version')
+from yaglm import __version__ as version
 
 
 install_requires = ['numpy',
@@ -16,7 +8,6 @@ install_requires = ['numpy',
                     'scikit-learn',
                     'scipy'
                     ]
-
 
 setup(name='yaglm',
       version=version,
